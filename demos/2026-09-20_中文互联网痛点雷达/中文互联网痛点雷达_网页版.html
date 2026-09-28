@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中文互联网痛点雷达 · Vibe Coding 选题助手</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%231a5fb4' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%233584e4' stroke-width='1.6' stroke-dasharray='3 2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%231a5fb4'/%3E%3Cpath d='M16 16L25 8' stroke='%231a5fb4' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root{--primary:#1a5fb4;--primary-d:#143d78;--accent:#3584e4;--bg:#f2f5f9;--card:#fff;--line:#dfe5ec;--text:#1f2937;--muted:#6b7280;--ok:#2e7d32;--warn:#b26a00;--err:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:1180px;margin:0 auto;padding:16px}
+  header.top{display:flex;align-items:center;gap:12px;padding:14px 4px 4px}
+  .logo{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;flex:none}
+  .logo svg{width:26px;height:26px}
+  header.top h1{font-size:20px;font-weight:700}
+  header.top p{color:var(--muted);font-size:12.5px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .stat .n{font-size:22px;font-weight:700;color:var(--primary-d);font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted)}
+  .charts{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(16,42,67,.06)}
+  .card h2{font-size:14px;margin-bottom:8px;color:var(--primary-d)}
+  .chartBox{width:100%;height:300px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 8px;align-items:center}
+  .toolbar input,.toolbar select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;font-size:13.5px;background:#fff}
+  .toolbar input{flex:1;min-width:200px}
+  .toolbar input:focus,.toolbar select:focus{outline:none;border-color:var(--accent)}
+  button{font-size:13.5px;padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  table.grid{border-collapse:collapse;width:100%;font-size:13px}
+  table.grid th{background:#eef2f7;text-align:left;padding:9px 10px;border:1px solid var(--line);white-space:nowrap}
+  table.grid td{padding:8px 10px;border:1px solid #edf0f4;vertical-align:top}
+  table.grid td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .rank{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;background:#eef2f7;color:var(--primary-d);font-weight:700;font-size:12px}
+  .rank.top{background:var(--primary);color:#fff}
+  .tag{display:inline-block;font-size:11.5px;border-radius:6px;padding:1px 8px;margin:1px 3px 1px 0}
+  .tag.zh{background:#e3f2fd;color:var(--primary-d)}
+  .tag.v2{background:#fff3e0;color:var(--warn)}
+  .tag.ji{background:#f3e5f5;color:#7b1fa2}
+  .tag.xhs{background:#fde8e8;color:#c62828}
+  .tag.cat{background:#f1f5f9;color:#475569}
+  .bar{display:inline-block;height:8px;background:var(--accent);border-radius:4px;vertical-align:middle}
+  .emo{display:inline-block;font-size:11.5px;font-weight:600}
+  .emo.hot{color:var(--err)} .emo.mid{color:var(--warn)} .emo.calm{color:var(--ok)}
+  .suggest{color:var(--muted);font-size:12.5px;margin-top:3px}
+  .suggest b{color:var(--primary-d);font-weight:600}
+  .tableWrap{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:10px}
+  footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
+  footer b{color:#4b5563}
+  @media(max-width:900px){.charts{grid-template-columns:1fr}}
+  @media(max-width:640px){
+    .wrap{padding:10px}.card{padding:14px}
+    table.grid{display:block;overflow-x:auto}
+    button,input,select{font-size:16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="5.5" stroke="#fff" stroke-width="1.4" stroke-dasharray="2.5 2"/><path d="M12 12L19 6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="#fff"/></svg>
+    </div>
+    <div>
+      <h1>中文互联网痛点雷达</h1>
+      <p>扫描知乎 / V2EX / 即刻 / 小红书，按提及频次×情绪强度排序，帮你找到下一个值得做的小工具</p>
+    </div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="charts">
+    <div class="card">
+      <h2>六大领域痛点强度（雷达）</h2>
+      <div id="radar" class="chartBox"></div>
+    </div>
+    <div class="card">
+      <h2>近 7 天痛点热度趋势</h2>
+      <div id="trend" class="chartBox"></div>
+    </div>
+    <div class="card">
+      <h2>各平台吐槽量分布</h2>
+      <div id="platform" class="chartBox"></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input id="kw" placeholder="搜索痛点关键词，如：外卖、Excel、发票、AI…">
+    <select id="pf"><option value="">全部平台</option><option value="知乎">知乎</option><option value="V2EX">V2EX</option><option value="即刻">即刻</option><option value="小红书">小红书</option></select>
+    <select id="sort"><option value="score">按痛点强度</option><option value="mentions">按提及次数</option><option value="emo">按情绪烈度</option></select>
+    <button class="primary" id="exportBtn">导出 CSV</button>
+  </div>
+
+  <div class="tableWrap">
+    <table class="grid">
+      <thead><tr><th style="width:44px">#</th><th>痛点描述</th><th style="width:90px">平台</th><th style="width:80px" class="num">提及</th><th style="width:120px">情绪</th><th style="width:24%">建议小工具方向</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <footer><b>说明：</b>本页为 demo，预置近 7 天模拟痛点数据；正式版可接入知乎/V2EX/即刻/小红书 RSS 或第三方 API，定时抓取→关键词聚类→情绪打分→每日推送。灵感来自「AI工具资讯日报」9/20（Pain Spotter）。</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ===== 预置痛点数据（模拟近 7 天中文社区真实吐槽，按领域打标） ===== */
+/* category: office / ai / job / retail / saas / finance */
+const PAINS = [
+  {t:"外卖商家每天 100+ 订单，手动录 Excel 要 2 小时，还经常抄错金额", p:"小红书", m:87, e:88, cat:"retail", kw:["外卖","订单","录入","Excel"], sug:"外卖订单自动录入（就是昨天那个 demo）"},
+  {t:"中小企业用共享表格管库存，6 个人同时编辑超卖了 8000 块货", p:"知乎", m:132, e:92, cat:"retail", kw:["库存","超卖","多人编辑"], sug:"轻量库存管理工具（前天那个 demo）"},
+  {t:"月底对账要在 5 个系统之间来回复制粘贴，眼睛都花了还对不平", p:"V2EX", m:76, e:85, cat:"finance", kw:["对账","财务","自动化"], sug:"多表自动对账机器人"},
+  {t:"AI 生成的报表直接发出去，结果数字是它编的，客户找上门才发现", p:"即刻", m:54, e:81, cat:"ai", kw:["AI","幻觉","审核"], sug:"AI 输出事实核查器"},
+  {t:"说要让 AI 自动化，结果每个工具都要登录一遍，凭证散在十个人手里", p:"V2EX", m:48, e:70, cat:"saas", kw:["RPA","账号","权限"], sug:"企业自动化凭证保险箱"},
+  {t:"求职海投 200 份简历没回音，不知道哪类岗位真的匹配自己", p:"小红书", m:145, e:89, cat:"job", kw:["求职","简历","匹配"], sug:"JD 智能匹配+求职信生成"},
+  {t:"老板天天催周报，但数据散在飞书表格、微信群、邮件里，每次拉数半天", p:"知乎", m:98, e:78, cat:"office", kw:["周报","数据汇总","飞书"], sug:"周报自动生成器（前几天做过）"},
+  {t:"RPA 工具按席位收费，一个月几千块，小公司根本用不起", p:"V2EX", m:63, e:74, cat:"saas", kw:["RPA","成本","中小企业"], sug:"开源轻量 RPA 替代品"},
+  {t:"员工操作完 Excel 不知道点了哪，下个月公式被改了都没人发现", p:"知乎", m:41, e:66, cat:"office", kw:["Excel","版本","误操作"], sug:"Excel 操作留痕+回滚工具"},
+  {t:"餐饮门店每天报数靠群里接龙，汇总一个店长 40 分钟还漏店", p:"小红书", m:72, e:83, cat:"retail", kw:["餐饮","门店","报数"], sug:"门店日报接龙自动汇总"},
+  {t:"AI Agent 做长任务必须盯着屏幕等，去接杯水就错过了审批节点", p:"即刻", m:39, e:61, cat:"ai", kw:["Agent","异步","审批"], sug:"AI 任务收件箱（审批节点提醒）"},
+  {t:"发票 OCR 提取后还得人工二次核对，错一个小数点财务就要哭", p:"V2EX", m:58, e:79, cat:"finance", kw:["发票","OCR","校验"], sug:"发票自动提取+规则校验"},
+  {t:"销售 CRM 里的数据和实际报表永远对不上，没人敢信", p:"知乎", m:67, e:76, cat:"saas", kw:["CRM","数据一致","报表"], sug:"多系统数据一致性巡检"},
+  {t:"面试前临时抱佛脚刷题，面完就忘，没个错题本帮自己复盘", p:"小红书", m:44, e:58, cat:"job", kw:["面试","复盘","求职"], sug:"面试复盘+题库助手"},
+  {t:"AI 写的方案看着完美，一落地发现全是假设，没有一个是真数据", p:"即刻", m:36, e:72, cat:"ai", kw:["AI","落地","数据"], sug:"AI 方案数据来源标注器"},
+  {t:"报销单 PDF 五花八门，财务每张都要人工核对金额和税号", p:"V2EX", m:51, e:75, cat:"finance", kw:["报销","PDF","财务"], sug:"报销单自动审核流水"},
+  {t:"库存预警全靠人脑记，一次忘补货断货三天，客户跑光", p:"小红书", m:49, e:80, cat:"retail", kw:["库存","预警","补货"], sug:"低库存自动预警+采购建议"},
+  {t:"每个工具都要单独登一遍，企业微信、飞书、钉钉来回切", p:"知乎", m:73, e:69, cat:"saas", kw:["账号","SSO","IM"], sug:"企业工具统一入口"},
+  {t:"每天重复的 Excel 操作录了宏，同事换个电脑就不会用了", p:"V2EX", m:42, e:64, cat:"office", kw:["Excel","宏","复用"], sug:"宏模板一键导入工具"},
+  {t:"AI 聊天记录里有重要决策，过两周谁都想不起来当时为啥定的", p:"即刻", m:33, e:55, cat:"ai", kw:["AI","决策","沉淀"], sug:"AI 对话决策沉淀日志"},
+  {t:"招聘 JD 写得花里胡哨，实际要求和岗位完全不是一回事", p:"小红书", m:88, e:77, cat:"job", kw:["JD","求职","真实要求"], sug:"JD 真实要求提取器"},
+  {t:"每月手工做经营分析，图表复制粘贴到 PPT，格式全乱", p:"知乎", m:47, e:62, cat:"office", kw:["报表","PPT","图表"], sug:"经营报表一键出 PPT"},
+  {t:"供应商对账单 Excel 版本传了 20 个，不知道哪个是最新的", p:"V2EX", m:55, e:73, cat:"finance", kw:["对账","版本","供应商"], sug:"对账单版本锁定工具"},
+  {t:"自动化跑了半夜静默失败，早上发现业务已经停了 6 小时", p:"即刻", m:40, e:84, cat:"saas", kw:["自动化","告警","监控"], sug:"自动化健康监控面板"}
+];
+
+/* 痛点强度 = 提及次数(0.6) + 情绪烈度(0.4) 归一化 */
+const MAX_M = Math.max(...PAINS.map(p => p.m));
+PAINS.forEach(p => p.score = Math.round(p.m / MAX_M * 60 + p.e * 0.4));
+
+const CAT_NAME = {office:"办公效率", ai:"AI 落地", job:"求职招聘", retail:"餐饮零售", saas:"软件/SaaS", finance:"财务对账"};
+const PLAT_TAG = {"知乎":"zh","V2EX":"v2","即刻":"ji","小红书":"xhs"};
+
+function stats(){
+  const total = PAINS.length;
+  const top = PAINS.reduce((a,b) => a.score > b.score ? a : b);
+  const totalM = PAINS.reduce((s,p) => s+p.m, 0);
+  const hot = PAINS.filter(p => p.e >= 80).length;
+  return [
+    ["监测痛点", total],
+    ["累计提及", totalM],
+    ["高热吐槽", hot],
+    ["最痛领域", CAT_NAME[top.cat]]
+  ];
+}
+function renderStats(){
+  $("stats").innerHTML = stats().map(([l,v]) => `<div class="stat"><div class="n">${v}</div><div class="l">${l}</div></div>`).join("");
+}
+
+function emoTag(e){
+  const cls = e >= 80 ? "hot" : e >= 65 ? "mid" : "calm";
+  const txt = e >= 80 ? "🔥 很痛" : e >= 65 ? "😣 较痛" : "😐 一般";
+  return `<span class="emo ${cls}">${txt}</span>`;
+}
+function bar(m){
+  const w = Math.round(m / MAX_M * 100);
+  return `<span class="bar" style="width:${Math.max(12,w)}px"></span> <b>${m}</b>`;
+}
+function renderTable(){
+  const kw = $("kw").value.trim().toLowerCase();
+  const pf = $("pf").value;
+  const sk = $("sort").value;
+  let rows = PAINS.filter(p => (!pf || p.p === pf) && (!kw || p.t.toLowerCase().includes(kw) || p.kw.some(k => k.toLowerCase().includes(kw))));
+  const keyMap = {score:"score", mentions:"m", emo:"e"};
+  const k = keyMap[sk] || "score";
+  rows.sort((a,b) => b[k] - a[k]);
+  let html = "";
+  rows.forEach((p,i) => {
+    html += `<tr>
+      <td><span class="rank ${i<3?'top':''}">${i+1}</span></td>
+      <td><div>${p.t}</div><div class="suggest">→ <b>建议做：</b>${p.sug}</div></td>
+      <td><span class="tag ${PLAT_TAG[p.p]}">${p.p}</span></td>
+      <td class="num">${bar(p.m)}</td>
+      <td>${emoTag(p.e)}</td>
+      <td><span class="tag cat">${CAT_NAME[p.cat]}</span>${p.kw.map(k=>`<span class="tag cat">#${k}</span>`).join("")}</td>
+    </tr>`;
+  });
+  if (!rows.length) html = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">没有匹配的痛点</td></tr>`;
+  $("tbody").innerHTML = html;
+}
+
+function ensureECharts(cb){
+  if (typeof echarts !== "undefined") return cb(true);
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js";
+  s.onload = () => cb(true); s.onerror = () => cb(false);
+  document.head.appendChild(s);
+}
+function renderCharts(ok){
+  if (!ok) return;
+  // 雷达：六领域平均强度
+  const cats = Object.keys(CAT_NAME);
+  const radarData = cats.map(c => {
+    const list = PAINS.filter(p => p.cat === c);
+    return Math.round(list.reduce((s,p)=>s+p.score,0) / list.length);
+  });
+  echarts.init($("radar")).setOption({
+    radar:{indicator: cats.map(c => ({name: CAT_NAME[c], max: 100})), radius:"62%", splitArea:{areaStyle:{color:["#fafcff","#f0f6fc"]}}},
+    series:[{type:"radar", data:[{value:radarData, name:"痛点强度", areaStyle:{color:"rgba(53,132,228,.35)"}, lineStyle:{color:"#1a5fb4"}, itemStyle:{color:"#1a5fb4"}}]}]
+  });
+  // 趋势：近 7 天新增痛点数（模拟）
+  const days = []; const today = new Date();
+  for (let i=6;i>=0;i--){ const d = new Date(today); d.setDate(d.getDate()-i); days.push((d.getMonth()+1)+"/"+d.getDate()); }
+  const trend = [3,5,4,7,6,9,8];
+  echarts.init($("trend")).setOption({
+    grid:{left:36,right:16,top:20,bottom:28},
+    xAxis:{type:"category",data:days,axisLine:{lineStyle:{color:"#cbd5e1"}}},
+    yAxis:{type:"value",splitLine:{lineStyle:{color:"#eef2f7"}}},
+    series:[{type:"line",data:trend,smooth:true,areaStyle:{color:"rgba(53,132,228,.2)"},lineStyle:{color:"#1a5fb4",width:2.5},itemStyle:{color:"#1a5fb4"}}]
+  });
+  // 平台分布
+  const pfCount = {}; PAINS.forEach(p => pfCount[p.p] = (pfCount[p.p]||0)+1);
+  echarts.init($("platform")).setOption({
+    grid:{left:36,right:16,top:20,bottom:28},
+    xAxis:{type:"category",data:Object.keys(pfCount),axisLabel:{interval:0}},
+    yAxis:{type:"value",splitLine:{lineStyle:{color:"#eef2f7"}}},
+    series:[{type:"bar",data:Object.values(pfCount),barWidth:"45%",itemStyle:{color:"#3584e4",borderRadius:[6,6,0,0]}}]
+  });
+}
+
+$("kw").oninput = renderTable;
+$("pf").onchange = renderTable;
+$("sort").onchange = renderTable;
+$("exportBtn").onclick = () => {
+  const rows = [["排名","痛点","平台","提及次数","情绪烈度","建议方向","分类"]].concat(
+    [...PAINS].sort((a,b)=>b.score-a.score).map((p,i)=>[i+1,p.t,p.p,p.m,p.e,p.sug,CAT_NAME[p.cat]])
+  );
+  const csv = "\uFEFF" + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "中文互联网痛点雷达_" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+renderStats();
+renderTable();
+ensureECharts(renderCharts);
+</script>
+</body>
+</html>

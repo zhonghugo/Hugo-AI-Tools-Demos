@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>轻量库存管理工具 · 单店版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='14' width='26' height='14' rx='2' fill='%231a5fb4'/%3E%3Cpath d='M16 4l11 10H5L16 4z' fill='%233584e4'/%3E%3C/svg%3E">
+<style>
+  :root{--primary:#1a5fb4;--primary-d:#143d78;--accent:#3584e4;--bg:#f2f5f9;--card:#fff;--line:#dfe5ec;--text:#1f2937;--muted:#6b7280;--ok:#2e7d32;--warn:#b26a00;--err:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:1120px;margin:0 auto;padding:16px}
+  header.top{display:flex;align-items:center;gap:12px;padding:14px 4px 4px}
+  .logo{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;flex:none}
+  .logo svg{width:24px;height:24px}
+  header.top h1{font-size:20px;font-weight:700}
+  header.top p{color:var(--muted);font-size:12.5px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .stat .n{font-size:22px;font-weight:700;color:var(--primary-d);font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted)}
+  .stat.warn .n{color:var(--warn)}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+  .tabs button{padding:9px 16px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:14px;cursor:pointer;color:var(--muted)}
+  .tabs button.on{border-color:var(--primary);background:#eef4fc;color:var(--primary-d);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px;box-shadow:0 1px 3px rgba(16,42,67,.06)}
+  .card h2{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+  .fRow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px}
+  .fItem{display:flex;flex-direction:column;gap:4px}
+  .fItem label{font-size:12px;color:var(--muted)}
+  .fItem input,.fItem select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;min-width:120px}
+  .fItem input:focus,.fItem select:focus{outline:none;border-color:var(--accent)}
+  button{font-size:13.5px;padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:all .15s}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--primary-d)}
+  button.danger{color:var(--err)}
+  table.grid{border-collapse:collapse;width:100%;font-size:13px}
+  table.grid th{background:#eef2f7;text-align:left;padding:8px 10px;border:1px solid var(--line);white-space:nowrap}
+  table.grid td{padding:7px 10px;border:1px solid #edf0f4;white-space:nowrap}
+  table.grid td.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.grid tr.low td{background:#fff7e6}
+  table.grid tr.out td{color:var(--err)}
+  .tag{display:inline-block;font-size:11.5px;border-radius:6px;padding:1px 8px}
+  .tag.ok{background:#e8f5e9;color:var(--ok)}
+  .tag.warn{background:#fff3e0;color:var(--warn)}
+  .tag.out{background:#fdecea;color:var(--err)}
+  .tag.in{background:#e3f2fd;color:var(--primary-d)}
+  .empty{text-align:center;color:var(--muted);padding:30px;font-size:13px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+  .toolbar input.search{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;font-size:13.5px}
+  .status{font-size:13px;margin-top:8px;min-height:20px}
+  .status.ok{color:var(--ok)} .status.err{color:var(--err)}
+  footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
+  footer b{color:#4b5563}
+  @media(max-width:640px){
+    .wrap{padding:10px}
+    .card{padding:14px}
+    .fItem input,.fItem select,button{font-size:16px}
+    table.grid{display:block;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="12" width="18" height="9" rx="1.5" stroke="#fff" stroke-width="1.8"/><path d="M12 4l8 8H4l8-8z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    </div>
+    <div>
+      <h1>轻量库存管理工具（单店版）</h1>
+      <p>商品录入 · 出入库登记 · 实时库存 · 低库存预警 · 数据自动保存在本机浏览器</p>
+    </div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <button data-v="overview" class="on">库存总览</button>
+    <button data-v="goods">商品管理</button>
+    <button data-v="inout">出入库登记</button>
+    <button data-v="logs">流水记录</button>
+  </div>
+
+  <!-- 库存总览 -->
+  <section class="card" id="v-overview">
+    <h2>当前库存</h2>
+    <div class="toolbar">
+      <input class="search" id="ovSearch" placeholder="搜索商品名 / SKU / 分类…">
+      <button id="ovExport">导出 Excel</button>
+    </div>
+    <div class="pvBox" style="overflow:auto;max-height:480px">
+      <table class="grid" id="ovTbl"></table>
+    </div>
+  </section>
+
+  <!-- 商品管理 -->
+  <section class="card" id="v-goods" hidden>
+    <h2>商品档案</h2>
+    <div class="fRow">
+      <div class="fItem"><label>SKU 编码</label><input id="gSku" placeholder="如 RG-001"></div>
+      <div class="fItem"><label>商品名称</label><input id="gName" placeholder="如 五常大米"></div>
+      <div class="fItem"><label>分类</label><input id="gCat" placeholder="如 米面粮油"></div>
+      <div class="fItem"><label>单位</label><input id="gUnit" placeholder="如 袋/桶/斤"></div>
+      <div class="fItem"><label>单价（元）</label><input id="gPrice" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="fItem"><label>安全库存</label><input id="gSafety" type="number" placeholder="低于此数预警"></div>
+      <div class="fItem"><label>初始库存</label><input id="gInit" type="number" placeholder="0"></div>
+      <button class="primary" id="gAdd">添加商品</button>
+    </div>
+    <div style="overflow:auto;max-height:400px">
+      <table class="grid" id="gTbl"></table>
+    </div>
+  </section>
+
+  <!-- 出入库登记 -->
+  <section class="card" id="v-inout" hidden>
+    <h2>登记出入库</h2>
+    <div class="fRow">
+      <div class="fItem"><label>类型</label>
+        <select id="ioType"><option value="out">出库（用掉/售出）</option><option value="in">入库（采购/到货）</option></select>
+      </div>
+      <div class="fItem"><label>商品</label><select id="ioGoods"></select></div>
+      <div class="fItem"><label>数量</label><input id="ioQty" type="number" step="0.5" placeholder="0"></div>
+      <div class="fItem"><label>备注</label><input id="ioNote" placeholder="如 6月采购"></div>
+      <button class="primary" id="ioSave">登记</button>
+    </div>
+    <div class="status" id="ioStatus"></div>
+    <p style="font-size:12.5px;color:var(--muted)">出库后库存实时扣减；若库存不足会提示，避免超卖。</p>
+  </section>
+
+  <!-- 流水记录 -->
+  <section class="card" id="v-logs" hidden>
+    <h2>出入库流水</h2>
+    <div class="toolbar">
+      <button id="logClear" class="danger">清空流水</button>
+      <button id="logExport">导出流水 Excel</button>
+    </div>
+    <div style="overflow:auto;max-height:480px">
+      <table class="grid" id="logTbl"></table>
+    </div>
+  </section>
+
+  <footer><b>说明：</b>数据保存在本机浏览器（localStorage），不上传任何服务器。关闭页面再打开数据仍在；换电脑需先导出 Excel。灵感来自「AI工具资讯日报」9/18（Reddit：零售店共享表格管库存超卖 $8000）。</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (n, d=2) => typeof n === "number" ? n.toLocaleString("zh-CN",{maximumFractionDigits:d}) : (n ?? "");
+const LS_KEY = "light_inventory_v1";
+
+/* 示例数据：餐馆常见食材 */
+const SEED = {
+  goods: [
+    { sku:"MF-001", name:"五常大米", cat:"米面粮油", unit:"袋", price:128, safety:5, init:20 },
+    { sku:"MF-002", name:"一级大豆油", cat:"米面粮油", unit:"桶", price:85, safety:4, init:12 },
+    { sku:"SC-001", name:"鸡蛋", cat:"食材", unit:"板", price:28, safety:10, init:30 },
+    { sku:"SC-002", name:"五花肉", cat:"食材", unit:"斤", price:18, safety:20, init:8 },
+    { sku:"SC-003", name:"青菜", cat:"食材", unit:"斤", price:4.5, safety:15, init:4 },
+    { sku:"TL-001", name:"生抽", cat:"调料", unit:"瓶", price:16, safety:6, init:10 },
+    { sku:"TL-002", name:"食盐", cat:"调料", unit:"袋", price:2.5, safety:20, init:15 },
+    { sku:"YIN-001", name:"一次性餐盒", cat:"耗材", unit:"个", price:0.35, safety:500, init:800 },
+  ],
+  logs: []
+};
+
+let DB = load();
+function load(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw){ const d = JSON.parse(raw); if (d && Array.isArray(d.goods)) return d; }
+  } catch(e){}
+  return JSON.parse(JSON.stringify(SEED));
+}
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }
+
+/* 实时库存 = 初始 + 入库 - 出库 */
+function stockOf(sku){
+  const g = DB.goods.find(x => x.sku === sku);
+  if (!g) return 0;
+  let s = Number(g.init || 0);
+  DB.logs.forEach(l => { if (l.sku === sku) s += l.type === "in" ? Number(l.qty) : -Number(l.qty); });
+  return s;
+}
+function nowStr(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0") + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+function renderStats(){
+  const totalSku = DB.goods.length;
+  let totalValue = 0, low = 0, out = 0;
+  DB.goods.forEach(g => {
+    const s = stockOf(g.sku);
+    totalValue += s * Number(g.price || 0);
+    if (s <= 0) out++;
+    else if (s <= Number(g.safety || 0)) low++;
+  });
+  const items = [
+    ["商品数", totalSku],
+    ["库存总值（元）", fmt(totalValue)],
+    ["低库存预警", low],
+    ["缺货商品", out]
+  ];
+  $("stats").innerHTML = items.map(([l,v],i) =>
+    `<div class="stat${(i===2&&low>0)||(i===3&&out>0)?" warn":""}"><div class="n">${v}</div><div class="l">${l}</div></div>`).join("");
+}
+
+function renderOverview(){
+  const q = ($("ovSearch").value || "").trim();
+  const rows = DB.goods.filter(g => !q || g.name.includes(q) || g.sku.toLowerCase().includes(q.toLowerCase()) || g.cat.includes(q));
+  let html = "<thead><tr><th>SKU</th><th>商品名称</th><th>分类</th><th>单位</th><th>单价</th><th>实时库存</th><th>安全库存</th><th>库存金额</th><th>状态</th></tr></thead><tbody>";
+  if (!rows.length) html += '<tr><td colspan="9" class="empty">无匹配商品</td></tr>';
+  rows.forEach(g => {
+    const s = stockOf(g.sku);
+    const safety = Number(g.safety || 0);
+    const amt = s * Number(g.price || 0);
+    let tag, cls = "";
+    if (s <= 0){ tag = '<span class="tag out">缺货</span>'; cls = "out"; }
+    else if (s <= safety){ tag = '<span class="tag warn">偏低</span>'; cls = "low"; }
+    else tag = '<span class="tag ok">正常</span>';
+    html += `<tr class="${cls}"><td>${esc(g.sku)}</td><td>${esc(g.name)}</td><td>${esc(g.cat)}</td><td>${esc(g.unit)}</td>
+      <td class="num">${fmt(g.price)}</td><td class="num">${fmt(s,1)}</td><td class="num">${fmt(safety,0)}</td><td class="num">${fmt(amt)}</td><td>${tag}</td></tr>`;
+  });
+  $("ovTbl").innerHTML = html + "</tbody>";
+}
+
+function renderGoods(){
+  let html = "<thead><tr><th>SKU</th><th>名称</th><th>分类</th><th>单位</th><th>单价</th><th>安全库存</th><th>初始库存</th><th>当前库存</th><th></th></tr></thead><tbody>";
+  if (!DB.goods.length) html += '<tr><td colspan="9" class="empty">还没有商品，先添加一个</td></tr>';
+  DB.goods.forEach(g => {
+    html += `<tr><td>${esc(g.sku)}</td><td>${esc(g.name)}</td><td>${esc(g.cat)}</td><td>${esc(g.unit)}</td>
+      <td class="num">${fmt(g.price)}</td><td class="num">${fmt(g.safety,0)}</td><td class="num">${fmt(g.init,0)}</td><td class="num">${fmt(stockOf(g.sku),1)}</td>
+      <td><button class="danger" data-del="${esc(g.sku)}">删除</button></td></tr>`;
+  });
+  $("gTbl").innerHTML = html + "</tbody>";
+}
+
+function renderGoodsSelect(){
+  $("ioGoods").innerHTML = DB.goods.map(g => `<option value="${esc(g.sku)}">${esc(g.name)}（${esc(g.sku)}）</option>`).join("");
+}
+
+function renderLogs(){
+  const rows = DB.logs.slice().reverse();
+  let html = "<thead><tr><th>时间</th><th>类型</th><th>商品</th><th>数量</th><th>备注</th><th></th></tr></thead><tbody>";
+  if (!rows.length) html += '<tr><td colspan="6" class="empty">暂无流水</td></tr>';
+  rows.forEach(l => {
+    const g = DB.goods.find(x => x.sku === l.sku);
+    html += `<tr><td>${esc(l.time)}</td>
+      <td><span class="tag ${l.type==="in"?"in":"out"}">${l.type==="in"?"入库":"出库"}</span></td>
+      <td>${esc(g ? g.name : l.sku)}</td><td class="num">${fmt(l.qty,1)}</td><td>${esc(l.note)}</td>
+      <td><button class="danger" data-dellog="${esc(l.id)}">删</button></td></tr>`;
+  });
+  $("logTbl").innerHTML = html + "</tbody>";
+}
+
+function renderAll(){ renderStats(); renderOverview(); renderGoods(); renderGoodsSelect(); renderLogs(); }
+
+/* 视图切换 */
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  ["overview","goods","inout","logs"].forEach(v => $("v-" + v).hidden = (v !== b.dataset.v));
+});
+$("ovSearch").oninput = renderOverview;
+
+/* 添加商品 */
+$("gAdd").onclick = () => {
+  const sku = $("gSku").value.trim();
+  const name = $("gName").value.trim();
+  if (!sku || !name){ alert("SKU 和名称必填"); return; }
+  if (DB.goods.some(g => g.sku === sku)){ alert("SKU 已存在：" + sku); return; }
+  DB.goods.push({
+    sku, name, cat: $("gCat").value.trim() || "未分类",
+    unit: $("gUnit").value.trim() || "个",
+    price: Number($("gPrice").value) || 0,
+    safety: Number($("gSafety").value) || 0,
+    init: Number($("gInit").value) || 0
+  });
+  save(); renderAll();
+  ["gSku","gName","gCat","gUnit","gPrice","gSafety","gInit"].forEach(i => $(i).value = "");
+};
+
+/* 删除商品 */
+$("gTbl").addEventListener("click", e => {
+  const sku = e.target.dataset.del;
+  if (!sku) return;
+  if (!confirm("删除商品「" + sku + "」？相关流水会保留显示但不再参与库存计算。")) return;
+  DB.goods = DB.goods.filter(g => g.sku !== sku);
+  save(); renderAll();
+});
+
+/* 出入库登记 */
+$("ioSave").onclick = () => {
+  const sku = $("ioGoods").value;
+  const qty = Number($("ioQty").value);
+  if (!sku || !qty || qty <= 0){ alert("请选择商品并填写正数数量"); return; }
+  const g = DB.goods.find(x => x.sku === sku);
+  const cur = stockOf(sku);
+  if ($("ioType").value === "out" && qty > cur){
+    $("ioStatus").textContent = `库存不足：当前 ${fmt(cur,1)} ${g.unit}，出库 ${fmt(qty,1)} 会超卖（这正是那个 $8000 损失的原因）。`;
+    $("ioStatus").className = "status err"; return;
+  }
+  DB.logs.push({ id: "L" + Date.now(), time: nowStr(), type: $("ioType").value, sku, qty, note: $("ioNote").value.trim() });
+  save(); renderAll();
+  $("ioQty").value = ""; $("ioNote").value = "";
+  $("ioStatus").textContent = `已${$("ioType").value === "in" ? "入库" : "出库"} ${fmt(qty,1)} ${g.unit}「${g.name}」，当前库存 ${fmt(stockOf(sku),1)} ${g.unit}。`;
+  $("ioStatus").className = "status ok";
+};
+
+/* 删除单条流水 / 清空 */
+$("logTbl").addEventListener("click", e => {
+  const id = e.target.dataset.dellog;
+  if (!id) return;
+  DB.logs = DB.logs.filter(l => l.id !== id);
+  save(); renderAll();
+});
+$("logClear").onclick = () => {
+  if (!confirm("确定清空全部出入库流水？库存将回到各商品的初始库存。")) return;
+  DB.logs = []; save(); renderAll();
+};
+
+/* SheetJS 兜底 */
+function ensureXLSX(cb){
+  if (typeof XLSX !== "undefined") return cb(true);
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.onload = () => cb(true); s.onerror = () => cb(false);
+  document.head.appendChild(s);
+}
+function exportRows(rows, name){
+  ensureXLSX(ok => {
+    if (!ok){ alert("导出需要联网加载表格解析库，请检查网络。"); return; }
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "库存");
+    XLSX.writeFile(wb, name);
+  });
+}
+$("ovExport").onclick = () => {
+  const head = ["SKU","商品名称","分类","单位","单价","实时库存","安全库存","库存金额","状态"];
+  const rows = [head].concat(DB.goods.map(g => {
+    const s = stockOf(g.sku);
+    const st = s <= 0 ? "缺货" : (s <= Number(g.safety||0) ? "偏低" : "正常");
+    return [g.sku, g.name, g.cat, g.unit, g.price, s, g.safety, Math.round(s*g.price*100)/100, st];
+  }));
+  exportRows(rows, "库存总览_" + nowStr().slice(0,10) + ".xlsx");
+};
+$("logExport").onclick = () => {
+  const rows = [["时间","类型","SKU","商品","数量","备注"]].concat(DB.logs.map(l => {
+    const g = DB.goods.find(x => x.sku === l.sku);
+    return [l.time, l.type === "in" ? "入库" : "出库", l.sku, g ? g.name : l.sku, l.qty, l.note || ""];
+  }));
+  exportRows(rows, "出入库流水_" + nowStr().slice(0,10) + ".xlsx");
+};
+
+renderAll();
+</script>
+</body>
+</html>

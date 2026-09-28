@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel多表批量填充器 · 网页版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='6' fill='%231a5fb4'/%3E%3Cpath d='M10 8v16M10 16h12' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --primary:#1a5fb4; --primary-d:#143d78; --accent:#3584e4; --bg:#f2f5f9;
+    --card:#ffffff; --line:#dfe5ec; --text:#1f2937; --muted:#6b7280;
+    --ok:#2e7d32; --warn:#b26a00; --formula:#8a9199;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none !important}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+  header.top{display:flex;align-items:center;gap:14px;padding:22px 0 6px}
+  .logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;flex:none}
+  .logo svg{width:26px;height:26px}
+  header.top h1{font-size:22px;font-weight:700}
+  header.top p{color:var(--muted);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-top:16px;box-shadow:0 1px 3px rgba(16,42,67,.06)}
+  .card h2{display:flex;align-items:center;gap:10px;font-size:16px;margin-bottom:14px}
+  .step{width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .seg{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .seg button{flex:1;min-width:180px;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-size:14px;color:var(--muted);transition:all .15s}
+  .seg button.on{border-color:var(--primary);background:#eef4fc;color:var(--primary-d);font-weight:600}
+  .seg button:hover{border-color:var(--accent)}
+  .demoInfo{background:#f8fafc;border:1px dashed var(--line);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted)}
+  .demoInfo b{color:var(--text)}
+  .upGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .upBox{border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color .15s;background:#fbfcfe}
+  .upBox:hover{border-color:var(--accent)}
+  .upBox.on{border-color:var(--ok);background:#f1f8f1}
+  .upBox .fname{font-size:12px;color:var(--muted);margin-top:6px;word-break:break-all}
+  .upBox .ftag{display:inline-block;font-size:11px;background:#e8f0fb;color:var(--primary-d);border-radius:6px;padding:1px 8px;margin-top:4px}
+  label.ub{display:block}
+  label.ub .t{font-size:13px;font-weight:600}
+  label.ub .d{font-size:12px;color:var(--muted)}
+  textarea{width:100%;min-height:150px;font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:12.5px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical;line-height:1.5;color:var(--text)}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{font-size:14px;padding:9px 18px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:all .15s}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--primary-d)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .cfgSummary{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+  .cfgItem{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#f8fafc;font-size:12.5px}
+  .cfgItem .fn{font-weight:700;font-size:13px;margin-bottom:4px;color:var(--primary-d)}
+  .cfgItem .sn{color:var(--muted)}
+  .cfgItem .ct{display:inline-block;margin-top:6px;font-size:11px;background:#eef4fc;color:var(--primary-d);border-radius:6px;padding:1px 7px}
+  .status{margin-top:12px;font-size:13px;min-height:20px}
+  .status.ok{color:var(--ok)}
+  .status.err{color:#c62828}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .tabs button{border-radius:8px;font-size:13px;padding:7px 14px}
+  .tabs button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  .pvBox{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:520px;overflow-y:auto}
+  table.pv{border-collapse:collapse;width:100%;font-size:12.5px}
+  table.pv th{background:#eef2f7;position:sticky;top:0;font-weight:600;padding:7px 10px;border:1px solid var(--line);white-space:nowrap;min-width:96px}
+  table.pv td{padding:6px 10px;border:1px solid #edf0f4;white-space:nowrap;min-width:96px}
+  table.pv tr.total td{background:#f4f7fb;font-weight:600}
+  table.pv td.f{color:var(--formula);font-style:italic}
+  table.pv td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .resultHead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .resultHead h2{margin-bottom:0}
+  .badge{font-size:12px;background:#e8f5e9;color:var(--ok);border-radius:8px;padding:3px 10px;font-weight:600}
+  details{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--primary-d)}
+  pre.report{font-size:12px;background:#f8fafc;border-radius:8px;padding:10px 12px;margin-top:8px;overflow-x:auto;color:#374151;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+  footer{margin-top:26px;font-size:12px;color:var(--muted);text-align:center}
+  footer b{color:#4b5563}
+  .fGroup{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#fbfcfe}
+  .fGroup h3{font-size:14px;font-weight:600;color:var(--primary-d);margin-bottom:10px}
+  .fRow{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .fRow label{font-size:13px;color:#374151;white-space:nowrap}
+  .fRow input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;width:100%;max-width:360px}
+  .fRow input:focus{outline:none;border-color:var(--accent)}
+  .fBlock{margin:12px 0}
+  .fLabel{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+  table.fTbl{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:8px}
+  table.fTbl th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+  table.fTbl td{padding:4px 6px;border-bottom:1px solid #f0f3f6}
+  table.fTbl input,table.fTbl select{padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-size:13px;width:100%;min-width:80px}
+  table.fTbl input:focus,table.fTbl select:focus{outline:none;border-color:var(--accent)}
+  table.fTbl td .del{width:30px;min-width:30px;padding:6px 0;font-size:12px;color:var(--err);background:none;border:none}
+  table.fTbl td .del:hover{background:#fdeaea;border-radius:6px}
+  .addBtn{font-size:13px;padding:7px 14px;color:var(--primary-d);background:#eef4fc;border:1px dashed #b9cdea;border-radius:8px}
+  .addBtn:hover{background:#dcebfa}
+  .tplCard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#fff}
+  .tplHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .tplHead b{font-size:14px;color:var(--primary-d)}
+  .tplHead .delTpl{margin-left:auto;font-size:12px;color:var(--err);border:none;background:none;padding:4px 8px}
+  .tplHead .delTpl:hover{background:#fdeaea;border-radius:6px}
+  .fRow3{display:grid;grid-template-columns:2fr 1.2fr 0.8fr;gap:10px;margin-bottom:4px}
+  .fRow3 label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  .fRow3 input{padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-size:13px;width:100%}
+  .fRow3 input:focus{outline:none;border-color:var(--accent)}
+  select{background:#fff}
+  .cfgSummary{margin-top:12px}
+  .cfgItem{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;border:1px solid #edf0f4;border-radius:9px;padding:8px 12px;margin-top:8px;background:#f8fafc;font-size:12.5px}
+  .cfgItem .fn{font-weight:600;color:var(--primary-d)}
+  .cfgItem .sn{color:var(--muted)}
+  .cfgItem .ct{background:#eef4fc;color:var(--primary-d);border-radius:6px;padding:2px 8px;font-size:11.5px}
+  @media(max-width:640px){
+    .fRow3{grid-template-columns:1fr}
+    table.fTbl{display:block;overflow-x:auto}
+  @media(max-width:640px){
+    .upGrid{grid-template-columns:1fr}
+    header.top h1{font-size:19px}
+    .card{padding:16px}
+    textarea,input,button{font-size:16px}
+    textarea{font-size:14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect x="3" y="3" width="26" height="26" rx="6" stroke="#fff" stroke-width="2"/><path d="M9 11h14M9 16h14M9 21h9" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+      <h1>Excel多表批量填充器</h1>
+      <p>一次配置字段映射，自动填多套表 · 公式保留 · 单文件即开即用</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <h2><span class="step">1</span>选择数据</h2>
+    <div class="seg">
+      <button id="mDemo" class="on">内置示例数据（8份合同 → 4套表）</button>
+      <button id="mUpload">上传自己的 Excel 文件</button>
+    </div>
+    <div class="demoInfo" id="demoInfo">内置示例：源表「合同清单.xlsx」8 条合同，自动填充到 <b>对内台账 / 对外报表 / 合规检查表 / 付款计划表</b> 四套模板，可直接体验完整流程。</div>
+    <div class="upGrid" id="uploadBox" hidden>
+      <label class="ub upBox" id="srcBox">
+        <div class="t">源表（数据从这来）</div>
+        <div class="d">点击选择 .xlsx，第一行为表头</div>
+        <input type="file" id="srcFile" accept=".xlsx" hidden>
+        <div class="fname" id="srcName"></div>
+        <div class="ftag" id="srcTag" hidden>已选择</div>
+      </label>
+      <label class="ub upBox" id="tplBox">
+        <div class="t">目标表模板（可多选）</div>
+        <div class="d">要往里填的表，已有公式会保留</div>
+        <input type="file" id="tplFiles" accept=".xlsx" multiple hidden>
+        <div class="fname" id="tplName"></div>
+        <div class="ftag" id="tplTag" hidden>已选择</div>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">2</span>填充配置（填写表单即可，不用懂代码）</h2>
+
+    <div class="fGroup">
+      <div class="fRow"><label>源表 Sheet：</label><input id="srcSheet" placeholder="如 合同明细"></div>
+    </div>
+
+    <div id="tplList"></div>
+    <button type="button" class="addBtn" id="addTpl">+ 添加目标表</button>
+
+    <div class="btns">
+      <button id="applyCfg" class="primary">应用配置</button>
+      <button id="resetCfg">恢复示例配置</button>
+    </div>
+    <div class="status" id="cfgStatus"></div>
+    <div class="cfgSummary" id="cfgSummary"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">3</span>执行填充</h2>
+    <div class="btns">
+      <button id="runBtn" class="primary">开始填充</button>
+    </div>
+    <div class="status" id="runStatus"></div>
+  </section>
+
+  <section class="card" id="resultCard" hidden>
+    <div class="resultHead">
+      <h2>填充结果预览</h2>
+      <span class="badge" id="totalBadge"></span>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="pvBox"><table class="pv" id="pv"></table></div>
+    <div class="btns">
+      <button id="downloadOne">下载当前表 (.xlsx)</button>
+      <button id="downloadAll">下载全部结果 (.xlsx)</button>
+    </div>
+    <details>
+      <summary>查看填充明细报告</summary>
+      <pre class="report" id="report"></pre>
+    </details>
+  </section>
+
+  <footer>
+    <b>说明：</b>页面数据在本地浏览器处理，不上传任何服务器。示例灵感来自「AI工具资讯日报」9/13 头条（国企成本控制专员 · Excel 多表数据自动化）。
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+"use strict";
+/* ================= 工具 ================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); };
+const colToNum = c => { let n = 0; for (const ch of c.toUpperCase()) n = n*26 + (ch.charCodeAt(0)-64); return n; };
+const numToCol = n => { let s = ""; while (n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=(n-m-1)/26; } return s; };
+const numToCell = (c, r) => numToCol(c) + r;
+
+/* ================= 内置示例数据 ================= */
+const DEMO_SRC = {
+  file: "合同清单.xlsx", sheet: "合同明细",
+  headers: ["合同编号","项目名称","供应商","合同金额","签订日期","付款方式","负责人","备注"],
+  rows: [
+    ["HT-2026-001","A厂区消防改造工程","中安消防工程有限公司",1860000,"2026-03-12","分三期","王强","已归档"],
+    ["HT-2026-002","B楼智能化弱电项目","华讯智能科技",932000,"2026-04-02","预付30%","李敏",""],
+    ["HT-2026-003","C园区绿化养护服务","绿洲园林",458000,"2026-04-18","按季度","赵磊","服务期1年"],
+    ["HT-2026-004","D数据中心UPS电源采购","恒动电力设备",2740000,"2026-05-06","预付50%","王强",""],
+    ["HT-2026-005","E办公楼中央空调维保","舒适冷暖工程",316000,"2026-05-20","按年度","孙悦","含备件"],
+    ["HT-2026-006","F园区安防监控改造","视界安防",689000,"2026-06-15","分两期","李敏","新增点位32个"],
+    ["HT-2026-007","G厂区地面翻新工程","新基建设",1280000,"2026-07-01","预付40%","赵磊",""],
+    ["HT-2026-008","H办公楼电梯维保服务","迅达电梯服务",235000,"2026-07-22","按年度","孙悦","含年检"],
+  ]
+};
+
+/* 目标表模板：返回 {ref -> {t,v,f,z}} 单元格对象。公式列以 f 预置，填充不覆盖 */
+function tplTazhang(){
+  const cs = {}, H = ["合同编号","项目名称","供应商","合同金额","含税金额(13%)","签订日期","负责人"];
+  H.forEach((h,i)=> cs[numToCell(i+1,1)] = {t:"s", v:h});
+  for (let r=2; r<=13; r++){ cs[numToCell(5,r)] = {t:"n", f:"D"+r+"*1.13", z:"#,##0.00"}; }
+  cs.B15 = {t:"s", v:"合计"};
+  cs.D15 = {t:"n", f:"SUM(D2:D14)", z:"#,##0"};
+  cs.E15 = {t:"n", f:"SUM(E2:E14)", z:"#,##0.00"};
+  return cs;
+}
+function tplWaibao(){
+  const cs = {}, H = ["序号","合同编号","项目名称","合同金额","签订日期","备注"];
+  H.forEach((h,i)=> cs[numToCell(i+1,1)] = {t:"s", v:h});
+  for (let r=2; r<=13; r++){ cs[numToCell(1,r)] = {t:"n", f:"ROW()-1"}; }
+  return cs;
+}
+function tplHeGui(){
+  const cs = {}, H = ["合同编号","项目名称","供应商","合同金额","付款方式","检查结论","负责人"];
+  H.forEach((h,i)=> cs[numToCell(i+1,1)] = {t:"s", v:h});
+  for (let r=2; r<=13; r++){ cs[numToCell(6,r)] = {t:"s", v:"待查"}; }
+  return cs;
+}
+function tplFukuan(){
+  const cs = {}, H = ["合同编号","项目名称","供应商","合同金额","首付款比例","首付款金额"];
+  H.forEach((h,i)=> cs[numToCell(i+1,1)] = {t:"s", v:h});
+  for (let r=2; r<=13; r++){ cs[numToCell(5,r)] = {t:"n", z:"0%"}; cs[numToCell(6,r)] = {t:"n", f:"ROUND(D"+r+"*E"+r+",2)", z:"#,##0.00"}; }
+  return cs;
+}
+const DEMO_TPL = [
+  { file:"对内台账.xlsx", sheet:"台账", build: tplTazhang },
+  { file:"对外报表.xlsx", sheet:"对外报表", build: tplWaibao },
+  { file:"合规检查表.xlsx", sheet:"合规检查", build: tplHeGui },
+  { file:"付款计划表.xlsx", sheet:"付款计划", build: tplFukuan },
+];
+
+const DEFAULT_CFG = {
+  "源表Sheet": "合同明细",
+  "目标表": [
+    { "文件":"对内台账.xlsx", "Sheet":"台账", "起始行":2,
+      "列映射":[{"源列":"合同编号","目标列":"A"},{"源列":"项目名称","目标列":"B"},{"源列":"供应商","目标列":"C"},{"源列":"合同金额","目标列":"D"},{"源列":"签订日期","目标列":"F"},{"源列":"负责人","目标列":"G"}],
+      "固定单元格":{"I1":"填表人：张会计","I2":"填表日期：{{今天}}"} },
+    { "文件":"对外报表.xlsx", "Sheet":"对外报表", "起始行":2,
+      "列映射":[{"源列":"合同编号","目标列":"B"},{"源列":"项目名称","目标列":"C"},{"源列":"合同金额","目标列":"D"},{"源列":"签订日期","目标列":"E"},{"源列":"备注","目标列":"F"}] },
+    { "文件":"合规检查表.xlsx", "Sheet":"合规检查", "起始行":2,
+      "列映射":[{"源列":"合同编号","目标列":"A"},{"源列":"项目名称","目标列":"B"},{"源列":"供应商","目标列":"C"},{"源列":"合同金额","目标列":"D"},{"源列":"付款方式","目标列":"E"},{"源列":"负责人","目标列":"G"}] },
+    { "文件":"付款计划表.xlsx", "Sheet":"付款计划", "起始行":2,
+      "列映射":[{"源列":"合同编号","目标列":"A"},{"源列":"项目名称","目标列":"B"},{"源列":"供应商","目标列":"C"},{"源列":"合同金额","目标列":"D"},{"源列":"付款方式","目标列":"E"}],
+      "列值转换":{"E":{"分三期":"0.40","预付30%":"0.30","按季度":"0.25","预付50%":"0.50","按年度":"0.20","分两期":"0.50","预付40%":"0.40"}} }
+  ]
+};
+
+/* ================= 状态 ================= */
+const S = {
+  mode: "demo",
+  source: { headers: DEMO_SRC.headers, rows: DEMO_SRC.rows },
+  config: JSON.parse(JSON.stringify(DEFAULT_CFG)),
+  uploadSrc: null,      // ArrayBuffer
+  uploadTpls: [],       // [{name, buffer}]
+  results: [],          // [{file, sheet, rows(预览二维), report[], written}]
+};
+let activeTab = 0;
+
+/* ================= SheetJS 兜底加载 ================= */
+function ensureXLSX(cb){
+  if (typeof XLSX !== "undefined") return cb(true);
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.onload = () => cb(true);
+  s.onerror = () => cb(false);
+  document.head.appendChild(s);
+}
+
+/* ================= 配置（表单化，业务端友好） ================= */
+function srcColOptions(){
+  return S.source.headers.map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join("");
+}
+function refreshSrcColOptions(){
+  document.querySelectorAll("select.srcCol").forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">（请选择源表列）</option>' + srcColOptions();
+    if (cur && sel.querySelector('option[value="' + cur.replace(/"/g,'\\"') + '"]')) sel.value = cur;
+  });
+}
+function addMapRow(tb, src, col){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><select class="srcCol"></select></td><td><input type="text" class="dstCol" placeholder="如 A" value="${esc(col||"")}"></td><td><button type="button" class="del">×</button></td>`;
+  tb.appendChild(tr);
+  refreshSrcColOptions();
+  if (src) tr.querySelector("select").value = src;
+  tr.querySelector(".del").onclick = () => tr.remove();
+}
+function addFixedRow(tb, coord, val){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><input type="text" class="fxCoord" placeholder="如 I1" value="${esc(coord||"")}"></td><td><input type="text" class="fxVal" placeholder="如 填表人：张会计（可用 {{今天}}）" value="${esc(val||"")}"></td><td><button type="button" class="del">×</button></td>`;
+  tb.appendChild(tr);
+  tr.querySelector(".del").onclick = () => tr.remove();
+}
+function addConvRow(tb, col, old, nv){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><input type="text" class="cvCol" placeholder="如 E" value="${esc(col||"")}"></td><td><input type="text" class="cvOld" placeholder="原值，如 分三期" value="${esc(old||"")}"></td><td><input type="text" class="cvNew" placeholder="转换后，如 0.40" value="${esc(nv||"")}"></td><td><button type="button" class="del">×</button></td>`;
+  tb.appendChild(tr);
+  tr.querySelector(".del").onclick = () => tr.remove();
+}
+function addTplCard(tpl){
+  const card = document.createElement("div");
+  card.className = "tplCard";
+  const idx = $("tplList").children.length + 1;
+  card.innerHTML = `
+    <div class="tplHead"><b>目标表 ${idx}</b><button type="button" class="delTpl">删除这张表</button></div>
+    <div class="fRow3">
+      <div><label>模板文件（如 对内台账.xlsx）</label><input type="text" class="tFile" value="${esc(tpl?.文件||"")}" placeholder="与上传的模板文件同名"></div>
+      <div><label>Sheet 名</label><input type="text" class="tSheet" value="${esc(tpl?.Sheet||"")}" placeholder="如 台账"></div>
+      <div><label>起始行（数据从第几行开始填）</label><input type="number" class="tStart" value="${tpl?.起始行 ?? 2}" min="1"></div>
+    </div>
+    <div class="fBlock">
+      <div class="fLabel">字段映射：源表列 → 模板列（模板列写字母，如 A、B、C）</div>
+      <table class="fTbl"><thead><tr><th style="width:38%">源表列</th><th>目标列</th><th style="width:34px"></th></tr></thead><tbody></tbody></table>
+      <button type="button" class="addBtn addMap">+ 添加映射</button>
+    </div>
+    <div class="fBlock">
+      <div class="fLabel">固定单元格：每次都在模板固定位置写的内容（可选，值里可用 {{今天}}）</div>
+      <table class="fTbl"><thead><tr><th style="width:30%">单元格</th><th>内容</th><th style="width:34px"></th></tr></thead><tbody></tbody></table>
+      <button type="button" class="addBtn addFixed">+ 添加固定单元格</button>
+    </div>
+    <div class="fBlock">
+      <div class="fLabel">列值转换：把某列的指定值替换成另一个值（可选，如付款方式：'分三期' → 0.40）</div>
+      <table class="fTbl"><thead><tr><th style="width:22%">目标列</th><th>原值</th><th>转换为</th><th style="width:34px"></th></tr></thead><tbody></tbody></table>
+      <button type="button" class="addBtn addConv">+ 添加转换规则</button>
+    </div>`;
+  $("tplList").appendChild(card);
+  const tabs = card.querySelectorAll(".fTbl tbody");
+  const tbMap = tabs[0], tbFix = tabs[1], tbCv = tabs[2];
+  const m = (tpl?.列映射)||[];
+  (m.length ? m : [{源列:"",目标列:""}]).forEach(x => addMapRow(tbMap, x.源列, x.目标列));
+  const f = (tpl?.固定单元格)||{};
+  const fEntries = Object.keys(f).length ? Object.entries(f) : [["",""]];
+  fEntries.forEach(([k,v]) => addFixedRow(tbFix, k, v));
+  const cv = (tpl?.列值转换)||{};
+  const cvRows = Object.keys(cv).length ? Object.entries(cv).flatMap(([col,map]) => Object.entries(map).map(([o,n]) => [col,o,n])) : [["","",""]];
+  cvRows.forEach(r => addConvRow(tbCv, r[0], r[1], r[2]));
+  card.querySelector(".delTpl").onclick = () => { card.remove(); renumberTpl(); };
+  card.querySelector(".addMap").onclick = () => addMapRow(tbMap, "", "");
+  card.querySelector(".addFixed").onclick = () => addFixedRow(tbFix, "", "");
+  card.querySelector(".addConv").onclick = () => addConvRow(tbCv, "", "", "");
+}
+function renumberTpl(){
+  [...$("tplList").children].forEach((c,i) => c.querySelector(".tplHead b").textContent = "目标表 " + (i+1));
+}
+function fillFormFromConfig(cfg){
+  $("tplList").innerHTML = "";
+  $("srcSheet").value = cfg?.["源表Sheet"] || "";
+  const ts = cfg?.["目标表"] || [];
+  ts.forEach(t => addTplCard(t));
+  if (!ts.length) addTplCard(null);
+}
+function collectConfig(){
+  const targets = [];
+  [...$("tplList").children].forEach(card => {
+    const file = card.querySelector(".tFile").value.trim();
+    if (!file) return;
+    const maps = [];
+    card.querySelectorAll(".fTbl tbody")[0].querySelectorAll("tr").forEach(tr => {
+      const s = tr.querySelector(".srcCol").value, d = tr.querySelector(".dstCol").value.trim();
+      if (s && d) maps.push({ 源列:s, 目标列:d.toUpperCase() });
+    });
+    const fixed = {};
+    card.querySelectorAll(".fTbl tbody")[1].querySelectorAll("tr").forEach(tr => {
+      const c = tr.querySelector(".fxCoord").value.trim().toUpperCase(), v = tr.querySelector(".fxVal").value;
+      if (c && v !== "") fixed[c] = v;
+    });
+    const conv = {};
+    card.querySelectorAll(".fTbl tbody")[2].querySelectorAll("tr").forEach(tr => {
+      const col = tr.querySelector(".cvCol").value.trim().toUpperCase(), o = tr.querySelector(".cvOld").value.trim(), n = tr.querySelector(".cvNew").value;
+      if (col && o !== "" && n !== "") (conv[col] = conv[col]||{})[o] = n;
+    });
+    const t = { 文件:file, Sheet:card.querySelector(".tSheet").value.trim() || "Sheet1", 起始行: parseInt(card.querySelector(".tStart").value) || 2, 列映射:maps };
+    if (Object.keys(fixed).length) t["固定单元格"] = fixed;
+    if (Object.keys(conv).length) t["列值转换"] = conv;
+    targets.push(t);
+  });
+  return { "源表Sheet": $("srcSheet").value.trim(), "目标表": targets };
+}
+function renderCfgSummary(){
+  const box = $("cfgSummary"); box.innerHTML = "";
+  const cfg = S.config;
+  if (!cfg || !cfg["目标表"] || !cfg["目标表"].length){ box.innerHTML = '<div class="cfgItem"><span class="sn">尚未配置目标表，请添加并填写后点「应用配置」。</span></div>'; return; }
+  cfg["目标表"].forEach(t => {
+    const d = document.createElement("div"); d.className = "cfgItem";
+    const n = (t["列映射"]||[]).length;
+    d.innerHTML = `<span class="fn">${esc(t["文件"]||"?")}</span>
+      <span class="sn">Sheet：${esc(t["Sheet"]||"?")} · 起始行 ${esc(String(t["起始行"]??2))}</span>
+      <span class="ct">${n} 个字段映射</span>
+      <span class="ct">${Object.keys(t["固定单元格"]||{}).length} 个固定单元格</span>
+      ${t["列值转换"] ? '<span class="ct">含列值转换</span>' : ""}`;
+    box.appendChild(d);
+  });
+}
+function applyForm(){
+  const cfg = collectConfig();
+  if (!cfg["目标表"].length){ $("cfgStatus").innerHTML = "请至少填写一张目标表（模板文件必填）。"; $("cfgStatus").className = "status err"; return; }
+  S.config = cfg;
+  $("cfgStatus").innerHTML = "配置已应用，共 " + cfg["目标表"].length + " 张目标表。";
+  $("cfgStatus").className = "status ok";
+  renderCfgSummary();
+}
+
+/* ================= 数据加载 ================= */
+function setMode(m){
+  S.mode = m;
+  $("mDemo").classList.toggle("on", m==="demo");
+  $("mUpload").classList.toggle("on", m==="upload");
+  $("demoInfo").hidden = m!=="demo";
+  $("uploadBox").hidden = m!=="upload";
+  if (m==="demo"){ S.source = { headers: DEMO_SRC.headers, rows: DEMO_SRC.rows }; }
+}
+function readFileBuf(file, cb){
+  const fr = new FileReader();
+  fr.onload = () => cb(fr.result);
+  fr.readAsArrayBuffer(file);
+}
+
+/* ================= 填充核心（与 Python 版逻辑一致）================= */
+function fillTarget(cells, tpl, headers, rows){
+  const report = [];
+  const start = tpl["起始行"] || 2;
+  const conv = tpl["列值转换"] || {};
+  const fixed = tpl["固定单元格"] || {};
+  let written = 0;
+  rows.forEach((row, idx) => {
+    const r = start + idx;
+    (tpl["列映射"]||[]).forEach(m => {
+      const c = m["目标列"], src = m["源列"];
+      const hi = headers.indexOf(src);
+      if (hi < 0) return;
+      let raw = row[hi];
+      if (raw === undefined || raw === null || String(raw).trim() === "") return;
+      let val = raw, isConv = false;
+      const key = String(raw).trim();
+      if (conv[c] && Object.prototype.hasOwnProperty.call(conv[c], key)){ val = conv[c][key]; isConv = true; }
+      const ref = c + r;
+      const old = cells[ref];
+      const isDate = typeof val === "string" && /^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$/.test(val.trim()) && src.includes("日期");
+      if (isDate){
+        const p = val.trim().split(/[-/.]/).map(Number);
+        const serial = (Date.UTC(p[0], p[1]-1, p[2]) - Date.UTC(1899,11,30)) / 86400000;
+        cells[ref] = { t:"n", v:serial, z:"yyyy-mm-dd" };
+      } else if (typeof val === "number"){
+        cells[ref] = { t:"n", v:val, z: isConv ? "0%" : ((old&&old.z)||undefined) };
+      } else if (typeof val === "string" && val.replace(/[,，]/g,"").trim()!=="" && !isNaN(Number(val.replace(/[,，]/g,"")))){
+        const n = Number(val.replace(/[,，]/g,""));
+        cells[ref] = { t:"n", v: n, z: isConv ? "0%" : ((old&&old.z)||undefined) };
+      } else {
+        cells[ref] = { t:"s", v: String(val) };
+      }
+      written++;
+      report.push(`${tpl["文件"]} | ${tpl["Sheet"]}!${ref} ← ${src} = ${JSON.stringify(val)}`);
+    });
+  });
+  Object.entries(fixed).forEach(([coord, v]) => {
+    if (String(v).includes("{{今天}}")) v = String(v).replace("{{今天}}", todayStr());
+    cells[coord] = { t:"s", v:String(v) };
+    written++;
+    report.push(`${tpl["文件"]} | ${tpl["Sheet"]}!${coord} ← 固定值 = ${JSON.stringify(v)}`);
+  });
+  return { written, report };
+}
+
+/* 单元格表 → 二维数组（预览用），公式原样显示，日期序列号格式化为 yyyy-mm-dd */
+function dateFromSerial(serial){
+  const d = new Date(Math.round((serial - 25569) * 86400000));
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function cellsToRows(cells){
+  if (!cells) return [];
+  let maxR = 1, maxC = 1;
+  Object.keys(cells).forEach(ref => {
+    const m = ref.match(/^([A-Z]+)(\d+)$/); if (!m) return;
+    maxC = Math.max(maxC, colToNum(m[1])); maxR = Math.max(maxR, parseInt(m[2]));
+  });
+  const rows = [];
+  for (let r=1; r<=maxR; r++){
+    const line = [];
+    for (let c=1; c<=maxC; c++){
+      const cell = cells[numToCell(c,r)];
+      if (!cell) { line.push({v:"",f:false}); continue; }
+      if (cell.f) line.push({v:cell.f, f:true});
+      else if (typeof cell.v === "number" && cell.z && /y{2,4}|d{1,2}|m{1,2}/.test(cell.z) && /[-\/年月]/.test(cell.z)){
+        line.push({v: dateFromSerial(cell.v), f:false});
+      }
+      else line.push({v:(cell.v===undefined||cell.v===null)?"":cell.v, f:false});
+    }
+    rows.push(line);
+  }
+  return rows;
+}
+function makeRef(cells){
+  let minC=1e9,minR=1e9,maxC=0,maxR=0;
+  Object.keys(cells).forEach(ref=>{ const m=ref.match(/^([A-Z]+)(\d+)$/); if(!m)return;
+    const c=colToNum(m[1]),r=parseInt(m[2]); minC=Math.min(minC,c);minR=Math.min(minR,r);maxC=Math.max(maxC,c);maxR=Math.max(maxR,r); });
+  return (minC===1e9) ? "A1" : numToCol(minC)+minR+":"+numToCol(maxC)+maxR;
+}
+function toWorkbook(fileName, sheetName, cells){
+  const wb = XLSX.utils.book_new();
+  const ws = Object.assign({}, cells);
+  ws["!ref"] = makeRef(cells);
+  XLSX.utils.book_append_sheet(wb, ws, (sheetName||"Sheet1").slice(0,31));
+  return wb;
+}
+
+/* ================= 执行 ================= */
+function run(){
+  const status = $("runStatus");
+  if (S.mode === "upload"){
+    ensureXLSX(ok => {
+      if (!ok){ status.innerHTML = "上传模式需要联网加载 Excel 解析库（SheetJS），当前加载失败，请检查网络后重试，或改用内置示例。"; status.className = "status err"; return; }
+      runFill();
+    });
+  } else {
+    ensureXLSX(()=>{}); // 尽力加载解析库（下载需要），不阻塞预览
+    runFill();
+  }
+}
+function runFill(){
+  const status = $("runStatus");
+  const cfg = S.config, headers = S.source.headers, rows = S.source.rows;
+  if (!headers.length){ status.innerHTML = "请先在步骤1选择/上传源表。"; status.className="status err"; return; }
+  S.results = [];
+  const missing = [];
+  cfg["目标表"].forEach((tpl, i) => {
+    let cells = null, wb = null;
+    let sheetName = tpl["Sheet"] || "Sheet1";
+    if (S.mode === "demo"){
+      const td = DEMO_TPL[i];
+      cells = td ? td.build() : {};
+    } else {
+      const up = S.uploadTpls.find(u => u.name === tpl["文件"]);
+      if (!up){ missing.push(tpl["文件"]); return; }
+      const uwb = XLSX.read(up.buffer, {cellNF:true});
+      sheetName = (tpl["Sheet"] && uwb.SheetNames.includes(tpl["Sheet"])) ? tpl["Sheet"] : uwb.SheetNames[0];
+      cells = uwb.Sheets[sheetName] || {}; wb = uwb;
+    }
+    const out = fillTarget(cells, tpl, headers, rows);
+    if (S.mode === "demo" && typeof XLSX !== "undefined"){
+      wb = toWorkbook(tpl["文件"], sheetName, cells);
+    }
+    S.results.push({ file: tpl["文件"], sheet: sheetName, wb, cells, rows: cellsToRows(cells), report: out.report, written: out.written });
+  });
+  if (missing.length){ status.innerHTML = "缺少目标表模板文件：" + esc(missing.join("、")) + "（请上传与配置「文件」同名的模板，或切回内置示例）。"; status.className="status err"; return; }
+  const total = S.results.reduce((s,r)=>s+r.written,0);
+  status.innerHTML = `填充完成：${S.results.length} 张表、共写入 ${total} 个单元格。公式列（含税金额/合计/序号/首付款金额）已保留，下载后用 Excel 打开自动计算。`;
+  status.className = "status ok";
+  $("downloadAll").hidden = false;
+  activeTab = 0;
+  renderResult();
+}
+
+/* ================= 渲染结果 ================= */
+function fmtCell(v){
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date && !isNaN(v.getTime())){
+    return v.getFullYear() + "-" + String(v.getMonth()+1).padStart(2,"0") + "-" + String(v.getDate()).padStart(2,"0");
+  }
+  if (typeof v === "number") return v.toLocaleString("zh-CN", {maximumFractionDigits:2});
+  return String(v);
+}
+function renderResult(){
+  $("resultCard").hidden = false;
+  $("totalBadge").textContent = S.results.length + " 张表 · 共写入 " + S.results.reduce((s,r)=>s+r.written,0) + " 格";
+  const tabs = $("tabs"); tabs.innerHTML = "";
+  S.results.forEach((r,i) => {
+    const b = document.createElement("button");
+    b.textContent = r.file; b.className = i===activeTab?"on":"";
+    b.onclick = () => { activeTab = i; renderResult(); };
+    tabs.appendChild(b);
+  });
+  const res = S.results[activeTab];
+  if (!res) return;
+  const pv = $("pv");
+  const grid = res.rows;
+  if (!grid.length){ pv.innerHTML = "<tr><td>（空表）</td></tr>"; }
+  else {
+    let html = "<thead><tr>";
+    grid[0].forEach((_,i)=>{ html += "<th>" + esc(grid[0][i].v) + "</th>"; });
+    html += "</tr></thead><tbody>";
+    for (let r=1; r<grid.length; r++){
+      const isTotal = grid[r].some(c => c.v === "合计");
+      html += "<tr" + (isTotal?" class='total'":"") + ">";
+      grid[r].forEach(c => {
+        const cls = c.f ? "f" : (typeof c.v === "number" ? "num" : "");
+        html += "<td class='" + cls + "'>" + esc(c.f ? "=" + c.v : fmtCell(c.v)) + "</td>";
+      });
+      html += "</tr>";
+    }
+    html += "</tbody>";
+    pv.innerHTML = html;
+  }
+  $("report").textContent = "◆ " + res.file + " / " + res.sheet + "\n" + res.report.join("\n");
+}
+
+/* ================= 导出 ================= */
+function readyForDownload(){
+  if (typeof XLSX === "undefined"){
+    $("runStatus").innerHTML = "下载需要联网加载 Excel 解析库（SheetJS），当前未加载成功，请检查网络后重试。";
+    $("runStatus").className = "status err";
+    return false;
+  }
+  return true;
+}
+function ensureWb(r){ if (!r.wb) r.wb = toWorkbook(r.file, r.sheet, r.cells); }
+function downloadAll(){
+  if (!readyForDownload()) return;
+  S.results.forEach(r => {
+    ensureWb(r);
+    if (!wbHasSheet(r)){ const ws = Object.assign({}, r.cells); ws["!ref"] = makeRef(r.cells); r.wb.Sheets[r.sheet] = ws; }
+    XLSX.writeFile(r.wb, r.file);
+  });
+}
+function wbHasSheet(r){ return r.wb && r.wb.Sheets && r.wb.Sheets[r.sheet]; }
+
+/* ================= 事件 ================= */
+$("mDemo").onclick = () => setMode("demo");
+$("mUpload").onclick = () => setMode("upload");
+$("applyCfg").onclick = applyForm;
+$("resetCfg").onclick = () => { fillFormFromConfig(DEFAULT_CFG); applyForm(); };
+$("addTpl").onclick = () => addTplCard(null);
+$("runBtn").onclick = run;
+$("downloadAll").onclick = downloadAll;
+$("downloadOne").onclick = () => {
+  const r = S.results[activeTab];
+  if (!r || !readyForDownload()) return;
+  ensureWb(r);
+  XLSX.writeFile(r.wb, r.file);
+};
+
+$("srcBox").onclick = () => $("srcFile").click();
+$("srcFile").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  readFileBuf(f, buf => {
+    try {
+      const wb = XLSX.read(buf, {cellNF:true});
+      const sn = wb.SheetNames[0];
+      const arr = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, defval:""});
+      const headers = arr[0].map(String);
+      const rows = arr.slice(1).filter(r => r.some(c => String(c).trim() !== ""));
+      if (!headers.length){ $("runStatus").innerHTML = "源表第一行为空，请检查文件。"; $("runStatus").className="status err"; return; }
+      S.source = { headers, rows };
+      $("srcName").textContent = f.name + "（" + rows.length + " 行数据）";
+      $("srcTag").hidden = false;
+      $("runStatus").innerHTML = "源表已加载：" + esc(f.name) + "，列：[" + headers.join("、") + "]，配置表单的源表列下拉已更新。";
+      $("runStatus").className = "status ok";
+      refreshSrcColOptions();
+      if (S.config["源表Sheet"] && S.config["源表Sheet"] !== sn){
+        $("runStatus").innerHTML += "。注意：配置里源表Sheet为「" + esc(S.config["源表Sheet"]) + "」，实际文件第一个Sheet是「" + esc(sn) + "」，请修改配置表单中的源表Sheet。";
+      }
+    } catch(err) { $("runStatus").innerHTML = "源表解析失败：" + esc(err.message); $("runStatus").className="status err"; }
+  });
+};
+$("tplBox").onclick = () => $("tplFiles").click();
+$("tplFiles").onchange = e => {
+  const files = Array.from(e.target.files || []);
+  S.uploadTpls = [];
+  let done = 0;
+  files.forEach(f => {
+    readFileBuf(f, buf => { S.uploadTpls.push({ name: f.name, buffer: buf }); done++;
+      if (done === files.length){
+        $("tplName").textContent = files.map(x=>x.name).join("、");
+        $("tplTag").hidden = false;
+        $("runStatus").innerHTML = "已加载 " + files.length + " 个目标表模板。";
+        $("runStatus").className = "status ok";
+      }
+    });
+  });
+};
+
+/* ================= 初始化 ================= */
+fillFormFromConfig(DEFAULT_CFG);
+renderCfgSummary();
+</script>
+</body>
+</html>

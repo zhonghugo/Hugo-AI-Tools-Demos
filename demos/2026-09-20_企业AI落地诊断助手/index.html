@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>企业AI落地诊断助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f7fa; color: #333; line-height: 1.6;
+  }
+  .container { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+  .header { text-align: center; margin-bottom: 32px; }
+  .header h1 { font-size: 28px; color: #1a1a2e; margin-bottom: 8px; }
+  .header p { color: #666; font-size: 15px; }
+  .card {
+    background: #fff; border-radius: 12px; padding: 24px;
+    margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .card h2 { font-size: 18px; color: #1a1a2e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #4a6cf7; color: #fff; font-size: 14px; font-weight: 600;
+  }
+  label.block { display: block; margin-bottom: 12px; font-weight: 500; color: #444; }
+  select, input[type="text"] {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 15px; background: #fff; margin-top: 6px;
+  }
+  select:focus { outline: none; border-color: #4a6cf7; }
+  .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .checkbox-group label {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+    border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: normal;
+    transition: all 0.2s;
+  }
+  .checkbox-group label:hover { border-color: #4a6cf7; background: #f0f4ff; }
+  .checkbox-group label.checked { border-color: #4a6cf7; background: #e8eeff; }
+  .checkbox-group input { accent-color: #4a6cf7; }
+  .btn-primary {
+    width: 100%; padding: 14px; background: #4a6cf7; color: #fff;
+    border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 8px; transition: background 0.2s;
+  }
+  .btn-primary:hover { background: #3a5ce5; }
+  .btn-secondary {
+    padding: 10px 20px; background: #fff; color: #4a6cf7;
+    border: 1px solid #4a6cf7; border-radius: 8px; font-size: 14px;
+    cursor: pointer; margin-top: 16px;
+  }
+  .result-item {
+    border: 1px solid #e8e8e8; border-radius: 10px; padding: 18px;
+    margin-bottom: 14px; background: #fafbff;
+  }
+  .result-item h3 { font-size: 16px; color: #1a1a2e; margin-bottom: 8px; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; font-weight: 500; margin-right: 6px;
+  }
+  .tag-easy { background: #e6f7e6; color: #2e7d32; }
+  .tag-medium { background: #fff8e1; color: #f57f17; }
+  .tag-hard { background: #ffebee; color: #c62828; }
+  .tag-time { background: #e3f2fd; color: #1565c0; }
+  .result-item p { font-size: 14px; color: #555; margin: 6px 0; }
+  .result-item .plan { background: #fff; border-left: 3px solid #4a6cf7; padding: 10px 12px; margin-top: 10px; border-radius: 0 6px 6px 0; font-size: 13px; color: #444; }
+  .summary-box {
+    background: linear-gradient(135deg, #4a6cf7 0%, #6a5acd 100%);
+    color: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  .summary-box h3 { font-size: 16px; margin-bottom: 8px; }
+  .summary-box .big-num { font-size: 32px; font-weight: 700; }
+  .hidden { display: none; }
+  .footer { text-align: center; color: #999; font-size: 12px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🤖 企业AI落地诊断助手</h1>
+    <p>输入你的业务情况，AI帮你找到最该先自动化的3个场景</p>
+  </div>
+
+  <!-- 表单 -->
+  <div id="form-card">
+    <div class="card">
+      <h2><span class="step-num">1</span> 企业基本情况</h2>
+      <label class="block">行业
+        <select id="industry">
+          <option value="catering">餐饮/连锁门店</option>
+          <option value="retail">零售/电商</option>
+          <option value="service">专业服务（咨询/设计/律所等）</option>
+          <option value="manufacturing">制造/供应链</option>
+          <option value="tech">互联网/科技</option>
+        </select>
+      </label>
+      <label class="block">公司规模
+        <select id="size">
+          <option value="1-10">1-10人（小微团队）</option>
+          <option value="10-50">10-50人（中小企业）</option>
+          <option value="50-200">50-200人（成长型企业）</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="card">
+      <h2><span class="step-num">2</span> 哪些工作最耗时？（可多选）</h2>
+      <div class="checkbox-group" id="pain-group">
+        <label><input type="checkbox" value="data-entry"> 数据录入/填表</label>
+        <label><input type="checkbox" value="report"> 做报表/汇总数据</label>
+        <label><input type="checkbox" value="customer"> 客户跟进/回复咨询</label>
+        <label><input type="checkbox" value="inventory"> 库存/订单管理</label>
+        <label><input type="checkbox" value="email"> 邮件/消息处理</label>
+        <label><input type="checkbox" value="finance"> 财务对账/报销</label>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="diagnose()">开始诊断 →</button>
+  </div>
+
+  <!-- 结果 -->
+  <div id="result-card" class="hidden">
+    <div class="summary-box">
+      <h3>📊 诊断结果</h3>
+      <p>根据你的情况，建议优先从以下 <strong>3</strong> 个场景开始AI落地</p>
+      <p style="margin-top:8px;">预计每周可节省 <span class="big-num" id="total-save">0</span> 小时</p>
+    </div>
+    <div id="results"></div>
+    <button class="btn-secondary" onclick="reset()">← 重新诊断</button>
+  </div>
+
+  <div class="footer">企业AI落地诊断助手 v1.0 · 内置行业规则引擎 · 无需联网</div>
+</div>
+
+<script>
+// 诊断规则库：根据行业+痛点匹配自动化场景
+const SCENARIOS = {
+  'data-entry': {
+    title: '数据自动录入',
+    pains: '每天花数小时把纸质单据、邮件附件、聊天记录里的数据手动敲进Excel/系统',
+    solutions: [
+      { tool: 'OCR+Excel模板（自建Python脚本）', cost: '自建成本约0元，2周内可上线' },
+      { tool: '飞书多维表格+AI字段', cost: '0成本，1天可搭建' }
+    ],
+    saveHours: 8,
+    difficulty: 'easy',
+    plan: '第1-2周：整理高频单据类型（发票/订单/报销单）→ 第3-4周：用Python+OCR跑通5种单据的自动识别 → 第5-8周：对接现有Excel/系统，人工抽检逐步替代'
+  },
+  'report': {
+    title: '报表自动生成',
+    pains: '每周/每月重复做同样的报表，从不同系统导出数据、复制粘贴、做图表，花大半天',
+    solutions: [
+      { tool: 'Python+pandas自动报表脚本', cost: '自建，1-2周' },
+      { tool: '飞书多维表格仪表盘', cost: '0成本，1周内' }
+    ],
+    saveHours: 6,
+    difficulty: 'easy',
+    plan: '第1-2周：列出每月必做的3-5张报表 → 第3-4周：用Python脚本自动从数据源拉数→清洗→生成Excel → 第5-8周：配置定时运行，结果自动发邮件/飞书群'
+  },
+  'customer': {
+    title: '客户咨询自动回复',
+    pains: '重复回答同样的问题（营业时间、价格、产品规格），晚上和周末没人回复就丢客户',
+    solutions: [
+      { tool: 'AI客服机器人（基于知识库）', cost: '自建用开源方案，2-3周' },
+      { tool: '微信/飞书客服SaaS', cost: '约200-500元/月' }
+    ],
+    saveHours: 10,
+    difficulty: 'medium',
+    plan: '第1-2周：整理50个高频问题和标准答案 → 第3-4周：搭建知识库+AI问答机器人 → 第5-8周：接入微信/飞书，人工接管复杂问题，持续优化'
+  },
+  'inventory': {
+    title: '库存/订单智能管理',
+    pains: '库存数据靠人工更新，经常超卖或缺货；订单分散在多个平台，对不上账',
+    solutions: [
+      { tool: '轻量库存管理工具（自建Web应用）', cost: '自建，3-4周' },
+      { tool: '飞书多维表格+自动化流程', cost: '0成本，1-2周' }
+    ],
+    saveHours: 7,
+    difficulty: 'medium',
+    plan: '第1-2周：梳理商品、入库、出库流程 → 第3-4周：搭建库存表+低库存自动预警 → 第5-8周：对接各平台订单自动入库，月度自动对账'
+  },
+  'email': {
+    title: '邮件/消息自动处理',
+    pains: '每天处理大量邮件和群消息，重要的淹没在垃圾里，转发归类耗时',
+    solutions: [
+      { tool: 'AI邮件分类+摘要助手', cost: '自建Python脚本，1-2周' },
+      { tool: '飞书机器人自动分类+提醒', cost: '0成本，1周' }
+    ],
+    saveHours: 5,
+    difficulty: 'easy',
+    plan: '第1周：梳理邮件/消息分类规则 → 第2周：用AI自动分类+生成摘要 → 第3-4周：重要消息自动推送提醒，次要消息自动归档'
+  },
+  'finance': {
+    title: '财务对账/报销自动化',
+    pains: '月底对账翻N张Excel，报销单一张张审，发票手动录入，容易出错',
+    solutions: [
+      { tool: '发票OCR+自动对账脚本', cost: '自建，2-3周' },
+      { tool: '财务SaaS（如分贝通/每刻报销）', cost: '约50-100元/人/月' }
+    ],
+    saveHours: 9,
+    difficulty: 'medium',
+    plan: '第1-2周：整理对账规则和发票类型 → 第3-4周：用OCR自动识别发票→匹配银行流水→标记异常 → 第5-8周：自动生成对账差异表，人工只处理异常项'
+  }
+};
+
+// 行业权重：不同行业最痛的痛点排序
+const INDUSTRY_PRIORITY = {
+  catering: ['inventory', 'customer', 'data-entry', 'report', 'finance', 'email'],
+  retail:   ['inventory', 'report', 'data-entry', 'customer', 'finance', 'email'],
+  service:  ['customer', 'email', 'report', 'data-entry', 'finance', 'inventory'],
+  manufacturing: ['data-entry', 'inventory', 'report', 'finance', 'email', 'customer'],
+  tech:     ['email', 'report', 'customer', 'data-entry', 'finance', 'inventory']
+};
+
+function diagnose() {
+  const industry = document.getElementById('industry').value;
+  const size = document.getElementById('size').value;
+  const pains = Array.from(document.querySelectorAll('#pain-group input:checked')).map(c => c.value);
+
+  if (pains.length === 0) {
+    alert('请至少选择一项最耗时的工作');
+    return;
+  }
+
+  // 按行业优先级排序用户选中的痛点
+  const priority = INDUSTRY_PRIORITY[industry] || INDUSTRY_PRIORITY.service;
+  pains.sort((a, b) => priority.indexOf(a) - priority.indexOf(b));
+
+  // 取前3个
+  const top3 = pains.slice(0, 3);
+  const sizeAdjust = size === '1-10' ? 0.8 : size === '10-50' ? 1.0 : 1.2;
+
+  let totalSave = 0;
+  let html = '';
+  top3.forEach((key, idx) => {
+    const s = SCENARIOS[key];
+    const save = Math.round(s.saveHours * sizeAdjust);
+    totalSave += save;
+    const diffTag = s.difficulty === 'easy' ? '<span class="tag tag-easy">简单·2周内</span>' :
+                    s.difficulty === 'medium' ? '<span class="tag tag-medium">中等·1个月</span>' :
+                    '<span class="tag tag-hard">复杂·2个月+</span>';
+    html += `<div class="result-item">
+      <h3>优先级 ${idx + 1}：${s.title}</h3>
+      <div>${diffTag}<span class="tag tag-time">约省${save}小时/周</span></div>
+      <p><strong>痛点：</strong>${s.pains}</p>
+      <p><strong>推荐方案：</strong></p>
+      ${s.solutions.map(sol => `<p style="margin-left:12px;">• ${sol.tool}（${sol.cost}）</p>`).join('')}
+      <div class="plan"><strong>📋 90天计划：</strong>${s.plan}</div>
+    </div>`;
+  });
+
+  document.getElementById('total-save').textContent = totalSave;
+  document.getElementById('results').innerHTML = html;
+  document.getElementById('form-card').classList.add('hidden');
+  document.getElementById('result-card').classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
+function reset() {
+  document.getElementById('form-card').classList.remove('hidden');
+  document.getElementById('result-card').classList.add('hidden');
+  window.scrollTo(0, 0);
+}
+
+// 复选框样式联动
+document.querySelectorAll('.checkbox-group label').forEach(label => {
+  const cb = label.querySelector('input');
+  cb.addEventListener('change', () => {
+    label.classList.toggle('checked', cb.checked);
+  });
+});
+</script>
+</body>
+</html>

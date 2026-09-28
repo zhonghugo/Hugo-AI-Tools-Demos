@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外卖订单自动录入工具 · 商家版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='24' height='20' rx='3' fill='%231a5fb4'/%3E%3Cpath d='M9 13h14M9 18h9M9 23h6' stroke='%23fff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root{--primary:#1a5fb4;--primary-d:#143d78;--accent:#3584e4;--bg:#f2f5f9;--card:#fff;--line:#dfe5ec;--text:#1f2937;--muted:#6b7280;--ok:#2e7d32;--warn:#b26a00;--err:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:1120px;margin:0 auto;padding:16px}
+  header.top{display:flex;align-items:center;gap:12px;padding:14px 4px 4px}
+  .logo{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;flex:none}
+  .logo svg{width:24px;height:24px}
+  header.top h1{font-size:20px;font-weight:700}
+  header.top p{color:var(--muted);font-size:12.5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px;box-shadow:0 1px 3px rgba(16,42,67,.06)}
+  .card h2{font-size:15px;margin-bottom:10px}
+  textarea{width:100%;min-height:240px;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13.5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.7;background:#fafcff;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+  button{font-size:13.5px;padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:all .15s}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--primary-d)}
+  button.ghost{background:transparent}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:10px 0}
+  .stat{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  .stat .n{font-size:20px;font-weight:700;color:var(--primary-d);font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted)}
+  table.grid{border-collapse:collapse;width:100%;font-size:13px}
+  table.grid th{background:#eef2f7;text-align:left;padding:8px 10px;border:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
+  table.grid td{padding:7px 10px;border:1px solid #edf0f4;white-space:nowrap}
+  table.grid td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tableWrap{overflow:auto;max-height:440px;border:1px solid var(--line);border-radius:10px}
+  .errItem{background:#fdecea;border:1px solid #f5c6c6;color:var(--err);border-radius:9px;padding:9px 12px;font-size:13px;margin-top:10px}
+  .okItem{background:#e8f5e9;border:1px solid #b9dfb9;color:var(--ok);border-radius:9px;padding:9px 12px;font-size:13px;margin-top:10px}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+  footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
+  footer b{color:#4b5563}
+  @media(max-width:640px){
+    .wrap{padding:10px}
+    .card{padding:14px}
+    textarea,button{font-size:16px}
+    table.grid{display:block;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="#fff" stroke-width="1.8"/><path d="M8 11h8M8 15h5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+      <h1>外卖订单自动录入工具（商家版）</h1>
+      <p>把美团/饿了么后台导出的订单文本粘进来 → 自动解析成表格 → 核对后一键导出 Excel</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <h2>① 粘贴订单文本</h2>
+    <textarea id="raw" placeholder="把商家后台导出/复制的订单内容粘贴到这里，支持一单或多单批量粘贴。格式示例：&#10;&#10;订单号：2026091910301234&#10;下单时间：2026-09-19 10:30&#10;收货人：张先生&#10;商品：&#10;  招牌牛肉饭 x1&#10;  例汤 x2&#10;  矿泉水 x1&#10;合计：¥42.50"></textarea>
+    <div class="btns">
+      <button class="primary" id="parseBtn">解析订单</button>
+      <button class="ghost" id="demoBtn">填入示例订单</button>
+      <button class="ghost" id="clearBtn">清空</button>
+    </div>
+    <div id="parseMsg"></div>
+    <p class="hint">支持「名称 x数量」「名称×数量」「名称*数量」三种写法；自动识别订单号、时间、收货人、商品明细、合计金额。</p>
+  </section>
+
+  <section class="card" id="resultCard" hidden>
+    <h2>② 解析结果（核对后导出）</h2>
+    <div class="stats" id="stats"></div>
+    <div class="tableWrap">
+      <table class="grid" id="orderTbl"></table>
+    </div>
+    <div class="tableWrap" style="margin-top:12px">
+      <table class="grid" id="itemTbl"></table>
+    </div>
+    <div class="btns">
+      <button class="primary" id="exportBtn">导出 Excel</button>
+    </div>
+  </section>
+
+  <footer><b>说明：</b>纯本地运行，不上传任何服务器。灵感来自「AI工具资讯日报」9/19（Google ARTEMIS 外卖商家自动接单场景的 PC 版简化 demo）。</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => typeof n === "number" ? n.toLocaleString("zh-CN",{minimumFractionDigits:2,maximumFractionDigits:2}) : n;
+
+const DEMO = `订单号：2026091910301234
+下单时间：2026-09-19 10:30
+收货人：张先生
+电话：138****1234
+地址：福田区车公庙泰然大厦A座
+商品：
+  招牌牛肉饭 x1
+  例汤 x2
+  矿泉水 x1
+合计：¥42.50
+
+订单号：2026091910450876
+下单时间：2026-09-19 10:45
+收货人：李女士
+地址：南山区科技园南区R2-B栋
+商品：
+  黑椒猪扒饭 ×1
+  紫菜蛋花汤 *2
+  可乐 *1
+合计：¥38.00
+
+订单号：2026091911052211
+下单时间：2026-09-19 11:05
+收货人：王先生
+地址：罗湖区东门老街广场
+商品：
+  招牌牛肉饭 x2
+  酸辣土豆丝 x1
+  米饭 x2
+合计：¥56.80`;
+
+/* 解析一单块：从文本中按订单号切分，逐字段提取 */
+function parseOrders(text){
+  // 按订单号切分块
+  const blocks = text.split(/(?=订单号[：:])/).map(s => s.trim()).filter(s => /^订单号[：:]/.test(s));
+  const orders = [];
+  const warnings = [];
+  blocks.forEach((blk, idx) => {
+    const get = (re) => { const m = blk.match(re); return m ? m[1].trim() : ""; };
+    const orderNo = get(/订单号[：:]\s*([^\n]+)/);
+    const time = get(/(?:下单时间|时间|下单于)[：:]\s*([^\n]+)/);
+    const customer = get(/(?:收货人|顾客|联系人)[：:]\s*([^\n]+)/);
+    const addr = get(/(?:地址|收货地址)[：:]\s*([^\n]+)/);
+    const totalMatch = blk.match(/(?:合计|总计|实付|应付)[：:]\s*[¥￥]?\s*([0-9]+(?:\.[0-9]+)?)/);
+    const total = totalMatch ? Number(totalMatch[1]) : NaN;
+
+    // 商品行：缩进或行首，形如「名称 x数量」「名称×数量」「名称*数量」
+    const items = [];
+    const lines = blk.split(/\n/);
+    let inItems = false;
+    lines.forEach(line => {
+      const t = line.trim();
+      if (/^(商品|明细|餐品|菜品|商品明细)[：:]?$/.test(t)){ inItems = true; return; }
+      if (!inItems) return;
+      if (/^(合计|总计|实付|应付|备注|订单号|下单时间|收货人|地址|电话)/.test(t)){ inItems = false; return; }
+      // 匹配 名称 x数量
+      const m = t.match(/^(.+?)[\s]*[x×*][\s]*([0-9]+(?:\.[0-9]+)?)\s*$/);
+      if (m){
+        items.push({ name: m[1].trim(), qty: Number(m[2]) });
+      } else if (t && !/^[¥￥]/.test(t)){
+        // 没有数量写法，默认 1
+        items.push({ name: t, qty: 1 });
+      }
+    });
+
+    if (!orderNo){ warnings.push(`第 ${idx+1} 块未识别到订单号，已跳过`); return; }
+    orders.push({ orderNo, time, customer, addr, items, total });
+  });
+  return { orders, warnings };
+}
+
+let LAST = null;
+
+function render(){
+  if (!LAST) return;
+  const { orders, warnings } = LAST;
+  const msg = $("parseMsg");
+  if (!orders.length){
+    msg.innerHTML = `<div class="errItem">没有解析到订单。请确认文本以「订单号：」开头，且商品行形如「招牌牛肉饭 x1」。</div>`;
+    $("resultCard").hidden = true;
+    return;
+  }
+  let html = `<div class="okItem">成功解析 ${orders.length} 单`;
+  if (warnings.length) html += `；${warnings.join("；")}`;
+  html += `。</div>`;
+  msg.innerHTML = html;
+  $("resultCard").hidden = false;
+
+  // 统计
+  const totalAmt = orders.reduce((s,o) => s + (isNaN(o.total)?0:o.total), 0);
+  const totalItems = orders.reduce((s,o) => s + o.items.reduce((a,i)=>a+i.qty,0), 0);
+  const noTotal = orders.filter(o => isNaN(o.total)).length;
+  $("stats").innerHTML = `
+    <div class="stat"><div class="n">${orders.length}</div><div class="l">订单数</div></div>
+    <div class="stat"><div class="n">¥${fmt(totalAmt)}</div><div class="l">合计金额</div></div>
+    <div class="stat"><div class="n">${totalItems}</div><div class="l">商品总件数</div></div>
+    <div class="stat"><div class="n">${noTotal}</div><div class="l">未识别金额</div></div>`;
+
+  // 订单表
+  let th = `<thead><tr><th>订单号</th><th>下单时间</th><th>收货人</th><th>地址</th><th>商品明细</th><th>件数</th><th>合计</th></tr></thead>`;
+  let rows = orders.map(o => `<tr>
+    <td>${esc(o.orderNo)}</td><td>${esc(o.time)}</td><td>${esc(o.customer||"-")}</td><td>${esc(o.addr||"-")}</td>
+    <td>${o.items.map(i=>esc(i.name)+"×"+i.qty).join("；")}</td>
+    <td class="num">${o.items.reduce((a,i)=>a+i.qty,0)}</td>
+    <td class="num">${isNaN(o.total)?"—":"¥"+fmt(o.total)}</td></tr>`).join("");
+  $("orderTbl").innerHTML = th + "<tbody>" + rows + "</tbody>";
+
+  // 商品汇总表
+  const agg = {};
+  orders.forEach(o => o.items.forEach(i => {
+    agg[i.name] = (agg[i.name]||0) + i.qty;
+  }));
+  const sorted = Object.entries(agg).sort((a,b) => b[1]-a[1]);
+  let ith = `<thead><tr><th>商品</th><th>总销量</th><th>占比</th></tr></thead>`;
+  const allQty = sorted.reduce((s,[,q]) => s+q, 0);
+  let irows = sorted.map(([n,q], i) => `<tr><td>${i+1}. ${esc(n)}</td><td class="num">${q}</td><td class="num">${(q/allQty*100).toFixed(1)}%</td></tr>`).join("");
+  $("itemTbl").innerHTML = ith + "<tbody>" + irows + "</tbody>";
+}
+
+function ensureXLSX(cb){
+  if (typeof XLSX !== "undefined") return cb(true);
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.onload = () => cb(true); s.onerror = () => cb(false);
+  document.head.appendChild(s);
+}
+
+$("parseBtn").onclick = () => {
+  const text = $("raw").value;
+  if (!text.trim()){ $("parseMsg").innerHTML = `<div class="errItem">请先粘贴订单文本。</div>`; return; }
+  LAST = parseOrders(text);
+  render();
+};
+$("demoBtn").onclick = () => { $("raw").value = DEMO; $("parseBtn").click(); };
+$("clearBtn").onclick = () => { $("raw").value = ""; LAST = null; $("parseMsg").innerHTML = ""; $("resultCard").hidden = true; };
+
+$("exportBtn").onclick = () => {
+  if (!LAST || !LAST.orders.length) return;
+  ensureXLSX(ok => {
+    if (!ok){ alert("导出需要联网加载表格解析库，请检查网络。"); return; }
+    const orders = LAST.orders;
+    // Sheet1：订单总表
+    const s1 = [["订单号","下单时间","收货人","地址","商品明细","件数","合计金额"]];
+    orders.forEach(o => s1.push([
+      o.orderNo, o.time, o.customer || "", o.addr || "",
+      o.items.map(i => i.name + "×" + i.qty).join("；"),
+      o.items.reduce((a,i)=>a+i.qty,0),
+      isNaN(o.total) ? "" : o.total
+    ]));
+    // Sheet2：商品明细逐行
+    const s2 = [["订单号","商品","数量"]];
+    orders.forEach(o => o.items.forEach(i => s2.push([o.orderNo, i.name, i.qty])));
+    // Sheet3：商品汇总
+    const agg = {};
+    orders.forEach(o => o.items.forEach(i => agg[i.name] = (agg[i.name]||0)+i.qty));
+    const s3 = [["商品","总销量"]];
+    Object.entries(agg).sort((a,b)=>b[1]-a[1]).forEach(([n,q]) => s3.push([n,q]));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s1), "订单总表");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s2), "商品明细");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s3), "商品汇总");
+    XLSX.writeFile(wb, "外卖订单_" + new Date().toISOString().slice(0,10) + ".xlsx");
+  });
+};
+</script>
+</body>
+</html>

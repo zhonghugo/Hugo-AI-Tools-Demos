@@ -1,0 +1,31 @@
+{
+  "input_file": "sample_data.xlsx",
+  "output_file": "daily_report.xlsx",
+  "sheet_name": "销售数据",
+
+  "cleaning": {
+    "drop_duplicates": true,
+    "fillna": {
+      "销售额": 0,
+      "数量": 0
+    },
+    "date_column": "日期",
+    "date_format": "%Y-%m-%d"
+  },
+
+  "metrics": [
+    {"name": "总销售额", "formula": "sum", "column": "销售额"},
+    {"name": "订单数", "formula": "count", "column": "订单号"},
+    {"name": "平均客单价", "formula": "mean", "column": "销售额"},
+    {"name": "最高单笔", "formula": "max", "column": "销售额"},
+    {"name": "最低单笔", "formula": "min", "column": "销售额"},
+    {"name": "总销量", "formula": "sum", "column": "数量"}
+  ],
+
+  "group_by": "产品类别",
+
+  "charts": [
+    {"type": "bar", "title": "各类别销售额对比", "x": "产品类别", "y": "销售额"},
+    {"type": "bar", "title": "各类别订单数对比", "x": "产品类别", "y": "订单数"}
+  ]
+}

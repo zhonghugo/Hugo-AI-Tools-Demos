@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI小工具Demo作品集 · 每日一练</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='7' fill='%231a5fb4'/%3E%3Cpath d='M9 11l7 5 7-5v10H9z' fill='none' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root{--primary:#1a5fb4;--primary-d:#143d78;--accent:#3584e4;--bg:#f2f5f9;--card:#fff;--line:#dfe5ec;--text:#1f2937;--muted:#6b7280}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:1060px;margin:0 auto;padding:20px 16px 30px}
+  header{text-align:center;padding:26px 0 8px}
+  .badge{display:inline-block;font-size:12px;color:var(--primary-d);background:#e8eff9;border:1px solid #c9daf2;border-radius:20px;padding:3px 14px;margin-bottom:10px}
+  h1{font-size:26px;font-weight:800;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:13.5px;margin-top:8px;max-width:640px;margin-left:auto;margin-right:auto}
+  .stat{display:flex;justify-content:center;gap:26px;margin-top:18px;flex-wrap:wrap}
+  .stat div{text-align:center}
+  .stat b{font-size:24px;color:var(--primary);display:block}
+  .stat span{font-size:12px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(16,42,67,.05);transition:transform .15s,box-shadow .15s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(16,42,67,.09)}
+  .date{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .date .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  .name{font-size:16.5px;font-weight:700;margin-bottom:6px}
+  .desc{font-size:13px;color:#4b5563;flex:1;margin-bottom:12px}
+  .src{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+  .src b{color:#8a8578;font-weight:600}
+  a.open{display:inline-block;background:var(--primary);color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 16px;border-radius:9px;text-align:center;transition:background .15s}
+  a.open:hover{background:var(--primary-d)}
+  .foot{margin-top:28px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;font-size:13px;color:#4b5563}
+  .foot b{color:var(--text)}
+  .foot ol{margin:8px 0 0 20px}
+  .foot li{margin:4px 0}
+  @media(max-width:560px){h1{font-size:22px}.stat{gap:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">流程自动化 / RPA + AI 落地 / 数字化运营</span>
+    <h1>AI 小工具 Demo 作品集</h1>
+    <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
+    <div class="stat">
+      <div><b>12</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 9/26</b><span>持续产出</span></div>
+      <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
+    </div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="foot">
+    <b>这个作品集是怎么来的：</b>
+    <ol>
+      <li>每天 8:30 采集全球 AI 工具资讯，写入飞书多维表格（来源：Product Hunt / GitHub / 36氪 / Reddit 等）</li>
+      <li>10:30 从当天资讯中按「推荐指数 ≥4 星 → Excel/数据处理优先 → 贴业务场景」挑 1 条</li>
+      <li>做成单文件 HTML / Python 工具 → 端到端验证 → 交付</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+"use strict";
+const DEMOS = [
+  {
+    date:"09-28", name:"RPA 工作流可靠执行器",
+    desc:"把「无人值守工作流」的可靠性做成可视化状态机：每步执行后验证 → 失败自动重试 / 业务失败回滚 → 断点续跑 → 全程执行日志。内置 5 环节财务对账流程，可注入故障亲眼看到重试与回滚。灵感来自 9/22 深度文章《Computer-Use 已解决，无人值守执行还没解决》。",
+    src:"9/28 资讯 · Computer-Use 可靠性文章（4星）",
+    url:"https://fes49z7yv9.doubaoapps.com/app/app_17ezzpse30x"
+  },
+  {
+    date:"09-27", name:"餐饮自动化工作流设计器",
+    desc:"把门店重复人工流程编排成一条可视化自动工作流：订单汇总→库存检查→补货计算→供应商通知→经营日报。内置 3 家门店示例数据，一键模拟执行、切换场景、导出采购单。受 Heym「AI 原生 DAG 工作流画布」启发，模板可直接套用到其他行业。",
+    src:"9/27 资讯 · Heym（4星）",
+    url:"https://fes49z7yv9.doubaoapps.com/app/app_17f006j359s"
+  },
+  {
+    date:"09-26", name:"网站数据自动采集器",
+    desc:"不用写代码把网站变成数据接口：配置网址和字段 → 定时采集 → 与上次自动对比（价格涨跌/新增/下架）→ 变化告警 → 一键导出 CSV。复刻 maxun「无 API 网站当 API 用」的采集自动化闭环。",
+    src:"9/26 资讯 · maxun（4星）",
+    url:"https://aka.doubaocdn.com/s/jdmT6UyrBY"
+  },
+  {
+    date:"09-25", name:"产品图批量生成与工艺校验",
+    desc:"AI 批量生成产品图 → 工艺规则自动校验（材质×工艺：刺绣/烫金/印花/激光雕刻）→ 人工做专业判断 → 审核后批量导出。复刻义乌老板 8 人管 30 家店、一天 800 张图的数字员工工作流。",
+    src:"9/25 资讯 · 义乌老板数字员工（5星）",
+    url:"https://aka.doubaocdn.com/s/iIKnQnVltF"
+  },
+  {
+    date:"09-24", name:"客户评价自动管理工具",
+    desc:"服务完成 3–5 天自动发评价请求，好评引导到美团/大众点评公开评价，差评自动转内部工单不公开；模拟运行+回评分流+月评价趋势，还原月评价从 2 条涨到 18 条的真实打法。",
+    src:"9/24 资讯 · 自动评价请求工具（4星）",
+    url:"https://aka.doubaocdn.com/s/WOiwVskIU5"
+  },
+  {
+    date:"09-23", name:"一句话生成Excel自动化",
+    desc:"输入一句中文需求（如「按门店汇总销售额，低于1万标红」），自动解析成规则、生成可运行的 Python 脚本，并立即演示执行结果。",
+    src:"9/23 资讯 · Octoparse AI（4星）",
+    url:"https://aka.doubaocdn.com/s/4qPuTUFk2z"
+  },
+  {
+    date:"09-21", name:"企业经验问答机器人",
+    desc:"把老员工的操作手册、常见问题、客户话术沉淀成知识库，新员工/客户直接提问，AI 答不上来自动转人工。支持录入新经验、持久化保存。",
+    src:"9/21 资讯 · Aiboos 爱老板（5星）",
+    url:"https://aka.doubaocdn.com/s/dh96hsKD9i"
+  },
+  {
+    date:"09-20", name:"中文互联网痛点雷达",
+    desc:"扫描近 7 天知乎/V2EX/即刻/小红书的真实吐槽，按提及×情绪打分排序，雷达图+趋势图定位哪些痛点值得做成小工具。",
+    src:"9/20 资讯 · Pain Spotter（4星）",
+    url:"https://aka.doubaocdn.com/s/rp4X2U9sKJ"
+  },
+  {
+    date:"09-20", name:"企业AI落地诊断助手",
+    desc:"问卷式诊断：选行业、规模、最耗时的工作 → 自动推荐最该先自动化的 3 个场景（自建/SaaS 方案+成本估算）、每周可省小时数和 90 天落地计划。",
+    src:"9/20 定时任务自动产出",
+    url:"https://aka.doubaocdn.com/s/Q6hUlG8U07"
+  },
+  {
+    date:"09-19", name:"外卖订单自动录入工具",
+    desc:"粘贴一段外卖订单文本，自动解析出订单号/收货人/商品明细/合计，汇总成订单总表+商品汇总，一键导出 Excel。",
+    src:"9/19 资讯 · Google ARTEMIS（4星）",
+    url:"https://aka.doubaocdn.com/s/iP8VmqwmCG"
+  },
+  {
+    date:"09-18", name:"轻量库存管理工具",
+    desc:"商品档案+出入库登记+实时库存+低库存预警+超卖拦截，预置餐饮食材示例，localStorage 持久化，数据可导出。",
+    src:"9/18 资讯 · Reddit 零售超卖案例（5星）",
+    url:"https://aka.doubaocdn.com/s/sEUDehKvqX"
+  },
+  {
+    date:"09-15", name:"本地文档智能检索助手",
+    desc:"把本地文档做成可检索的知识库，输入问题返回答案与出处，帮企业快速找回散落在文档里的经验与规则。",
+    src:"9/15 资讯",
+    url:"https://aka.doubaocdn.com/s/OZY3ob6O6I"
+  },
+  {
+    date:"09-15", name:"Excel 多表批量填充器",
+    desc:"一个表一个卡配置源表→目标表字段映射，一次把数据批量填进多张 Excel 模板表，公式自动保留。配置端已表单化，业务同事可直接用。",
+    src:"9/13 资讯 · Excel 多表数据自动化",
+    url:"https://aka.doubaocdn.com/s/07OJFQkICl"
+  },
+  {
+    date:"09-14", name:"Excel 日报自动化生成器",
+    desc:"配置清洗规则、指标算法、图表后一键生成日报 Excel：昨天的工作，今天 5 分钟交卷。配置端已表单化。",
+    src:"9/14 资讯 · 每天重复的 Excel 工作",
+    url:"https://aka.doubaocdn.com/s/QAnmG0naQF"
+  }
+];
+const grid = document.getElementById("grid");
+grid.innerHTML = DEMOS.map(d => `
+  <div class="card">
+    <div class="date"><span class="dot"></span>9 月 ${d.date} 出品</div>
+    <div class="name">${d.name}</div>
+    <div class="desc">${d.desc}</div>
+    <div class="src">来源：<b>${d.src}</b></div>
+    <a class="open" href="${d.url}" target="_blank" rel="noopener">打开 Demo</a>
+  </div>`).join("");
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# 中间产物与调试文件，不入库
+_shots/
+demos/作品集总览/sheets/
+*.tmp
+*.tmp-*
+_baseline_*
+_publish/
+_backup/

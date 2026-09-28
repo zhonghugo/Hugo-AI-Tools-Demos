@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 工作流可靠执行器</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%231E9EFF'/%3E%3Cpath d='M12 6v12M8 9l4-3 4 3M8 15l4 3 4-3' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0E1116; --panel:#161B23; --panel2:#1C232E; --line:#2A3342;
+    --ink:#E8EDF4; --muted:#8B98A9;
+    --green:#3DDC84; --green-soft:#132A1E; --amber:#FFC53D; --amber-soft:#2A2410;
+    --red:#FF5C5C; --red-soft:#2A1618; --blue:#4DA3FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.55;min-height:100vh;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:22px 20px 48px}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  .logo{width:44px;height:44px;border-radius:12px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .logo svg{width:26px;height:26px}
+  h1{font-size:21px;font-weight:800;letter-spacing:.4px}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px;max-width:640px}
+  .tagrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .tag{font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .tag.hot{border-color:var(--blue);color:var(--blue);background:rgba(77,163,255,.08)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+  .panel h2{font-size:14px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .panel h2 .bar{width:3px;height:14px;border-radius:2px;background:var(--blue);flex:0 0 auto}
+  /* 顶部仪表 */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .stat .k{font-size:11.5px;color:var(--muted);margin-bottom:3px}
+  .stat .v{font-size:20px;font-weight:800}
+  .stat .v small{font-size:11px;color:var(--muted);font-weight:500;margin-left:2px}
+  .stat .v.g{color:var(--green)} .stat .v.a{color:var(--amber)} .stat .v.r{color:var(--red)} .stat .v.b{color:var(--blue)}
+  @media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:760px){
+    .sub{font-size:14px}
+    .tag{font-size:12px}
+    .stat .k{font-size:12px}
+    .step .desc{font-size:12px}
+    .mech p{font-size:12px}
+    .fault,.speed{font-size:12.5px}
+  }
+  /* 工作流步骤 */
+  .steps{display:flex;flex-direction:column;gap:8px}
+  .step{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;transition:all .2s}
+  .step .ic{width:30px;height:30px;border-radius:8px;background:#222B38;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .step .ic svg{width:17px;height:17px;stroke:var(--muted)}
+  .step .info{flex:1;min-width:0}
+  .step .nm{font-weight:700;font-size:13.5px}
+  .step .desc{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .step .st{font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;white-space:nowrap;flex:0 0 auto}
+  .st.pend{background:#222B38;color:var(--muted)}
+  .st.run{background:var(--amber-soft);color:var(--amber)}
+  .st.ok{background:var(--green-soft);color:var(--green)}
+  .st.retry{background:var(--red-soft);color:var(--red)}
+  .st.skip{background:#222B38;color:var(--muted)}
+  .step.active{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+  .step.cur .ic svg{stroke:var(--amber)}
+  .step.ok .ic svg{stroke:var(--green)}
+  .step.retry .ic svg{stroke:var(--red)}
+  /* 控制台 */
+  .console{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .btn{border:none;border-radius:9px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px;font-family:inherit;min-height:44px}
+  .btn.primary{background:var(--blue);color:#081018}
+  .btn.primary:hover{background:#7CB8FF}
+  .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn svg{width:15px;height:15px}
+  .spacer{flex:1}
+  .speed{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .speed select,.fault select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--ink)}
+  .fault{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+  /* 机制 */
+  .mechs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media(max-width:760px){.mechs{grid-template-columns:1fr}}
+  .mech{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+  .mech .ic{width:30px;height:30px;border-radius:8px;background:rgba(77,163,255,.12);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .mech .ic svg{width:17px;height:17px;stroke:var(--blue)}
+  .mech b{font-size:13px}
+  .mech p{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5}
+  .mech .on{border-color:rgba(61,220,132,.4)}
+  .mech .on b{color:var(--green)}
+  /* 日志 */
+  .log{
+    background:#080B10;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+    font-family:"SF Mono",Consolas,monospace;font-size:12px;max-height:230px;overflow-y:auto;
+    line-height:1.85;color:#AFC0D4;
+  }
+  .log .time{color:#5B6B7F}
+  .log .ok{color:var(--green)} .log .warn{color:var(--amber)} .log .err{color:var(--red)} .log .info{color:var(--blue)}
+  footer{margin-top:22px;color:#55636F;font-size:11.5px;text-align:center;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v12M8 9l4-3 4 3M8 15l4 3 4-3"/></svg>
+    </div>
+    <div>
+      <h1>RPA 工作流可靠执行器</h1>
+      <div class="sub">演示「无人值守工作流」的可靠性机制：每步验证 · 自动重试 · 失败回滚 · 断点续跑 —— 灵感来自 2026-09-22 深度文章《Computer-Use 已解决，无人值守执行还没解决》</div>
+    </div>
+  </header>
+
+  <div class="tagrow">
+    <span class="tag hot">核心洞察：能操作 ≠ 能稳定跑完</span>
+    <span class="tag">5 个环节 · 状态机驱动</span>
+    <span class="tag">可注入故障演示</span>
+  </div>
+
+  <!-- 仪表 -->
+  <div class="stats">
+    <div class="stat"><div class="k">执行状态</div><div class="v b" id="stOverall">待命</div></div>
+    <div class="stat"><div class="k">完成步骤</div><div class="v" id="stDone">0 / 5</div></div>
+    <div class="stat"><div class="k">重试 / 回滚次数</div><div class="v a" id="stRetry">0</div></div>
+    <div class="stat"><div class="k">当前检查点</div><div class="v g" id="stCkpt">—</div></div>
+  </div>
+
+  <!-- 工作流 -->
+  <div class="panel">
+    <h2><span class="bar"></span>工作流执行队列（模拟财务对账 RPA）</h2>
+    <div class="steps" id="steps"></div>
+  </div>
+
+  <!-- 控制台 -->
+  <div class="panel">
+    <h2><span class="bar"></span>控制台</h2>
+    <div class="console">
+      <button class="btn primary" id="runBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"/></svg>运行
+      </button>
+      <button class="btn ghost" id="pauseBtn">模拟中断</button>
+      <button class="btn ghost" id="resumeBtn" disabled>从检查点续跑</button>
+      <button class="btn ghost" id="resetBtn">重置</button>
+      <span class="spacer"></span>
+      <span class="fault">故障注入
+        <select id="fault">
+          <option value="none">不注入</option>
+          <option value="once">第 3 步失败 1 次后重试</option>
+          <option value="rollback">第 4 步失败并回滚</option>
+        </select>
+      </span>
+      <span class="speed">速度
+        <select id="speed">
+          <option value="1500">慢</option>
+          <option value="800" selected>标准</option>
+          <option value="300">快</option>
+        </select>
+      </span>
+    </div>
+  </div>
+
+  <!-- 机制 -->
+  <div class="panel">
+    <h2><span class="bar"></span>四条可靠性机制（企业级 RPA 与玩具脚本的核心区别）</h2>
+    <div class="mechs">
+      <div class="mech on"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-5M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7z"/></svg></div><div><b>每步验证</b><p>步骤执行后立刻校验结果（文件存在 / 数据条数 / 状态码），验证不过不进入下一步。</p></div></div>
+      <div class="mech on"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 11-2.3-5.6M20 4v4h-4"/></svg></div><div><b>自动重试</b><p>瞬时故障（网络抖动 / 页面加载慢）自动重试 2 次，指数退避，不盲目跑下一遍。</p></div></div>
+      <div class="mech on"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 20V9M4 9h6M4 9l3-3M20 4v11M20 15h-6M20 15l-3 3"/></svg></div><div><b>失败回滚</b><p>不可恢复的业务步骤失败时，回滚已产生的中间数据，保证不产生脏数据。</p></div></div>
+      <div class="mech on"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div><div><b>断点续跑</b><p>每一步完成即保存检查点；进程中断后从检查点继续，不从头重跑。</p></div></div>
+    </div>
+  </div>
+
+  <!-- 日志 -->
+  <div class="panel">
+    <h2><span class="bar"></span>执行日志</h2>
+    <div class="log" id="log"></div>
+  </div>
+
+  <footer>演示环境为纯前端模拟，展示可靠性机制的运行逻辑；生产实现可用 Python 状态机 + Playwright，本页面为交互示意。<br>灵感来源：dev.to《Computer-Use is solved. Unattended workflow execution is not.》(2026-09-22)</footer>
+</div>
+
+<script>
+/* ============ 数据 ============ */
+const STEPS = [
+  {nm:"登录财务系统", desc:"企业微信扫码 → 打开对账模块（验证：登录态可用）", ic:"<path d='M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7zM9 12l2 2 4-5'/>"},
+  {nm:"下载当日交易流水", desc:"按日期筛选 → 导出 Excel（验证：文件存在且非空）", ic:"<path d='M4 5h16v14H4zM4 9h16M8 13h3M13 13h3M8 16h6'/>"},
+  {nm:"清洗与对账", desc:"去重、匹配订单与支付流水，标出差异项（验证：差异数≤阈值）", ic:"<path d='M4 16l4-4 4 4 4-6 4 6M4 20h16'/>"},
+  {nm:"生成对账报告", desc:"差异明细 + 汇总写入报告文件（验证：报告行数与差异数一致）", ic:"<path d='M5 4v16M5 20h16M8 9h4l2 4h4M8 14h3M12 14h3'/>"},
+  {nm:"发送给财务负责人", desc:"邮件附件发送 + 抄送（验证：发送成功回执）", ic:"<path d='M4 5h16l-1 9H5zM5 14v6h14v-6M9 11v3M15 11v3'/>"}
+];
+
+/* ============ 状态 ============ */
+let running=false, paused=false, curIdx=-1, doneCount=0, retryCount=0, rollbackCount=0;
+let timer=null, stage="idle"; // idle|exec|verify|fail
+let faultMode="none", faultUsed=false;
+const LOG=[];
+
+const $=id=>document.getElementById(id);
+
+function renderSteps(){
+  $("steps").innerHTML = STEPS.map((s,i)=>`
+    <div class="step" data-i="${i}" id="step${i}">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${s.ic}</svg></div>
+      <div class="info"><div class="nm">0${i+1} · ${s.nm}</div><div class="desc">${s.desc}</div></div>
+      <span class="st pend" id="st${i}">待执行</span>
+    </div>`).join("");
+}
+function setStep(i,st,txt){
+  const el=$(`step${i}`), b=$(`st${i}`);
+  el.classList.remove("active","cur","ok","retry");
+  b.className="st "+st;
+  b.textContent=txt;
+  if(st==="run"){el.classList.add("active","cur");}
+  if(st==="ok"){el.classList.add("ok");}
+  if(st==="retry"){el.classList.add("retry");}
+}
+function setOverall(t){$("stOverall").textContent=t;}
+function stats(){
+  $("stDone").textContent=`${doneCount} / ${STEPS.length}`;
+  $("stRetry").textContent=retryCount+rollbackCount;
+  $("stCkpt").textContent= doneCount>0 ? `已保存至 0${doneCount} 步` : "—";
+}
+function tlog(msg,cls){
+  const now=new Date();
+  const time=`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}:${String(now.getSeconds()).padStart(2,"0")}`;
+  LOG.push(`<div><span class="time">[${time}]</span> <span class="${cls}">${msg}</span></div>`);
+  $("log").innerHTML=LOG.join("");
+  $("log").scrollTop=$("log").scrollHeight;
+}
+
+function resetAll(){
+  clearInterval(timer); timer=null; running=false; paused=false; stage="idle";
+  curIdx=-1; doneCount=0; retryCount=0; rollbackCount=0; faultUsed=false;
+  $("runBtn").disabled=false; $("pauseBtn").disabled=false; $("resumeBtn").disabled=true;
+  LOG.length=0; $("log").innerHTML="";
+  renderSteps(); setOverall("待命"); stats();
+  tlog("系统就绪，等待运行指令","info");
+}
+
+/* ============ 主循环（状态机） ============ */
+function runFlow(){
+  if(running) return;
+  if(paused){ // 断点续跑
+    paused=false; running=true;
+    $("resumeBtn").disabled=true;
+    tlog(`从检查点 0${doneCount} 恢复执行，跳过已完成步骤`,"ok");
+    setOverall("续跑中");
+    advance();
+    return;
+  }
+  resetAll(); running=true; $("runBtn").disabled=true;
+  setOverall("执行中");
+  tlog("▶ 工作流启动，目标：财务对账自动化（5 个环节）","info");
+  advance();
+}
+
+function advance(){
+  if(!running) return;
+  if(doneCount>=STEPS.length){ finish(); return; }
+  curIdx=doneCount;
+  const speed=+$("speed").value;
+  setStep(curIdx,"run","执行中");
+  tlog(`→ 执行 0${curIdx+1} · ${STEPS[curIdx].nm}`,"info");
+  stage="exec";
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    clearInterval(timer);
+    if(!running) return;
+    // 验证阶段
+    stage="verify";
+    const st=STEPS[curIdx];
+    tlog(`↔ 验证中：${st.desc.match(/（验证：(.+?)）/)?.[1]||"结果校验"}`,"info");
+    timer=setTimeout(()=>{
+      // 故障注入判断
+      const fail = faultMode!=="none" && !faultUsed && (
+        (faultMode==="once" && curIdx===2) ||
+        (faultMode==="rollback" && curIdx===3)
+      );
+      if(fail){
+        faultUsed=true;
+        if(faultMode==="once"){
+          retryCount++;
+          setStep(curIdx,"retry","失败·重试1");
+          tlog(`✗ 0${curIdx+1} 验证失败（页面加载超时）→ 自动重试（第 1 次，共 2 次）`,"err");
+          setOverall("重试中");
+          timer=setTimeout(()=>{
+            setStep(curIdx,"ok","成功");
+            doneCount++; stats(); tlog(`✔ 0${curIdx+1} 重试成功，验证通过，检查点已保存`,"ok");
+            setOverall("执行中"); advance();
+          },speed*1.2);
+          return;
+        }else{
+          rollbackCount++;
+          setStep(curIdx,"retry","失败·回滚");
+          tlog(`✗ 0${curIdx+1} 业务校验失败（报告行数与差异数不一致）→ 触发回滚，撤销第 ${curIdx} 步产生的中间数据`,"err");
+          tlog("↺ 回滚完成，数据恢复一致状态","warn");
+          setOverall("回滚完成");
+          stats();
+          // 回滚后中止（业务上不可继续）
+          running=false; paused=false; $("runBtn").disabled=false;
+          setStep(curIdx,"pend","中止");
+          tlog("■ 工作流中止：不可恢复业务故障，已通知值班人员","err");
+          return;
+        }
+      }
+      // 正常成功
+      setStep(curIdx,"ok","成功");
+      doneCount++; stats();
+      tlog(`✔ 0${curIdx+1} 执行成功，验证通过，检查点已保存`,"ok");
+      setOverall("执行中");
+      advance();
+    }, speed*0.9);
+  }, speed*0.6);
+}
+
+function finish(){
+  running=false; paused=false; $("runBtn").disabled=false;
+  setOverall("全部成功");
+  tlog(`★ 工作流完成：5/5 环节成功，重试 ${retryCount} 次、回滚 ${rollbackCount} 次`,"ok");
+}
+
+/* 模拟中断 */
+$("pauseBtn").onclick=()=>{
+  if(!running) return;
+  clearInterval(timer); running=false; paused=true;
+  $("resumeBtn").disabled=false; $("pauseBtn").disabled=true;
+  setOverall("已中断");
+  setStep(curIdx,"skip","中断");
+  tlog(`⏸ 进程被中断（模拟断电 / 机器重启）—— 检查点 0${doneCount} 已持久化，无需从头重跑`,"warn");
+};
+
+$("resumeBtn").onclick=()=>{ $("pauseBtn").disabled=false; runFlow(); };
+$("runBtn").onclick=runFlow;
+$("resetBtn").onclick=resetAll;
+$("fault").onchange=e=>{faultMode=e.target.value; faultUsed=false;};
+
+renderSteps(); resetAll();
+</script>
+</body>
+</html>

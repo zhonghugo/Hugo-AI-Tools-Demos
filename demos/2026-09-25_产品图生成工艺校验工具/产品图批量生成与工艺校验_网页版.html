@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品图批量生成与工艺校验 · AI数字员工工作台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='7' fill='%231a5fb4'/%3E%3Cpath d='M10 22V10l6 6 6-6v12' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root{--primary:#1a5fb4;--primary-d:#143d78;--accent:#3584e4;--bg:#f2f5f9;--card:#fff;--line:#dfe5ec;--text:#1f2937;--muted:#6b7280;--ok:#1e8e50;--warn:#b26a00;--bad:#c0392b}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:1120px;margin:0 auto;padding:16px}
+  header.top{display:flex;align-items:center;gap:12px;padding:14px 4px 4px}
+  .logo{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;flex:none}
+  header.top h1{font-size:20px;font-weight:700}
+  header.top p{color:var(--muted);font-size:12.5px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+  .stat .n{font-size:24px;font-weight:800;color:var(--primary)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  button{font-size:13px;padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--primary-d)}
+  .dl{color:var(--primary-d);text-decoration:underline;background:none;border:none;font-size:13px;cursor:pointer}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:14px}
+  .prod{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column}
+  .thumb{width:100%;height:130px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;text-align:center;padding:8px;position:relative;overflow:hidden}
+  .thumb .pl{position:absolute;bottom:8px;right:10px;font-size:10px;font-weight:400;opacity:.85}
+  .thumb.gen{animation:pop .35s ease}
+  @keyframes pop{0%{transform:scale(.96);filter:brightness(1.2)}100%{transform:scale(1)}}
+  .thumb.waiting{background:repeating-linear-gradient(45deg,#e8edf3,#e8edf3 10px,#f2f5f9 10px,#f2f5f9 20px);color:var(--muted)}
+  .pname{font-size:14px;font-weight:700;margin-top:10px}
+  .pmeta{font-size:12px;color:var(--muted);margin-top:2px}
+  .judge{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12.5px;min-height:22px}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px}
+  .badge.ok{background:#e0f2e7;color:var(--ok)}
+  .badge.warn{background:#fdf0dd;color:var(--warn)}
+  .badge.bad{background:#fbe3e0;color:var(--bad)}
+  .badge.que{background:#e5ecf7;color:var(--sent,#3564a8)}
+  .reason{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .ops{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .ops button{font-size:12px;padding:5px 10px;border-radius:7px}
+  .ops .g{color:var(--ok);border-color:#bcdcc8}
+  .ops .b{color:var(--bad);border-color:#ecc7c1}
+  .chk{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .chk input{width:15px;height:15px;accent-color:var(--primary)}
+  .status{font-size:13px;margin-top:12px;min-height:18px}
+  .status.ok{color:var(--ok)}
+  .addbar{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .addbar input,.addbar select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}
+  .addbar input{flex:1;min-width:160px}
+  footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
+  footer b{color:#4b5563}
+  @media(max-width:640px){.stats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M6 20V8l6 6 6-6v12" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div>
+      <h1>产品图批量生成与工艺校验</h1>
+      <p>AI 一天生成 800 张产品图 · 工艺规则自动校验 · 人工做专业判断 · 审核后批量导出 —— 复刻义乌老板的 AI 数字员工工作流</p>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="sAll">0</div><div class="l">产品数</div></div>
+    <div class="stat"><div class="n" id="sOk">0</div><div class="l">工艺可行</div></div>
+    <div class="stat"><div class="n" id="sWarn">0</div><div class="l">需人工确认</div></div>
+    <div class="stat"><div class="n" id="sBad">0</div><div class="l">不可行</div></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="primary" id="genBtn">1 · AI 批量生成产品图</button>
+    <button class="primary" id="checkBtn">2 · 工艺校验</button>
+    <button class="dl" id="dlBtn">导出审核结果 CSV</button>
+  </div>
+
+  <div class="addbar">
+    <input id="nName" placeholder="产品名，如：刺绣抱枕">
+    <input id="nMat" placeholder="材质/面料，如：棉麻" style="max-width:130px">
+    <select id="nCraft">
+      <option value="刺绣">刺绣</option><option value="烫金">烫金</option>
+      <option value="印花">印花</option><option value="激光雕刻">激光雕刻</option>
+    </select>
+    <button id="addBtn">+ 新增产品</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="status" id="status"></div>
+
+  <footer><b>说明：</b>产品图在 demo 中为示意占位（正式版接图片生成 API）；工艺校验为内置规则引擎（材质×工艺→可行/需确认/不可行），人工审核结论随 CSV 导出。灵感来自「AI工具资讯日报」9/25（义乌老板数字员工，5星）。</footer>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ===== 内置工艺规则：材质词 → 判定 ===== */
+// 每种工艺：ok(可行)/warn(需确认)/bad(不可行) 三组材质关键词
+const RULES = {
+  "刺绣": {
+    ok:   ["棉","麻","帆布","牛仔"],
+    warn: ["化纤","丝绸","雪纺","皮革","腈纶"],
+    bad:  ["玻璃","金属","陶瓷","塑料","亚克力","PVC"]
+  },
+  "烫金": {
+    ok:   ["纸","卡纸","牛皮纸","棉"],
+    warn: ["布料","帆布","塑料","亚克力"],
+    bad:  ["玻璃","金属","陶瓷","丝绸"]
+  },
+  "印花": {
+    ok:   ["棉","麻","帆布","化纤","涤纶","牛仔"],
+    warn: ["丝绸","雪纺","塑料","皮革"],
+    bad:  ["玻璃","金属","陶瓷","亚克力"]
+  },
+  "激光雕刻": {
+    ok:   ["木","竹","金属","亚克力"],
+    warn: ["塑料","PVC","皮革"],
+    bad:  ["玻璃","陶瓷","棉","丝绸"]
+  }
+};
+const REASONS = {
+  "刺绣": {ok:"面料适合刺绣，针脚稳固", warn:"针脚易拉坏/需专用针，建议改印花或先打样", bad:"硬质材质无法刺绣，建议换工艺"},
+  "烫金": {ok:"表面平整适合烫金，附着力好", warn:"烫金易脱落/需低温烫印，建议先打样", bad:"该材质无法烫印，建议换工艺"},
+  "印花": {ok:"面料适合印花，颜色还原好", warn:"需特殊油墨/预打底，建议先打样", bad:"硬质光滑面无法直接印花，需 UV 工艺"},
+  "激光雕刻": {ok:"材质适合激光雕刻，边缘清晰", warn:"需通风/控制功率，建议先测试", bad:"该材质激光雕刻会损坏，禁止雕刻"}
+};
+
+/* ===== 产品示例 ===== */
+const SEED = [
+  {name:"刺绣抱枕", mat:"棉麻", craft:"刺绣"},
+  {name:"刺绣卫衣", mat:"化纤", craft:"刺绣"},
+  {name:"烫金贺卡", mat:"卡纸", craft:"烫金"},
+  {name:"烫金T恤", mat:"纯棉", craft:"烫金"},
+  {name:"印花帆布袋", mat:"帆布", craft:"印花"},
+  {name:"印花玻璃杯", mat:"玻璃", craft:"印花"},
+  {name:"激光雕刻木牌", mat:"木质", craft:"激光雕刻"},
+  {name:"激光塑料钥匙扣", mat:"塑料", craft:"激光雕刻"}
+];
+let PRODS = SEED.map(p => ({...p, gen:false, judge:"que", reason:"", human:"", checked:false}));
+
+/* ===== 工艺校验 ===== */
+function judgeProd(p){
+  const r = RULES[p.craft];
+  const m = p.mat;
+  if (r.ok.some(k => m.includes(k))) return {j:"ok", re:REASONS[p.craft].ok};
+  if (r.bad.some(k => m.includes(k))) return {j:"bad", re:REASONS[p.craft].bad};
+  if (r.warn.some(k => m.includes(k))) return {j:"warn", re:REASONS[p.craft].warn};
+  return {j:"warn", re:"材质未收录，需人工确认"};
+}
+
+/* ===== 渲染 ===== */
+const GRADS = [["#5b7fb5","#3b5f96"],["#b58b5b","#96673b"],["#5bb58b","#3b9667"],["#8f5bb5","#6b3b96"],["#b55b6f","#963b4f"],["#5b9db5","#3b6f96"]];
+function thumbStyle(i){ const g = GRADS[i % GRADS.length]; return `background:linear-gradient(135deg,${g[0]},${g[1]})`; }
+
+function render(){
+  PRODS.forEach((p,i) => p._i = i);
+  const counts = {all:PRODS.length, ok:0, warn:0, bad:0};
+  $("grid").innerHTML = PRODS.map(p => {
+    if (p.judge === "ok") counts.ok++;
+    else if (p.judge === "bad") counts.bad++;
+    else if (p.judge === "warn") counts.warn++;
+    const thumb = p.gen
+      ? `<div class="thumb gen" style="${thumbStyle(p._i)}">${esc(p.name)}<span class="pl">AI 示意图</span></div>`
+      : `<div class="thumb waiting">等待生成<br><span style="font-size:10px;font-weight:400">点「AI 批量生成产品图」</span></div>`;
+    const badge = {ok:["ok","可行"], warn:["warn","需确认"], bad:["bad","不可行"], que:["que","未校验"]}[p.judge];
+    return `<div class="prod" data-i="${p._i}">
+      ${thumb}
+      <div class="pname">${esc(p.name)}</div>
+      <div class="pmeta">${esc(p.mat)} · ${esc(p.craft)}</div>
+      <div class="judge"><span class="badge ${badge[0]}">${badge[1]}</span>
+        ${p.human ? `<span class="badge ${p.human === "通过" ? "ok" : "bad"}">人工：${p.human}</span>` : ""}</div>
+      ${p.reason ? `<div class="reason">${esc(p.reason)}</div>` : ""}
+      ${p.gen ? `<div class="ops">
+        <button class="g" data-i="${p._i}" data-h="通过">人工通过</button>
+        <button class="b" data-i="${p._i}" data-h="驳回">人工驳回</button>
+      </div>
+      <label class="chk"><input type="checkbox" data-i="${p._i}" ${p.checked ? "checked" : ""}> 勾选后导出</label>` : ""}
+    </div>`;
+  }).join("");
+  $("sAll").textContent = counts.all;
+  $("sOk").textContent = counts.ok;
+  $("sWarn").textContent = counts.warn;
+  $("sBad").textContent = counts.bad;
+
+  document.querySelectorAll(".ops button").forEach(b => b.onclick = () => {
+    const p = PRODS[b.dataset.i];
+    p.human = b.dataset.h;
+    if (p.human === "驳回") p.checked = false;
+    render();
+  });
+  document.querySelectorAll(".chk input").forEach(c => c.onchange = () => { PRODS[c.dataset.i].checked = c.checked; });
+}
+
+/* ===== 动作 ===== */
+const st = msg => { const s = $("status"); s.textContent = msg; s.className = "status ok"; };
+
+$("genBtn").onclick = () => {
+  PRODS.forEach(p => { p.gen = true; if (p.judge === "que") p.judge = "que"; });
+  st("AI 已为 " + PRODS.length + " 个产品生成产品图（示意），下一步做工艺校验。");
+  render();
+};
+$("checkBtn").onclick = () => {
+  let n = 0;
+  PRODS.forEach(p => {
+    if (!p.gen) { p.gen = true; }
+    const r = judgeProd(p);
+    p.judge = r.j; p.reason = r.re; n++;
+  });
+  const c = {ok:0,warn:0,bad:0};
+  PRODS.forEach(p => c[p.judge]++);
+  st(`工艺校验完成：${c.ok} 个可行，${c.warn} 个需人工确认，${c.bad} 个不可行。`);
+  render();
+};
+$("addBtn").onclick = () => {
+  const name = $("nName").value.trim(), mat = $("nMat").value.trim(), craft = $("nCraft").value;
+  if (!name || !mat){ st("请填写产品名和材质。"); $("status").className = "status"; return; }
+  PRODS.push({name, mat, craft, gen:false, judge:"que", reason:"", human:"", checked:false});
+  $("nName").value = ""; $("nMat").value = "";
+  st("已新增产品：" + name + "。");
+  render();
+};
+$("dlBtn").onclick = () => {
+  const head = "\uFEFF产品名,材质,工艺,AI判定,人工结论,勾选导出";
+  const lines = PRODS.map(p => {
+    const j = {ok:"可行", warn:"需确认", bad:"不可行", que:"未校验"}[p.judge];
+    return [p.name, p.mat, p.craft, j, p.human || "未审核", p.checked ? "是" : "否"].join(",");
+  });
+  const blob = new Blob([head + "\n" + lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "产品图审核结果.csv"; a.click();
+  URL.revokeObjectURL(a.href);
+  st("已导出 " + PRODS.length + " 行审核结果。");
+};
+
+render();
+st("已载入 8 个示例产品，点击「AI 批量生成产品图」开始。");
+</script>
+</body>
+</html>

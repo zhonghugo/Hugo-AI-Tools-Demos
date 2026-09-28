@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel日报自动化生成器 · 网页版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='6' fill='%231a5fb4'/%3E%3Cpath d='M6 10h14M6 16h14M6 22h9' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3Cpath d='M23 13l4 4-4 4' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<style>
+  :root{--primary:#1a5fb4;--primary-d:#143d78;--accent:#3584e4;--bg:#f2f5f9;--card:#fff;--line:#dfe5ec;--text:#1f2937;--muted:#6b7280;--ok:#2e7d32;--err:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:1120px;margin:0 auto;padding:20px 16px 48px}
+  header.top{display:flex;align-items:center;gap:14px;padding:22px 0 6px}
+  .logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;flex:none}
+  .logo svg{width:26px;height:26px}
+  header.top h1{font-size:22px;font-weight:700}
+  header.top p{color:var(--muted);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-top:16px;box-shadow:0 1px 3px rgba(16,42,67,.06)}
+  .card h2{display:flex;align-items:center;gap:10px;font-size:16px;margin-bottom:14px}
+  .step{width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .seg{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .seg button{flex:1;min-width:180px;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-size:14px;color:var(--muted);transition:all .15s}
+  .seg button.on{border-color:var(--primary);background:#eef4fc;color:var(--primary-d);font-weight:600}
+  .seg button:hover{border-color:var(--accent)}
+  .demoInfo{background:#f8fafc;border:1px dashed var(--line);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted)}
+  .upGrid{display:grid;grid-template-columns:1fr;gap:12px}
+  .upBox{border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color .15s;background:#fbfcfe}
+  .upBox:hover{border-color:var(--accent)}
+  .upBox .fname{font-size:12px;color:var(--muted);margin-top:6px;word-break:break-all}
+  .upBox .ftag{display:inline-block;font-size:11px;background:#e8f0fb;color:var(--primary-d);border-radius:6px;padding:1px 8px;margin-top:4px}
+  label.ub .t{font-size:13px;font-weight:600}
+  label.ub .d{font-size:12px;color:var(--muted)}
+  textarea{width:100%;min-height:140px;font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;font-size:12.5px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical;line-height:1.5}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{font-size:14px;padding:9px 18px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:all .15s}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--primary-d)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .status{margin-top:12px;font-size:13px;min-height:20px}
+  .status.ok{color:var(--ok)} .status.err{color:var(--err)}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:14px 0}
+  .mCard{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#f8fafc}
+  .mCard .mv{font-size:20px;font-weight:700;color:var(--primary-d);font-variant-numeric:tabular-nums}
+  .mCard .ml{font-size:12px;color:var(--muted);margin-top:2px}
+  .logs{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:12.5px;color:#374151;margin-bottom:6px;white-space:pre-wrap}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .chartBox{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+  .chartBox h3{font-size:13px;color:var(--primary-d);padding:4px 6px 8px}
+  .chart{width:100%;height:300px}
+  .subTitle{font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--primary-d)}
+  .pvBox{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:420px}
+  table.pv{border-collapse:collapse;width:100%;font-size:12.5px}
+  table.pv th{background:#eef2f7;position:sticky;top:0;font-weight:600;padding:7px 10px;border:1px solid var(--line);white-space:nowrap;min-width:96px}
+  table.pv td{padding:6px 10px;border:1px solid #edf0f4;white-space:nowrap;min-width:96px}
+  table.pv td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .empty{color:var(--muted);font-size:13px;padding:20px;text-align:center}
+  footer{margin-top:26px;font-size:12px;color:var(--muted);text-align:center}
+  footer b{color:#4b5563}
+  .fGroup{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#fbfcfe}
+  .fGroup h3{font-size:14px;font-weight:600;color:var(--primary-d);margin-bottom:10px}
+  .fCheck{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:10px;cursor:pointer}
+  .fCheck input{width:16px;height:16px;accent-color:var(--primary)}
+  .fBlock{margin:10px 0}
+  .fLabel{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+  table.fTbl{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:8px}
+  table.fTbl th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+  table.fTbl td{padding:4px 6px;border-bottom:1px solid #f0f3f6}
+  table.fTbl input,table.fTbl select{padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-size:13px;width:100%;min-width:90px}
+  table.fTbl input:focus,table.fTbl select:focus{outline:none;border-color:var(--accent)}
+  table.fTbl td .del{width:30px;min-width:30px;padding:6px 0;font-size:12px;color:var(--err);background:none;border:none}
+  table.fTbl td .del:hover{background:#fdeaea;border-radius:6px}
+  .addBtn{font-size:13px;padding:7px 14px;color:var(--primary-d);background:#eef4fc;border:1px dashed #b9cdea;border-radius:8px}
+  .addBtn:hover{background:#dcebfa}
+  select{background:#fff}
+  @media(max-width:640px){
+    table.fTbl{display:block;overflow-x:auto}
+  @media(max-width:640px){
+    .charts{grid-template-columns:1fr}
+    .chart{height:240px}
+    header.top h1{font-size:19px}
+    .card{padding:16px}
+    textarea,input,button{font-size:16px}
+    textarea{font-size:14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" fill="none"><path d="M6 10h14M6 16h14M6 22h9" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="M23 13l4 4-4 4" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div>
+      <h1>Excel日报自动化生成器</h1>
+      <p>清洗数据 → 计算指标 → 分组图表 → 一键输出日报 · 配置一次，每天复用</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <h2><span class="step">1</span>选择数据</h2>
+    <div class="seg">
+      <button id="mDemo" class="on">内置示例数据（50条销售记录）</button>
+      <button id="mUpload">上传自己的 Excel</button>
+    </div>
+    <div class="demoInfo" id="demoInfo">内置 50 条模拟销售数据（订单号 / 日期 / 产品类别 / 销售额 / 数量），点「开始生成」即可体验完整流程。</div>
+    <div class="upGrid" id="uploadBox" hidden>
+      <label class="ub upBox" id="srcBox">
+        <div class="t">数据文件（第一行为表头）</div>
+        <div class="d">点击选择 .xlsx，含订单号、日期、销售额等列</div>
+        <input type="file" id="srcFile" accept=".xlsx" hidden>
+        <div class="fname" id="srcName"></div>
+        <div class="ftag" id="srcTag" hidden>已选择</div>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">2</span>日报配置（填写表单即可，不用懂代码）</h2>
+
+    <div class="fGroup">
+      <h3>清洗设置</h3>
+      <label class="fCheck"><input type="checkbox" id="ckDedup"> 去除完全重复的行</label>
+      <div class="fBlock">
+        <div class="fLabel">空值填充（把空单元格补成指定值）</div>
+        <table class="fTbl" id="fillTbl">
+          <thead><tr><th>列</th><th>填充为</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button type="button" class="addBtn" id="addFill">+ 添加填充项</button>
+      </div>
+      <div class="fBlock">
+        <div class="fLabel">日期列（统一成 yyyy-mm-dd 格式）</div>
+        <select id="dateCol"><option value="">不使用日期列</option></select>
+      </div>
+    </div>
+
+    <div class="fGroup">
+      <h3>核心指标</h3>
+      <table class="fTbl" id="metricTbl">
+        <thead><tr><th>指标名称</th><th>计算方式</th><th>数据列</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button type="button" class="addBtn" id="addMetric">+ 添加指标</button>
+    </div>
+
+    <div class="fGroup">
+      <h3>分组维度</h3>
+      <div class="fBlock">
+        <div class="fLabel">按哪个列分组统计（如：产品类别）</div>
+        <select id="groupBy"><option value="">不分组</option></select>
+      </div>
+    </div>
+
+    <div class="fGroup">
+      <h3>图表</h3>
+      <table class="fTbl" id="chartTbl">
+        <thead><tr><th>图表标题</th><th>类型</th><th>X 轴（分组列）</th><th>Y 轴（数值列）</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button type="button" class="addBtn" id="addChart">+ 添加图表</button>
+    </div>
+
+    <div class="btns">
+      <button id="applyCfg" class="primary">应用配置</button>
+      <button id="resetCfg">恢复示例配置</button>
+    </div>
+    <div class="status" id="cfgStatus"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="step">3</span>执行生成</h2>
+    <div class="btns">
+      <button id="runBtn" class="primary">开始生成日报</button>
+      <button id="downloadBtn" hidden>下载日报 Excel (.xlsx)</button>
+    </div>
+    <div class="status" id="runStatus"></div>
+  </section>
+
+  <section class="card" id="resultCard" hidden>
+    <h2>日报结果预览</h2>
+    <div class="logs" id="cleanLog"></div>
+    <div class="subTitle">核心指标</div>
+    <div class="metrics" id="metrics"></div>
+    <div class="subTitle">分组指标（按产品类别）</div>
+    <div class="pvBox"><table class="pv" id="groupTbl"></table></div>
+    <div class="charts" id="charts"></div>
+    <div class="subTitle">清洗后数据（前 20 行）</div>
+    <div class="pvBox"><table class="pv" id="dataTbl"></table></div>
+  </section>
+
+  <footer><b>说明：</b>数据在本地浏览器处理，不上传服务器。图表在网页展示；下载的 Excel 含 3 个 Sheet（日报概览 / 清洗后数据 / 分组指标），不含图表。</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (n, d=2) => (typeof n === "number" ? n.toLocaleString("zh-CN",{maximumFractionDigits:d}) : (n ?? ""));
+const todayStr = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+
+/* ---------- 伪随机（固定种子，示例数据可复现） ---------- */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+/* ---------- 内置示例数据：50 条销售记录 ---------- */
+const CATS = ["电子产品","家居用品","食品饮料","服饰配件","办公用品"];
+function genSampleData(){
+  const rnd = mulberry32(20260901), rows = [];
+  const n = 50;
+  for (let i=0;i<n;i++){
+    const day = 1 + Math.floor(rnd()*15);                       // 9月1~15日
+    const cat = CATS[Math.floor(rnd()*CATS.length)];
+    const amount = Math.round((80 + rnd()*4920) * 100) / 100;   // 80~5000
+    const qty = 1 + Math.floor(rnd()*20);                       // 1~20
+    rows.push({
+      "订单号": "SO-202609" + String(day).padStart(2,"0") + "-" + String(i+1).padStart(3,"0"),
+      "日期": "2026-09-" + String(day).padStart(2,"0"),
+      "产品类别": cat,
+      "销售额": amount,
+      "数量": qty
+    });
+  }
+  return rows;
+}
+
+/* ---------- 默认配置（与 Python 版 config.json 一致） ---------- */
+const DEFAULT_CFG = {
+  "sheet_name": "销售数据",
+  "cleaning": { "drop_duplicates": true, "fillna": {"销售额":0,"数量":0}, "date_column":"日期", "date_format":"%Y-%m-%d" },
+  "metrics": [
+    {"name":"总销售额","formula":"sum","column":"销售额"},
+    {"name":"订单数","formula":"count","column":"订单号"},
+    {"name":"平均客单价","formula":"mean","column":"销售额"},
+    {"name":"最高单笔","formula":"max","column":"销售额"},
+    {"name":"最低单笔","formula":"min","column":"销售额"},
+    {"name":"总销量","formula":"sum","column":"数量"}
+  ],
+  "group_by": "产品类别",
+  "charts": [
+    {"type":"bar","title":"各类别销售额对比","x":"产品类别","y":"总销售额"},
+    {"type":"bar","title":"各类别订单数对比","x":"产品类别","y":"订单数"}
+  ]
+};
+
+/* ---------- 状态 ---------- */
+const S = { mode:"demo", rows: genSampleData(), config: JSON.parse(JSON.stringify(DEFAULT_CFG)), result:null };
+let chartsInited = [];
+
+/* ---------- SheetJS / ECharts 兜底加载 ---------- */
+function loadScript(src, cb){
+  const s = document.createElement("script");
+  s.src = src; s.onload = () => cb(true); s.onerror = () => cb(false);
+  document.head.appendChild(s);
+}
+function ensureLib(cb){
+  if (typeof XLSX !== "undefined") return cb(true);
+  loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", cb);
+}
+function ensureECharts(cb){
+  if (typeof echarts !== "undefined") return cb(true);
+  loadScript("https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js", cb);
+}
+
+/* ---------- 配置（表单化，业务端友好） ---------- */
+function colOptions(){
+  const cols = S.rows.length ? Object.keys(S.rows[0]) : [];
+  return cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+}
+function ensureColOptions(select){
+  const cur = select.value;
+  select.innerHTML = '<option value="">（请选择列）</option>' + colOptions();
+  if (cur && select.querySelector('option[value="' + cur.replace(/"/g,'\\"') + '"]')) select.value = cur;
+}
+function refreshAllColOptions(){
+  document.querySelectorAll("select.fCol").forEach(ensureColOptions);
+  ["dateCol","groupBy"].forEach(id => {
+    const s = $(id); if (!s) return;
+    const cur = s.value;
+    s.innerHTML = '<option value="">' + (id === "dateCol" ? "不使用日期列" : "不分组") + '</option>' + colOptions();
+    if (cur && s.querySelector('option[value="' + cur.replace(/"/g,'\\"') + '"]')) s.value = cur;
+  });
+}
+
+function addFillRow(col, val){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><select class="fCol"></select></td>
+    <td><input type="text" class="fillVal" placeholder="如 0" value="${esc(val ?? "")}"></td>
+    <td><button type="button" class="del">×</button></td>`;
+  $("fillTbl").querySelector("tbody").appendChild(tr);
+  ensureColOptions(tr.querySelector("select"));
+  if (col) tr.querySelector("select").value = col;
+  tr.querySelector(".del").onclick = () => tr.remove();
+}
+function addMetricRow(name, formula, column){
+  const alg = [["sum","求和"],["count","计数"],["mean","平均"],["max","最大"],["min","最小"]];
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><input type="text" class="mName" placeholder="如 总销售额" value="${esc(name ?? "")}"></td>
+    <td><select class="mAlg">${alg.map(a => `<option value="${a[0]}" ${formula===a[0]?"selected":""}>${a[1]}</option>`).join("")}</select></td>
+    <td><select class="fCol"></select></td>
+    <td><button type="button" class="del">×</button></td>`;
+  $("metricTbl").querySelector("tbody").appendChild(tr);
+  ensureColOptions(tr.querySelector("select.fCol"));
+  if (column) tr.querySelector("select.fCol").value = column;
+  tr.querySelector(".del").onclick = () => { tr.remove(); refreshChartYOptions(); };
+  tr.querySelector(".mName").addEventListener("input", refreshChartYOptions);
+  refreshChartYOptions();
+}
+/* 图表 Y 轴 = 指标名称（随指标表单联动） */
+function chartYOptions(){
+  const names = [...document.querySelectorAll("#metricTbl .mName")].map(i => i.value.trim()).filter(Boolean);
+  return names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+}
+function refreshChartYOptions(){
+  document.querySelectorAll("#chartTbl tbody tr").forEach(tr => {
+    const y = tr.querySelectorAll("select.fCol")[1];
+    const cur = y.value;
+    y.innerHTML = '<option value="">（请选择指标）</option>' + chartYOptions();
+    if (cur && y.querySelector('option[value="' + cur.replace(/"/g,'\\"') + '"]')) y.value = cur;
+  });
+}
+function addChartRow(title, type, x, y){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><input type="text" class="cTitle" placeholder="如 各类别销售额对比" value="${esc(title ?? "")}"></td>
+    <td><select class="cType"><option value="bar" ${type!=="line"?"selected":""}>柱状图</option><option value="line" ${type==="line"?"selected":""}>折线图</option></select></td>
+    <td><select class="fCol"></select></td>
+    <td><select class="fCol"></select></td>
+    <td><button type="button" class="del">×</button></td>`;
+  $("chartTbl").querySelector("tbody").appendChild(tr);
+  const sels = tr.querySelectorAll("select.fCol");
+  ensureColOptions(sels[0]);
+  sels[1].innerHTML = '<option value="">（请选择指标）</option>' + chartYOptions();
+  if (x) sels[0].value = x;
+  if (y) sels[1].value = y;
+  tr.querySelector(".del").onclick = () => tr.remove();
+}
+
+function fillFormFromConfig(cfg){
+  const cl = (cfg || S.config).cleaning || {};
+  $("ckDedup").checked = !!cl.drop_duplicates;
+  const fillTb = $("fillTbl").querySelector("tbody"); fillTb.innerHTML = "";
+  const fills = cl.fillna || {};
+  if (Object.keys(fills).length) Object.entries(fills).forEach(([k,v]) => addFillRow(k, v));
+  else addFillRow("", "");
+  ensureColOptions($("dateCol")); $("dateCol").innerHTML = '<option value="">不使用日期列</option>' + colOptions();
+  if (cl.date_column) $("dateCol").value = cl.date_column;
+  const mtb = $("metricTbl").querySelector("tbody"); mtb.innerHTML = "";
+  const ms = (cfg || S.config).metrics || [];
+  (ms.length ? ms : [{name:"总销售额",formula:"sum",column:""}]).forEach(m => addMetricRow(m.name, m.formula, m.column));
+  ensureColOptions($("groupBy")); $("groupBy").innerHTML = '<option value="">不分组</option>' + colOptions();
+  if ((cfg || S.config).group_by) $("groupBy").value = (cfg || S.config).group_by;
+  const ctb = $("chartTbl").querySelector("tbody"); ctb.innerHTML = "";
+  const cs = (cfg || S.config).charts || [];
+  (cs.length ? cs : [{type:"bar",title:"",x:"",y:""}]).forEach(c => addChartRow(c.title, c.type, c.x, c.y));
+}
+
+function collectConfig(){
+  const fills = {};
+  document.querySelectorAll("#fillTbl tbody tr").forEach(tr => {
+    const col = tr.querySelector(".fCol").value, val = tr.querySelector(".fillVal").value.trim();
+    if (col && val !== "") fills[col] = isNaN(Number(val)) ? val : Number(val);
+  });
+  const metrics = [];
+  document.querySelectorAll("#metricTbl tbody tr").forEach(tr => {
+    const name = tr.querySelector(".mName").value.trim(), formula = tr.querySelector(".mAlg").value, column = tr.querySelector(".fCol").value;
+    if (name && column) metrics.push({ name, formula, column });
+  });
+  const charts = [];
+  document.querySelectorAll("#chartTbl tbody tr").forEach(tr => {
+    const sels = tr.querySelectorAll(".fCol");
+    const title = tr.querySelector(".cTitle").value.trim(), type = tr.querySelector(".cType").value, x = sels[0].value, y = sels[1].value;
+    if (title && y) charts.push({ type, title, x, y });
+  });
+  return {
+    sheet_name: "销售数据",
+    cleaning: { drop_duplicates: $("ckDedup").checked, fillna: fills, date_column: $("dateCol").value, date_format: "%Y-%m-%d" },
+    metrics, group_by: $("groupBy").value, charts
+  };
+}
+
+function applyForm(){
+  const cfg = collectConfig();
+  if (!cfg.metrics.length){ $("cfgStatus").innerHTML = "请至少填写一个指标（指标名称 + 数据列）。"; $("cfgStatus").className = "status err"; return; }
+  S.config = cfg;
+  $("cfgStatus").innerHTML = "配置已应用：" + cfg.metrics.length + " 个指标、分组维度「" + (cfg.group_by || "不分组") + "」、" + cfg.charts.length + " 个图表。";
+  $("cfgStatus").className = "status ok";
+}
+
+/* ---------- 清洗 ---------- */
+function cleanData(rows, cfg){
+  const log = [];
+  let out = rows.map(r => { const o = {}; Object.keys(r).forEach(k => o[k] = (typeof r[k]==="string" ? r[k].trim() : r[k])); return o; });
+  if (cfg.drop_duplicates){
+    const seen = new Set(); const before = out.length;
+    out = out.filter(r => { const k = JSON.stringify(r); if (seen.has(k)) return false; seen.add(k); return true; });
+    if (out.length < before) log.push("去重：" + before + " → " + out.length + " 行（移除 " + (before-out.length) + " 条重复）");
+  }
+  const fillna = cfg.fillna || {};
+  Object.keys(fillna).forEach(col => {
+    let filled = 0;
+    out = out.map(r => { if (r[col] === undefined || r[col] === null || r[col] === "") { r[col] = fillna[col]; filled++; } return r; });
+    if (filled) log.push("空值填充：列「" + col + "」填充 " + filled + " 个空值为 " + fillna[col]);
+  });
+  if (cfg.date_column && out.length && out[0][cfg.date_column] !== undefined){
+    out = out.map(r => { const v = String(r[cfg.date_column]).trim(); if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$/.test(v)) r[cfg.date_column] = v.replace(/[-/.]/g,"-").replace(/(\d{4}-\d{1,2}-\d{1,2})/, m => { const p = m.split("-"); return p[0]+"-"+p[1].padStart(2,"0")+"-"+p[2].padStart(2,"0"); }); return r; });
+    log.push("日期格式化：列「" + cfg.date_column + "」已统一为 yyyy-mm-dd");
+  }
+  log.push("清洗完成：共 " + out.length + " 行 × " + (out.length ? Object.keys(out[0]).length : 0) + " 列");
+  return { rows: out, log };
+}
+
+/* ---------- 指标 ---------- */
+function calcOverall(rows, metricsCfg){
+  const res = {};
+  metricsCfg.forEach(m => {
+    const col = m.column, f = m.formula;
+    const nums = rows.map(r => Number(r[col])).filter(v => !isNaN(v));
+    let v = null;
+    if (f === "sum") v = nums.reduce((a,b)=>a+b,0);
+    else if (f === "count") v = rows.filter(r => r[col] !== undefined && r[col] !== null && r[col] !== "").length;
+    else if (f === "mean") v = nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : 0;
+    else if (f === "max") v = nums.length ? Math.max(...nums) : null;
+    else if (f === "min") v = nums.length ? Math.min(...nums) : null;
+    res[m.name] = v;
+  });
+  return res;
+}
+function calcGrouped(rows, groupBy, metricsCfg){
+  if (!groupBy) return [];
+  const map = {};
+  rows.forEach(r => {
+    const k = String(r[groupBy] ?? "未分类");
+    if (!map[k]) map[k] = [];
+    map[k].push(r);
+  });
+  return Object.keys(map).map(key => {
+    const row = { [groupBy]: key };
+    metricsCfg.forEach(m => {
+      const sub = calcOverall(map[key], [m]);
+      row[m.name] = sub[m.name];
+    });
+    return row;
+  });
+}
+
+/* ---------- 执行 ---------- */
+function run(){
+  const status = $("runStatus");
+  ensureLib(ok => {
+    if (S.mode === "upload" && !ok){
+      status.innerHTML = "上传模式需要联网加载 Excel 解析库，当前加载失败，请检查网络或改用内置示例。"; status.className = "status err"; return;
+    }
+    ensureECharts(ok2 => { runFill(); if (!ok2 && typeof echarts === "undefined") $("charts").innerHTML = '<div class="empty">图表需要联网加载 ECharts 库，当前未加载成功；表格结果不受影响。</div>'; });
+  });
+}
+function runFill(){
+  const status = $("runStatus");
+  const cfg = S.config, rows = S.rows;
+  if (!rows || !rows.length){ status.innerHTML = "没有数据，请先选择/上传数据。"; status.className="status err"; return; }
+  const clean = cleanData(rows, cfg.cleaning || {});
+  const overall = calcOverall(clean.rows, cfg.metrics);
+  const grouped = calcGrouped(clean.rows, cfg.group_by, cfg.metrics);
+  S.result = { clean, overall, grouped, cfg };
+  renderResult();
+  status.innerHTML = "日报生成完成：清洗 → 指标 → 分组 → 图表全部就绪，可下载 Excel。";
+  status.className = "status ok";
+  $("downloadBtn").hidden = false;
+}
+
+/* ---------- 渲染 ---------- */
+function renderResult(){
+  const r = S.result;
+  $("resultCard").hidden = false;
+  $("cleanLog").textContent = r.clean.log.join("\n");
+  const mm = $("metrics"); mm.innerHTML = "";
+  Object.entries(r.overall).forEach(([name, v]) => {
+    const d = document.createElement("div"); d.className = "mCard";
+    d.innerHTML = `<div class="mv">${esc(fmt(v))}</div><div class="ml">${esc(name)}</div>`;
+    mm.appendChild(d);
+  });
+  const gt = $("groupTbl");
+  if (!r.grouped.length){ gt.innerHTML = '<tr><td class="empty">（无分组数据）</td></tr>'; }
+  else {
+    const keys = Object.keys(r.grouped[0]);
+    let html = "<thead><tr>" + keys.map(k=>"<th>"+esc(k)+"</th>").join("") + "</tr></thead><tbody>";
+    r.grouped.forEach(g => { html += "<tr>" + keys.map(k => "<td" + (typeof g[k]==="number"?" class='num'":"") + ">" + esc(fmt(g[k])) + "</td>").join("") + "</tr>"; });
+    gt.innerHTML = html + "</tbody>";
+  }
+  renderCharts(r);
+  const dt = $("dataTbl");
+  const cols = Object.keys(r.clean.rows[0] || {});
+  let dh = "<thead><tr>" + cols.map(c=>"<th>"+esc(c)+"</th>").join("") + "</tr></thead><tbody>";
+  r.clean.rows.slice(0,20).forEach(row => { dh += "<tr>" + cols.map(c => "<td" + (typeof row[c]==="number"?" class='num'":"") + ">" + esc(fmt(row[c])) + "</td>").join("") + "</tr>"; });
+  dt.innerHTML = dh + "</tbody>";
+}
+function renderCharts(r){
+  const box = $("charts"); box.innerHTML = "";
+  chartsInited.forEach(ch => { try{ ch.dispose(); }catch(e){} }); chartsInited = [];
+  (r.cfg.charts || []).forEach((c, i) => {
+    const div = document.createElement("div"); div.className = "chartBox";
+    div.innerHTML = "<h3>" + esc(c.title || "图表") + "</h3><div class='chart' id='chart" + i + "'></div>";
+    box.appendChild(div);
+    if (typeof echarts === "undefined") return;
+    const cats = r.grouped.map(g => String(g[c.x ?? r.cfg.group_by]));
+    const vals = r.grouped.map(g => Number(g[c.y]) || 0);
+    const chart = echarts.init(document.getElementById("chart" + i));
+    chart.setOption({
+      grid:{left:10,right:20,top:36,bottom:10,containLabel:true},
+      tooltip:{trigger:"axis"},
+      xAxis:{type:"category",data:cats,axisLabel:{interval:0,rotate:cats.length>5?18:0}},
+      yAxis:{type:"value"},
+      series:[{type:c.type==="line"?"line":"bar",data:vals,itemStyle:{color:"#3584e4"},barMaxWidth:42,
+        label:{show:true,position:"top",fontSize:11,color:"#4b5563"}}]
+    });
+    chartsInited.push(chart);
+  });
+}
+
+/* ---------- 下载 Excel（3 个 Sheet） ---------- */
+function buildWorkbook(){
+  const r = S.result;
+  const wb = XLSX.utils.book_new();
+  const aoa1 = [["指标","数值"], ...Object.entries(r.overall).map(([k,v])=>[k,v])];
+  const ws1 = XLSX.utils.aoa_to_sheet(aoa1);
+  ws1["!ref"] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:aoa1.length-1,c:1}});
+  XLSX.utils.book_append_sheet(wb, ws1, "日报概览");
+  const hd = Object.keys(r.clean.rows[0] || {});
+  const aoa2 = [hd, ...r.clean.rows.map(row => hd.map(c => row[c]))];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa2), "清洗后数据");
+  const gk = r.grouped.length ? Object.keys(r.grouped[0]) : [r.cfg.group_by||"分组"];
+  const aoa3 = [gk, ...r.grouped.map(g => gk.map(k => g[k]))];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa3), "分组指标");
+  return wb;
+}
+function download(){
+  if (!S.result){ return; }
+  ensureLib(ok => {
+    if (!ok){ $("runStatus").innerHTML = "下载需要联网加载 Excel 解析库，当前加载失败，请检查网络。"; $("runStatus").className="status err"; return; }
+    XLSX.writeFile(buildWorkbook(), "daily_report_" + todayStr() + ".xlsx");
+  });
+}
+
+/* ---------- 事件 ---------- */
+$("mDemo").onclick = () => { S.mode="demo"; S.rows = genSampleData(); $("mDemo").classList.add("on"); $("mUpload").classList.remove("on"); $("demoInfo").hidden=false; $("uploadBox").hidden=true; };
+$("mUpload").onclick = () => { S.mode="upload"; $("mUpload").classList.add("on"); $("mDemo").classList.remove("on"); $("demoInfo").hidden=true; $("uploadBox").hidden=false; };
+$("applyCfg").onclick = applyForm;
+$("resetCfg").onclick = () => { fillFormFromConfig(DEFAULT_CFG); applyForm(); };
+$("addFill").onclick = () => addFillRow("", "");
+$("addMetric").onclick = () => addMetricRow("", "sum", "");
+$("addChart").onclick = () => addChartRow("", "bar", "", "");
+$("srcBox").onclick = () => $("srcFile").click();
+$("srcFile").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const wb = XLSX.read(fr.result, {cellNF:true});
+      const sn = wb.SheetNames[0];
+      const arr = XLSX.utils.sheet_to_json(wb.Sheets[sn], {defval:""});
+      if (!arr.length){ $("runStatus").innerHTML = "文件中没有数据行。"; $("runStatus").className="status err"; return; }
+      S.rows = arr;
+      $("srcName").textContent = f.name + "（" + arr.length + " 行）";
+      $("srcTag").hidden = false;
+      $("runStatus").innerHTML = "数据已加载：" + esc(f.name) + "，列：[" + Object.keys(arr[0]).join("、") + "]，配置下拉已更新。";
+      $("runStatus").className = "status ok";
+      refreshAllColOptions();
+    } catch(err){ $("runStatus").innerHTML = "数据解析失败：" + esc(err.message); $("runStatus").className="status err"; }
+  };
+  fr.readAsArrayBuffer(f);
+};
+$("runBtn").onclick = run;
+$("downloadBtn").onclick = download;
+
+/* ---------- 初始化 ---------- */
+fillFormFromConfig(DEFAULT_CFG);
+</script>
+</body>
+</html>

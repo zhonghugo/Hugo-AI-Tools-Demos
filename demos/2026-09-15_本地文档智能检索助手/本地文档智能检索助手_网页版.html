@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>本地文档智能检索助手 · 网页版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='14' cy='14' r='9' fill='none' stroke='%231a5fb4' stroke-width='3'/%3E%3Cpath d='M21 21l7 7' stroke='%231a5fb4' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root{--primary:#1a5fb4;--primary-d:#143d78;--accent:#3584e4;--bg:#f2f5f9;--card:#fff;--line:#dfe5ec;--text:#1f2937;--muted:#6b7280;--hl:#fff3b0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:960px;margin:0 auto;padding:20px 16px 48px}
+  header.top{display:flex;align-items:center;gap:14px;padding:22px 0 6px}
+  .logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;flex:none}
+  .logo svg{width:24px;height:24px}
+  header.top h1{font-size:22px;font-weight:700}
+  header.top p{color:var(--muted);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-top:16px;box-shadow:0 1px 3px rgba(16,42,67,.06)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .stat-card{border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;background:#f8fafc}
+  .stat-card .num{font-size:22px;font-weight:700;color:var(--primary-d);font-variant-numeric:tabular-nums}
+  .stat-card .label{font-size:12px;color:var(--muted);margin-top:2px}
+  .searchRow{display:flex;gap:10px}
+  .searchInput{flex:1;padding:13px 16px;font-size:15px;border:2px solid var(--line);border-radius:10px;outline:none;transition:border-color .15s}
+  .searchInput:focus{border-color:var(--accent)}
+  button{font-size:14px;padding:9px 18px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:all .15s}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--primary-d)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .chip{font-size:12.5px;color:var(--primary-d);background:#eef4fc;border:1px solid #d7e5f7;border-radius:999px;padding:5px 12px;cursor:pointer;transition:all .15s}
+  .chip:hover{background:#dcebfa}
+  .docs{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .docTag{font-size:12px;background:#f3f6fa;border:1px solid var(--line);border-radius:8px;padding:4px 10px;color:#4b5563}
+  .docTag b{color:var(--primary-d)}
+  .upBar{margin-left:auto}
+  .results{margin-top:16px}
+  .result-header{font-size:14px;font-weight:600;color:var(--primary-d);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .result-item{padding:14px 2px;border-bottom:1px solid #f0f3f6}
+  .result-item:last-child{border-bottom:none}
+  .result-title{font-size:14px;font-weight:600;color:var(--primary);margin-bottom:6px}
+  .result-score{font-size:12px;color:var(--muted);font-weight:400;margin-left:8px}
+  .result-content{font-size:13.5px;line-height:1.8;color:#4b5563;white-space:pre-wrap;background:#fafbfc;border-radius:8px;padding:10px 12px}
+  mark{background:var(--hl);padding:0 2px;border-radius:3px;font-weight:600;color:inherit}
+  .no-result{text-align:center;padding:36px;color:var(--muted);font-size:14px}
+  .loading{text-align:center;padding:24px;color:var(--muted);font-size:14px}
+  footer{margin-top:26px;font-size:12px;color:var(--muted);text-align:center}
+  footer b{color:#4b5563}
+  @media(max-width:640px){
+    .searchRow{flex-direction:column}
+    header.top h1{font-size:19px}
+    .card{padding:16px}
+    .searchInput,button{font-size:16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" fill="none"><circle cx="13" cy="13" r="8" stroke="#fff" stroke-width="2.6"/><path d="M19 19l7 7" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+      <h1>本地文档智能检索助手</h1>
+      <p>倒排索引 + TF-IDF 检索 · 数据不出浏览器 · 单文件完全离线可用</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="card">
+    <div class="searchRow">
+      <input type="text" class="searchInput" id="query" placeholder="输入问题，如：报销流程是什么？年假多少天？安全库存怎么算？" autocomplete="off">
+      <button class="primary" id="searchBtn">搜索</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="docs">
+      <span style="font-size:12.5px;color:var(--muted)">已索引文档：</span>
+      <span id="docTags"></span>
+      <span class="upBar">
+        <button id="upBtn">+ 上传文档(.txt/.md/.csv)</button>
+        <input type="file" id="upFile" accept=".txt,.md,.csv,.markdown" hidden>
+      </span>
+    </div>
+  </section>
+
+  <section class="card results" id="resultCard" hidden>
+    <div class="result-header" id="resultHeader"></div>
+    <div id="resultList"></div>
+  </section>
+
+  <footer><b>说明：</b>检索在本地浏览器完成（分词 → 倒排索引 → TF-IDF 排序），不上传任何数据。内置 4 个示例制度文档，可上传自己的文档追加索引。</footer>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rx = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/* ================= 内置示例文档（与 Python 版 sample_docs 一致） ================= */
+const BUILTIN_DOCS = [
+{ title:"报销管理制度", content:`# 公司报销管理制度
+
+## 一、总则
+
+为规范公司费用报销流程，加强成本控制，提高财务工作效率，特制定本制度。本制度适用于公司全体员工。
+
+## 二、报销范围
+
+1. 差旅费：包括交通费、住宿费、餐饮补助费
+2. 业务招待费：客户来访、商务洽谈等产生的合理费用
+3. 办公费：办公用品、打印费、快递费等
+4. 培训费：经批准的外部培训、会议费用
+5. 其他费用：经部门负责人和财务部门确认的合理支出
+
+## 三、报销标准
+
+### 3.1 差旅费标准
+
+- 交通费：高铁二等座、飞机经济舱，特殊情况需提前审批
+- 住宿费：一线城市不超过500元/晚，二线城市不超过400元/晚
+- 餐饮补助：100元/天，凭票报销或按标准发放
+
+### 3.2 业务招待费标准
+
+- 单次招待费用不超过2000元，需提前报备
+- 超过2000元需部门总监审批
+- 招待对象、人数、事由需在报销单中详细说明
+
+## 四、报销流程
+
+1. 员工填写报销单，粘贴原始发票
+2. 部门负责人审核签字（确认费用真实性和合理性）
+3. 财务部门审核（票据合规性、标准符合性）
+4. 财务总监审批（超过5000元需总经理审批）
+5. 出纳付款（每月15日和30日集中付款）
+
+## 五、注意事项
+
+1. 发票必须为正规增值税发票，抬头为公司全称
+2. 报销时限：费用发生后30天内提交，逾期不予报销
+3. 严禁虚报、冒报，一经发现严肃处理
+4. 电子发票需打印后附在报销单后，并提供PDF电子版
+
+## 六、附则
+
+本制度自发布之日起执行，由财务部门负责解释和修订。` },
+{ title:"产品定价策略", content:`# 产品定价策略手册
+
+## 一、定价目标
+
+公司产品定价以"市场导向+成本控制"为基本原则，追求合理利润和市场份额的平衡。
+
+## 二、定价方法
+
+### 2.1 成本加成定价法
+
+适用于标准化产品：
+- 产品售价 = 单位成本 × (1 + 目标利润率)
+- 目标利润率：核心产品35%-45%，常规产品25%-35%，促销产品15%-20%
+
+### 2.2 竞争导向定价法
+
+适用于竞争激烈的市场：
+- 参考主要竞品价格，上下浮动不超过10%
+- 新产品上市可采用渗透定价（低于竞品10%-15%）快速获取市场份额
+- 成熟产品可采用撇脂定价（高于竞品5%-10%）突出品牌价值
+
+### 2.3 价值定价法
+
+适用于定制化解决方案：
+- 根据客户感知价值定价，而非成本
+- 需提供ROI分析报告，说明产品为客户带来的价值
+- 定价区间：客户年预算的10%-20%
+
+## 三、价格体系
+
+### 3.1 产品分级
+
+- 标准版：基础功能，面向中小企业，定价9,800元/年
+- 专业版：高级功能+技术支持，面向中大型企业，定价29,800元/年
+- 企业版：定制化+专属服务，面向大型企业，定价面议（起价98,000元/年）
+
+### 3.2 折扣政策
+
+- 年付折扣：一次性支付一年费用享9折，两年享8折，三年享7折
+- 批量折扣：采购10个以上账号享85折，50个以上享75折
+- 老客户续费：续费享95折，连续3年以上享9折
+- 特殊折扣：需销售总监审批，最低不低于6折
+
+## 四、定价审批流程
+
+1. 销售人员提交定价申请（含客户信息、竞品分析、预期利润）
+2. 产品经理审核（产品定位、价格体系符合性）
+3. 财务部门审核（利润率、成本核算）
+4. 销售总监审批（标准折扣内）/ 总经理审批（特殊折扣）
+5. 销售执行并反馈实际成交价
+
+## 五、价格调整
+
+- 常规调价：每年Q4进行下一年度价格评审
+- 紧急调价：成本变动超过15%或市场环境重大变化时启动
+- 调价需提前30天通知客户，已签约客户按原价执行至合同到期` },
+{ title:"库存管理手册", content:`# 库存管理操作手册
+
+## 一、库存管理目标
+
+通过科学的库存管理，实现"不缺货、不积压、低成本、高效率"的目标，保障供应链稳定运行。
+
+## 二、库存分类
+
+### 2.1 ABC分类法
+
+- A类物资：占库存金额70%-80%，品种数占10%-15%，重点管理，每周盘点
+- B类物资：占库存金额15%-20%，品种数占20%-30%，常规管理，每月盘点
+- C类物资：占库存金额5%-10%，品种数占50%-60%，简化管理，每季度盘点
+
+### 2.2 按用途分类
+
+- 原材料：生产用原料、辅料
+- 半成品：生产过程中的在制品
+- 成品：已完工待销售产品
+- 备品备件：设备维修用零件
+- 办公用品：日常办公消耗品
+
+## 三、库存预警机制
+
+### 3.1 安全库存设置
+
+安全库存 = 平均日消耗量 × 采购提前期 × 安全系数
+
+- A类物资：安全系数1.5，确保不缺货
+- B类物资：安全系数1.2，平衡成本和风险
+- C类物资：安全系数1.0，允许短期缺货
+
+### 3.2 预警阈值
+
+- 红色预警：库存 ≤ 安全库存，立即触发采购流程
+- 黄色预警：库存 ≤ 安全库存 × 1.5，准备采购
+- 绿色状态：库存 > 安全库存 × 1.5，正常运行
+
+### 3.3 呆滞库存预警
+
+- 库存周转天数 > 90天：标记为慢动销，启动促销或调拨
+- 库存周转天数 > 180天：标记为呆滞，启动清仓或报废流程
+- 库存周转天数 > 365天：强制报废处理
+
+## 四、出入库流程
+
+### 4.1 入库流程
+
+1. 供应商送货到库，仓管员核对采购订单
+2. 质检部门检验（A类物资全检，B类抽检，C类免检）
+3. 检验合格后办理入库，录入ERP系统
+4. 打印入库单，仓管员和供应商双方签字确认
+5. 物资按指定库位上架，更新库存台账
+
+### 4.2 出库流程
+
+1. 领用部门提交领料单（经部门负责人审批）
+2. 仓管员审核领料单（库存充足、用途合理）
+3. 按先进先出原则备货
+4. 办理出库，录入ERP系统，扣减库存
+5. 领用人签字确认，物资出库
+
+## 五、盘点制度
+
+- 日常盘点：仓管员每日对A类物资进行动态盘点
+- 月度盘点：每月末对B类物资进行全面盘点
+- 季度盘点：每季度末对全部物资进行大盘点
+- 年度盘点：每年12月进行年度全面盘点，出具盘点报告
+- 盘盈盘亏处理：差异率超过0.5%需查明原因，报财务部门审批后调整
+
+## 六、库存周转率
+
+库存周转率 = 销售成本 / 平均库存余额
+
+- 目标值：A类物资≥12次/年，B类物资≥8次/年，C类物资≥4次/年
+- 每月计算并通报，连续3个月低于目标值需制定改进方案` },
+{ title:"考勤管理制度", content:`# 员工考勤管理制度
+
+## 一、工作时间
+
+- 标准工时：周一至周五 9:00-18:00，午休12:00-13:30
+- 弹性工时：核心工作时间10:00-16:00必须在岗，其余时间可弹性安排
+- 综合工时：经批准的特殊岗位，按季度综合计算工时
+
+## 二、考勤方式
+
+1. 人脸识别打卡：上下班各一次，支持外勤打卡
+2. 打卡时间：上班打卡提前不超过2小时，下班打卡延后不超过4小时
+3. 忘记打卡：每月可申请3次补卡，超过按事假处理
+4. 外勤打卡：需填写外勤事由和地点，部门负责人审批
+
+## 三、迟到早退
+
+- 迟到/早退15分钟以内：每次扣50元
+- 迟到/早退15-30分钟：每次扣100元
+- 迟到/早退超过30分钟：按事假半天处理
+- 月度累计迟到3次以上：部门通报批评
+- 月度累计迟到5次以上：影响当月绩效评级
+
+## 四、请假制度
+
+### 4.1 事假
+
+- 提前1天申请，紧急情况可当天申请但需说明原因
+- 事假期间不计发工资
+- 月度事假超过3天需总监审批，超过5天需总经理审批
+
+### 4.2 病假
+
+- 需提供医院诊断证明（急诊可后补）
+- 病假期间按基本工资80%计发
+- 连续病假超过3天需部门总监审批
+- 医疗期按国家相关规定执行
+
+### 4.3 年假
+
+- 工作满1年不满10年：5天/年
+- 工作满10年不满20年：10天/年
+- 工作满20年以上：15天/年
+- 年假可分次使用，最小单位0.5天
+- 当年年假需在次年3月底前使用完毕，逾期作废
+
+### 4.4 其他假期
+
+- 婚假：3天（晚婚增加7天）
+- 产假：98天（难产增加15天，多胞胎每多一胎增加15天）
+- 陪产假：15天
+- 丧假：3天（直系亲属）
+- 调休：加班可调休，调休需在3个月内使用
+
+## 五、加班管理
+
+- 加班需提前申请，部门负责人审批
+- 工作日加班：18:30以后起算，按1.5倍工资或调休
+- 周末加班：按2倍工资或调休
+- 法定节假日加班：按3倍工资
+- 月度加班不超过36小时，每日加班不超过3小时
+
+## 六、考勤异常处理
+
+- 打卡数据异常：3个工作日内提交申诉，逾期不予受理
+- 系统故障：由IT部门出具证明，不记为异常
+- 考勤数据每月5日前由HR部门汇总确认
+- 员工对考勤数据有异议可在3个工作日内提出复核` },
+];
+
+/* ================= 索引与检索（对齐 Python 版算法） ================= */
+let documents = [];
+let inverted = {};   // word -> [{doc, para, tf}]
+let docFreq = {};    // word -> 文档数
+let maxResults = 10;
+
+function tokenize(text){
+  const t = text.toLowerCase();
+  const en = t.match(/[a-z][a-z0-9_]+/g) || [];
+  const zh = t.match(/[\u4e00-\u9fff]/g) || [];
+  const bigrams = [];
+  for (let i = 0; i < zh.length - 1; i++) bigrams.push(zh[i] + zh[i+1]);
+  return en.concat(zh, bigrams);
+}
+
+function buildIndex(){
+  inverted = {}; docFreq = {};
+  documents.forEach(doc => {
+    const docWords = new Set();
+    doc.paragraphs.forEach((para, pi) => {
+      const cnt = {};
+      tokenize(para).forEach(w => cnt[w] = (cnt[w]||0) + 1);
+      Object.entries(cnt).forEach(([w, c]) => {
+        (inverted[w] = inverted[w] || []).push({doc: doc.id, para: pi, tf: c});
+        docWords.add(w);
+      });
+    });
+    docWords.forEach(w => docFreq[w] = (docFreq[w]||0) + 1);
+  });
+}
+
+function indexDocs(list){
+  documents = list.map((d, i) => {
+    const paragraphs = d.content.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    return { id: i, title: d.title, content: d.content, paragraphs, word_count: d.content.length, builtin: d.builtin !== false };
+  });
+  buildIndex();
+}
+
+function search(query){
+  const qw = tokenize(query);
+  if (!qw.length) return [];
+  const scores = {};
+  const N = documents.length;
+  qw.forEach(w => {
+    if (!inverted[w]) return;
+    const idf = Math.log(N / ((docFreq[w]||1) + 1)) + 1;
+    inverted[w].forEach(({doc, para, tf}) => {
+      const key = doc + "|" + para;
+      scores[key] = (scores[key]||0) + tf * idf;
+    });
+  });
+  return Object.entries(scores)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, maxResults)
+    .map(([key, score], i) => {
+      const [docId, pi] = key.split("|").map(Number);
+      const doc = documents[docId];
+      const matched = [...new Set(qw.filter(w => w.length >= 2 && doc.paragraphs[pi].toLowerCase().includes(w)))];
+      return {
+        idx: i, doc_title: doc.title, score: Math.round(score*100)/100,
+        paragraph: doc.paragraphs[pi],
+        context: getContext(doc, pi),
+        matched
+      };
+    });
+}
+
+function getContext(doc, pi){
+  const parts = [];
+  if (pi > 0) parts.push(doc.paragraphs[pi-1].slice(0,100) + "...");
+  parts.push(doc.paragraphs[pi]);
+  if (pi < doc.paragraphs.length - 1) parts.push("..." + doc.paragraphs[pi+1].slice(0,100));
+  return parts.join("\n\n");
+}
+
+function highlight(text, words){
+  if (!words.length) return esc(text);
+  const re = new RegExp("(" + words.map(rx).join("|") + ")", "gi");
+  return esc(text).replace(re, m => "<mark>" + m + "</mark>");
+}
+
+function getStats(){
+  return {
+    doc_count: documents.length,
+    paragraph_count: documents.reduce((s,d) => s + d.paragraphs.length, 0),
+    word_count: documents.reduce((s,d) => s + d.word_count, 0),
+    index_size: Object.keys(inverted).length
+  };
+}
+
+/* ================= 渲染 ================= */
+function renderStats(){
+  const s = getStats();
+  const items = [["文档数", s.doc_count], ["段落数", s.paragraph_count], ["总字数", s.word_count.toLocaleString()], ["索引词数", s.index_size.toLocaleString()]];
+  $("stats").innerHTML = items.map(([l, v]) => `<div class="stat-card"><div class="num">${v}</div><div class="label">${l}</div></div>`).join("");
+  $("docTags").innerHTML = documents.map(d =>
+    `<span class="docTag"><b>${esc(d.title)}</b> · ${d.paragraphs.length}段 · ${d.word_count}字${d.builtin?"":" · 新上传"}</span>`).join("");
+}
+
+function doSearch(q){
+  q = (q || $("query").value).trim();
+  if (!q) return;
+  $("resultCard").hidden = false;
+  $("resultHeader").textContent = "搜索中…";
+  $("resultList").innerHTML = '<div class="loading">正在检索…</div>';
+  setTimeout(() => {
+    const res = search(q).filter(r => r.matched.length > 0);  // 排除仅单字噪声命中
+    $("resultHeader").textContent = `找到 ${res.length} 个相关段落（查询："${q}"）`;
+    if (!res.length){
+      $("resultList").innerHTML = '<div class="no-result">未找到相关内容，试试其他关键词（如：报销、年假、安全库存、定价）</div>';
+      return;
+    }
+    $("resultList").innerHTML = res.map(r => `
+      <div class="result-item">
+        <div class="result-title">${r.idx+1}. ${esc(r.doc_title)}<span class="result-score">相关度 ${r.score}</span></div>
+        <div class="result-content">${highlight(r.context, r.matched)}</div>
+      </div>`).join("");
+  }, 60);
+}
+
+/* ================= 上传文档 ================= */
+function addUploadedDoc(name, content){
+  if (!content.trim()){ alert("文件内容为空"); return; }
+  const all = documents.filter(d => d.title !== name)   // 同名覆盖
+    .map(d => ({ title: d.title, content: d.content, builtin: d.builtin }));
+  all.push({ title: name, content, builtin: false });
+  indexDocs(all);
+  renderStats();
+}
+
+/* ================= 事件与初始化 ================= */
+const EXAMPLES = ["报销流程是什么？", "年假有多少天？", "安全库存怎么算？", "定价方法有哪些？", "库存预警阈值是多少？"];
+$("chips").innerHTML = EXAMPLES.map(q => `<span class="chip">${esc(q)}</span>`).join("");
+$("chips").addEventListener("click", e => {
+  if (e.target.classList.contains("chip")){ $("query").value = e.target.textContent; doSearch(); }
+});
+$("searchBtn").onclick = () => doSearch();
+$("query").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+$("upBtn").onclick = () => $("upFile").click();
+$("upFile").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    const name = f.name.replace(/\.(txt|md|markdown|csv)$/i, "");
+    addUploadedDoc(name, fr.result);
+    const old = $("upBtn").textContent;
+    $("upBtn").textContent = "✓ 已添加：" + name;
+    $("upBtn").style.borderColor = "#2e9e5b"; $("upBtn").style.color = "#2e9e5b";
+    setTimeout(() => { $("upBtn").textContent = old; $("upBtn").style.borderColor = ""; $("upBtn").style.color = ""; }, 2000);
+  };
+  fr.readAsText(f, "utf-8");
+};
+
+indexDocs(BUILTIN_DOCS.map(d => Object.assign({builtin:true}, d)));
+renderStats();
+</script>
+</body>
+</html>

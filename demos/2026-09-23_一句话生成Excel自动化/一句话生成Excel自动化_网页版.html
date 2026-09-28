@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一句话生成Excel自动化 · 自然语言→可运行脚本</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='6' fill='%231a5fb4'/%3E%3Cpath d='M8 11h16M8 16h16M8 21h10' stroke='%23fff' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root{--primary:#1a5fb4;--primary-d:#143d78;--accent:#3584e4;--bg:#f2f5f9;--card:#fff;--line:#dfe5ec;--text:#1f2937;--muted:#6b7280;--ok:#2e7d32;--warn:#b26a00;--err:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  .wrap{max-width:1120px;margin:0 auto;padding:16px}
+  header.top{display:flex;align-items:center;gap:12px;padding:14px 4px 4px}
+  .logo{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;flex:none}
+  .logo svg{width:24px;height:24px}
+  header.top h1{font-size:20px;font-weight:700}
+  header.top p{color:var(--muted);font-size:12.5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px;box-shadow:0 1px 3px rgba(16,42,67,.06)}
+  .card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+  .step{background:var(--primary);color:#fff;width:24px;height:24px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+  textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;line-height:1.7;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+  button{font-size:13.5px;padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:all .15s}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  button.primary:hover{background:var(--primary-d)}
+  .chip{font-size:12.5px;padding:6px 12px;border-radius:8px;background:#f4f7fb;border:1px dashed #b9cdea;color:var(--primary-d)}
+  .chip:hover{background:#eef4fc}
+  .parseBox{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px;background:#f8fafc;font-size:13px}
+  .parseBox .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0}
+  .parseBox .k{color:var(--muted);font-size:12px;width:56px;flex:none}
+  .parseBox .v{background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-weight:600;color:var(--primary-d)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  pre.code{font-size:12.5px;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px;overflow:auto;max-height:380px;line-height:1.65;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  pre.code .cm{color:#64748b}
+  pre.code .kw{color:#93c5fd}
+  pre.code .st{color:#a7f3d0}
+  pre.code .nm{color:#fbbf24}
+  .tableWrap{overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:10px}
+  table.grid{border-collapse:collapse;width:100%;font-size:13px}
+  table.grid th{background:#eef2f7;text-align:left;padding:8px 10px;border:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
+  table.grid td{padding:7px 10px;border:1px solid #edf0f4;white-space:nowrap}
+  table.grid td.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.grid tr.hl td{background:#fde8e8}
+  table.grid tr.hly td{background:#fff7d6}
+  .status{font-size:13px;margin-top:8px;min-height:20px}
+  .status.ok{color:var(--ok)} .status.err{color:var(--err)}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+  .dl{color:var(--primary-d);cursor:pointer;text-decoration:underline;font-size:13px;background:none;border:none}
+  footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
+  footer b{color:#4b5563}
+  @media(max-width:720px){.cols{grid-template-columns:1fr}}
+  @media(max-width:640px){
+    .wrap{padding:10px}.card{padding:14px}
+    textarea,button{font-size:16px}
+    table.grid{display:block;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="4" stroke="#fff" stroke-width="1.8"/><path d="M6 9h12M6 13h12M6 17h8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+      <h1>一句话生成Excel自动化</h1>
+      <p>用中文描述需求 → 自动解析成规则 → 生成可直接运行的 Python 脚本 → 立即看到执行结果</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <h2><span class="step">1</span>用一句话描述你的需求</h2>
+    <textarea id="nl" placeholder="例如：每天把这个CSV的销售额按门店汇总，低于1万的标红"></textarea>
+    <div class="btns">
+      <button class="primary" id="runBtn">解析并生成</button>
+      <button class="chip" data-demo="0">按门店汇总销售额，低于1万标红</button>
+      <button class="chip" data-demo="1">按品类统计销量并排序</button>
+      <button class="chip" data-demo="2">筛选出利润超过5000的记录</button>
+      <button class="chip" data-demo="3">计算每个月的平均销售额</button>
+      <button class="chip" data-demo="4">把销售额按城市汇总，超过2万标黄</button>
+    </div>
+    <div class="parseBox" id="parseBox" hidden></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section class="card" id="resultCard" hidden>
+    <h2><span class="step">2</span>生成结果</h2>
+    <div class="cols">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <b style="font-size:13.5px">生成的 Python 脚本（可直接运行）</b>
+          <button class="dl" id="dlPy">下载 .py</button>
+        </div>
+        <pre class="code" id="script"></pre>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <b style="font-size:13.5px">模拟执行结果（基于示例数据）</b>
+          <button class="dl" id="dlCsv">下载结果 CSV</button>
+        </div>
+        <div class="tableWrap"><table class="grid" id="outTbl"></table></div>
+        <p class="hint" id="outHint"></p>
+      </div>
+    </div>
+  </section>
+
+  <footer><b>说明：</b>demo 内置 6 列×12 行示例销售数据，规则引擎支持：汇总/统计/平均/筛选/排序/标红/标黄。正式版可接大模型 API 做更自由的自然语言理解。灵感来自「AI工具资讯日报」9/23（Octoparse）。</footer>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ===== 示例销售数据（门店/城市/品类/月份/销售额/销量/利润） ===== */
+const COLS = ["门店","城市","品类","月份","销售额","销量","利润"];
+const DATA = [
+  ["南山店","深圳","米饭套餐","1月", 12000, 400, 3600],
+  ["南山店","深圳","面食套餐","1月",  8000, 250, 2100],
+  ["福田店","深圳","米饭套餐","1月",  9600, 320, 2800],
+  ["福田店","深圳","饮品","1月",  5200, 420, 2400],
+  ["车公庙店","深圳","米饭套餐","2月", 14500, 480, 4300],
+  ["车公庙店","深圳","面食套餐","2月",  6700, 210, 1700],
+  ["罗湖店","深圳","米饭套餐","2月",  4300, 150,  980],
+  ["天河店","广州","米饭套餐","1月", 11000, 360, 3200],
+  ["天河店","广州","饮品","1月",  4900, 380, 2100],
+  ["珠江店","广州","米饭套餐","2月",  8900, 300, 2600],
+  ["越秀店","广州","面食套餐","2月",  6100, 190, 1500],
+  ["越秀店","广州","饮品","2月",  4600, 350, 1900]
+];
+
+/* ===== 规则引擎：从中文文本提取操作 ===== */
+const OPS = [
+  {op:"groupby", words:["汇总","分组","统计","合计","求和","按门店","按城市","按品类","按月","按月份"]},
+  {op:"mean",    words:["平均"]},
+  {op:"filter",  words:["筛选","只看","过滤","保留"]},
+  {op:"sort",    words:["排序","排一下"]},
+  {op:"hl",      words:["标红","红色","红"]},
+  {op:"hly",     words:["标黄","黄色","黄"]}
+];
+const DIMS = {"门店":"门店","城市":"城市","品类":"品类","月份":"月份","月":"月份","区域":"城市"};
+const METRICS = {"销售额":"销售额","销量":"销量","利润":"利润","金额":"销售额","数量":"销量"};
+const CMP = {">":["超过","大于","高于","以上"],">=":["不低于","不少于","大于等于"],"<":["低于","小于","少于","以下"],"<=":["不高于","不超过","小于等于"]};
+
+function parse(text){
+  const t = text.replace(/\s/g,"");
+  const ops = new Set();
+  if (/(汇总|分组|统计|合计|求和)/.test(t)) ops.add("groupby");
+  if (/(平均)/.test(t)) ops.add("mean");
+  if (/(筛选|只看|过滤|保留)/.test(t)) ops.add("filter");
+  if (/(排序)/.test(t)) ops.add("sort");
+  if (/(标红|红色)/.test(t)) ops.add("hl");
+  if (/(标黄|黄色)/.test(t)) ops.add("hly");
+
+  let dim = "", metric = "", cmp = "", th = null;
+  for (const k in DIMS){ if (t.includes(k)){ dim = DIMS[k]; break; } }
+  for (const k in METRICS){ if (t.includes(k)){ metric = METRICS[k]; break; } }
+  for (const c in CMP){ if (CMP[c].some(w => t.includes(w))){ cmp = c; break; } }
+  const m = t.match(/([0-9]+(?:\.[0-9]+)?)\s*(万|w|k)?/);
+  if (m){
+    let v = Number(m[1]);
+    if (m[2]) v = m[2] === "万" || m[2] === "w" ? v * 10000 : v * 1000;
+    if (cmp) th = Math.round(v);
+  }
+  if (!metric) metric = "销售额";
+  return { ops, dim, metric, cmp, th };
+}
+
+/* ===== 生成 Python 脚本 ===== */
+function genScript(r){
+  const L = [];
+  const p = (s) => L.push(s);
+  p("# -*- coding: utf-8 -*-");
+  p("# 本脚本由「一句话生成Excel自动化」自动生成");
+  p("# 需求：" + $("nl").value.trim().replace(/\n/g," "));
+  p("# 依赖：pip install pandas openpyxl");
+  p("import pandas as pd");
+  p("from openpyxl import load_workbook");
+  p("from openpyxl.styles import PatternFill, Font");
+  p("");
+  p("df = pd.read_csv(\"sales.csv\", encoding=\"utf-8-sig\")");
+  p("");
+  const lines = [];
+  if (r.ops.has("groupby") || r.ops.has("mean")){
+    const agg = r.ops.has("mean") ? "mean" : "sum";
+    p(`# 1. 按${r.dim || "门店"}${agg === "mean" ? "求平均" : "汇总"}${r.metric}`);
+    lines.push(`result = df.groupby("${r.dim || "门店"}", as_index=False)[["${r.metric}"]].${agg}().round(2)`);
+  } else {
+    p(`# 1. 保留原始明细（${r.metric} 列）`);
+    lines.push(`result = df[["${r.dim || "门店"}","${r.metric}"]].copy()`);
+  }
+  if (r.ops.has("filter") && r.cmp && r.th !== null){
+    p(`# 2. 筛选${r.metric}${r.cmp}${r.th} 的记录`);
+    lines.push(`result = result[result["${r.metric}"] ${r.cmp} ${r.th}]`);
+  }
+  if (r.ops.has("sort")){
+    p(`# 3. 按${r.metric}降序排序`);
+    lines.push(`result = result.sort_values("${r.metric}", ascending=False)`);
+  }
+  lines.forEach(l => p(l));
+  p("");
+  if (r.ops.has("hl") || r.ops.has("hly")){
+    const fill = r.ops.has("hl") ? "FFC7CE" : "FFEB9C";
+    const font = r.ops.has("hl") ? "9C0006" : "9C6500";
+    p("# 4. 写入 Excel 并对满足条件的行标色");
+    p(`result.to_excel("结果.xlsx", index=False)`);
+    p(`wb = load_workbook("结果.xlsx"); ws = wb.active`);
+    p(`fill = PatternFill(start_color="${fill}", end_color="${fill}", fill_type="solid")`);
+    p(`font = Font(color="${font}")`);
+    p(`for row in ws.iter_rows(min_row=2):`);
+    p(`    v = row[${resultColIndex(r)}].value  # ${r.metric} 列`);
+    p(`    if v is not None and v ${r.cmp || "<"} ${r.th ?? 0}:`);
+    p(`        for c in row: c.fill = fill; c.font = font`);
+    p(`wb.save("结果.xlsx")`);
+  } else {
+    p("# 4. 导出结果");
+    p(`result.to_excel("结果.xlsx", index=False)`);
+  }
+  p("");
+  p("print(\"完成：\", result.shape, \"行×列，已保存 结果.xlsx\")");
+  return L.join("\n");
+}
+function resultColIndex(r){
+  // result 列顺序：维度(0) + 指标(1)
+  return 1;
+}
+
+/* ===== 模拟执行 ===== */
+function runSim(r){
+  let rows = DATA.map(d => Object.fromEntries(COLS.map((c,i) => [c, d[i]])));
+  let aggMode = r.ops.has("groupby") || r.ops.has("mean");
+  let dim = r.dim || "门店", metric = r.metric;
+  let outRows, hint = "";
+  if (aggMode){
+    const agg = {};
+    rows.forEach(rr => {
+      const k = rr[dim];
+      agg[k] = agg[k] || { sums:{}, n:0 };
+      agg[k].sums[metric] = (agg[k].sums[metric]||0) + rr[metric];
+      agg[k].n++;
+    });
+    const useMean = r.ops.has("mean");
+    outRows = Object.keys(agg).map(k => [k, useMean ? Math.round(agg[k].sums[metric]/agg[k].n*100)/100 : agg[k].sums[metric]]);
+    hint = `按「${dim}」${useMean ? "求平均" : "汇总"}「${metric}」`;
+  } else {
+    outRows = rows.map(rr => [rr[dim], rr[metric]]);
+    if (r.ops.has("filter") && r.cmp && r.th !== null){
+      const before = outRows.length;
+      outRows = outRows.filter(([,v]) => cmpVal(v, r.cmp, r.th));
+      hint = `筛选「${metric} ${r.cmp} ${r.th}」：${before} 条 → ${outRows.length} 条`;
+    }
+    if (r.ops.has("sort")) outRows.sort((a,b) => b[1]-a[1]);
+  }
+  const hlRow = i => {
+    if (r.ops.has("hl")) return r.cmp && r.th !== null && cmpVal(outRows[i][1], r.cmp, r.th);
+    if (r.ops.has("hly")) return r.cmp && r.th !== null && cmpVal(outRows[i][1], r.cmp, r.th);
+    return false;
+  };
+  const cls = r.ops.has("hl") ? "hl" : (r.ops.has("hly") ? "hly" : "");
+  let html = `<thead><tr><th>${dim}</th><th>${metric}</th></tr></thead><tbody>`;
+  outRows.forEach((r,i) => {
+    html += `<tr class="${hlRow(i) ? cls : ""}"><td>${esc(r[0])}</td><td class="num">${Number(r[1]).toLocaleString("zh-CN")}</td></tr>`;
+  });
+  $("outTbl").innerHTML = html + "</tbody>";
+  return { outRows, hint, cls };
+}
+
+function cmpVal(v, cmp, th){
+  return cmp === ">" ? v > th : cmp === ">=" ? v >= th : cmp === "<" ? v < th : v <= th;
+}
+
+/* ===== 渲染 ===== */
+const DEMOS = [
+  "每天把这个CSV的销售额按门店汇总，低于1万标红",
+  "按品类统计销量并排序",
+  "筛选出利润超过5000的记录",
+  "计算每个月的平均销售额",
+  "把销售额按城市汇总，超过2万标黄"
+];
+document.querySelectorAll(".chip").forEach((c,i) => c.onclick = () => { $("nl").value = DEMOS[i]; run(); });
+
+function run(){
+  const text = $("nl").value.trim();
+  const st = $("status");
+  if (!text){ st.textContent = "请先输入一句话需求。"; st.className = "status err"; return; }
+  const r = parse(text);
+  if (!r.ops.size){ st.textContent = "没识别到可执行的操作（试试「汇总」「筛选」「排序」「标红」）。"; st.className = "status err"; return; }
+  st.textContent = ""; st.className = "status";
+
+  // 解析结果展示
+  const opNames = {"groupby":"分组汇总","mean":"求平均","filter":"筛选","sort":"排序","hl":"标红","hly":"标黄"};
+  const opsStr = [...r.ops].map(o => opNames[o]).join(" + ");
+  $("parseBox").hidden = false;
+  $("parseBox").innerHTML = `
+    <div class="row"><span class="k">识别操作</span><span class="v">${opsStr}</span></div>
+    <div class="row"><span class="k">分组维度</span><span class="v">${r.dim || "—（未指定，默认门店）"}</span>
+      <span class="k" style="margin-left:10px">指标</span><span class="v">${r.metric}</span>
+      <span class="k" style="margin-left:10px">阈值</span><span class="v">${r.cmp ? r.metric + " " + r.cmp + " " + r.th : "—"}</span></div>`;
+
+  $("script").textContent = genScript(r);
+  const sim = runSim(r);
+  $("outHint").textContent = sim.hint || (sim.outRows.length + " 行");
+  $("resultCard").hidden = false;
+  st.textContent = "✅ 生成完成：脚本可复制运行，右侧为基于示例数据的执行效果。";
+  st.className = "status ok";
+}
+$("runBtn").onclick = run;
+
+/* 下载 */
+function dlBlob(content, name, type){
+  const blob = new Blob([content], {type: type});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+$("dlPy").onclick = () => dlBlob($("script").textContent, "excel_自动化.py", "text/plain;charset=utf-8");
+$("dlCsv").onclick = () => {
+  const r = parse($("nl").value.trim());
+  const sim = runSim(r);
+  const dim = r.dim || "门店", metric = r.metric;
+  const lines = [["\uFEFF" + dim + "," + metric]];
+  sim.outRows.forEach(row => lines.push(row[0] + "," + row[1]));
+  dlBlob(lines.join("\n"), "执行结果.csv", "text/csv;charset=utf-8");
+};
+
+/* 初始化：填一个示例并直接出结果 */
+$("nl").value = DEMOS[0];
+run();
+</script>
+</body>
+</html>

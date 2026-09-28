@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>网站数据自动采集器 - 无需写代码，把网站变成可用的数据接口</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317356E'/%3E%3Cpath d='M8 10h16v3H8zm0 6h11v3H8zm0 6h8v3H8z' fill='%23E8F0FE'/%3E%3Ccircle cx='24' cy='8' r='3' fill='%235B9BD5'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --navy:#17356E; --blue:#2F6BD8; --blue-l:#5B9BD5; --bg:#F4F6FA; --card:#FFFFFF;
+    --line:#DDE3EC; --txt:#1F2937; --sub:#6B7280; --ok:#178A5A; --warn:#C77414; --bad:#C0392B;
+    --chip:#E8F0FE;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;background:var(--bg);color:var(--txt);line-height:1.55}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+  /* ===== 头部 ===== */
+  header{background:linear-gradient(135deg,#17356E 0%,#2F6BD8 100%);border-radius:16px;padding:26px 28px;color:#fff;margin-bottom:18px}
+  header h1{font-size:24px;font-weight:700;letter-spacing:.5px}
+  header p{font-size:13px;opacity:.85;margin-top:6px;max-width:720px}
+  .hdr-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:5px 12px;font-size:12px}
+  .pill b{font-weight:600}
+  /* ===== 卡片 ===== */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  .card h2{font-size:16px;color:var(--navy);display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .card h2 .step{background:var(--navy);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:none}
+  .hint{font-size:12px;color:var(--sub);margin-top:8px}
+  /* ===== 表单 ===== */
+  .form-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
+  .fg{display:flex;flex-direction:column;gap:4px}
+  .fg label{font-size:12px;color:var(--sub)}
+  .fg input,.fg select{height:36px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:13px;background:#fff;color:var(--txt);outline:none}
+  .fg input:focus,.fg select:focus{border-color:var(--blue)}
+  .fg input[type=text]{width:100%}
+  .c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c8{grid-column:span 8}.c12{grid-column:span 12}
+  .btn{height:36px;border:none;border-radius:8px;padding:0 16px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn-p{background:var(--navy);color:#fff}.btn-p:hover{background:#22488F}
+  .btn-s{background:var(--chip);color:var(--navy);border:1px solid var(--line)}
+  .btn-sm{height:30px;padding:0 12px;font-size:12px}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  /* ===== 任务列表 ===== */
+  .task{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#FBFCFE}
+  .task .t-main{flex:1;min-width:220px}
+  .task .t-name{font-size:14px;font-weight:600}
+  .task .t-url{font-size:12px;color:var(--sub);word-break:break-all;margin-top:2px}
+  .task .t-meta{font-size:12px;color:var(--sub);display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:4px}
+  .tag{display:inline-block;background:var(--chip);color:var(--navy);border-radius:6px;padding:1px 8px;font-size:11px}
+  .tag.ok{background:#E7F6EE;color:var(--ok)}
+  .tag.warn{background:#FDF1E3;color:var(--warn)}
+  .t-ops{display:flex;gap:8px}
+  /* ===== 表格 ===== */
+  table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}
+  th{background:var(--navy);color:#fff;padding:9px 8px;text-align:left;font-weight:600;font-size:12px}
+  td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle;word-break:break-word}
+  tr:nth-child(even) td{background:#F8FAFD}
+  .up{color:var(--bad);font-weight:600}
+  .down{color:var(--ok);font-weight:600}
+  .new{background:#E7F6EE;color:var(--ok);border-radius:6px;padding:1px 8px;font-size:11px;font-weight:600}
+  .gone{background:#FDEBEA;color:var(--bad);border-radius:6px;padding:1px 8px;font-size:11px;font-weight:600}
+  .same{color:var(--sub)}
+  .empty{padding:26px;text-align:center;color:var(--sub);font-size:13px}
+  /* ===== 告警 ===== */
+  .alarm{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#FFFDF8;font-size:13px}
+  .alarm .a-time{flex:none;color:var(--sub);font-size:11px;margin-top:2px}
+  .alarm.warn{border-left-color:var(--warn)}
+  .alarm.bad{border-left-color:var(--bad);background:#FFF9F8}
+  .alarm.ok{border-left-color:var(--ok);background:#F7FCF9}
+  /* ===== 结果区 ===== */
+  .res-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px}
+  .res-head .ttl{font-size:14px;font-weight:600;color:var(--navy)}
+  .res-head .sub{font-size:12px;color:var(--sub)}
+  .progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0}
+  .progress i{display:block;height:100%;width:0;background:var(--blue);border-radius:3px;transition:width .2s}
+  /* ===== 页脚 ===== */
+  footer{font-size:12px;color:var(--sub);text-align:center;margin-top:26px}
+  @media (max-width:760px){
+    .c3,.c4,.c5,.c6,.c8{grid-column:span 12}
+    header{padding:20px 18px}
+    .task{flex-direction:column;align-items:stretch}
+    .t-ops{justify-content:flex-end}
+    table{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>网站数据自动采集器</h1>
+    <p>不用写代码，把任何网站变成结构化数据接口：配置网址和要抓的字段，定时采集、自动对比变化、异常告警，结果一键导出 Excel。</p>
+    <div class="hdr-row">
+      <span class="pill">思路来源：<b>maxun</b>（开源 · 17.5k stars）</span>
+      <span class="pill">适合：供应商报价 / 竞品价格 / 行业信息监控</span>
+      <span class="pill">演示数据：<b>模拟采集</b>，可随时替换真实网站</span>
+    </div>
+  </header>
+
+  <!-- ===== 1 新建采集任务 ===== -->
+  <section class="card">
+    <h2><span class="step">1</span>新建采集任务</h2>
+    <div class="form-grid">
+      <div class="fg c4"><label>任务名称</label><input type="text" id="in-name" placeholder="如：供应商A报价监控"></div>
+      <div class="fg c8"><label>目标网址</label><input type="text" id="in-url" placeholder="https://example.com/products"></div>
+      <div class="fg c5"><label>要采集的字段（逗号分隔）</label><input type="text" id="in-fields" value="商品名称,单价,库存" placeholder="商品名称,单价,库存"></div>
+      <div class="fg c3"><label>采集频率</label>
+        <select id="in-freq">
+          <option>每天 09:00</option><option>每 6 小时</option><option>每周一 09:00</option><option>手动采集</option>
+        </select>
+      </div>
+      <div class="fg c3"><label>变化告警</label>
+        <select id="in-alert">
+          <option>价格变化</option><option>仅价格下降</option><option>任何变化</option><option>关闭</option>
+        </select>
+      </div>
+      <div class="fg c5" style="justify-content:flex-end;flex-direction:row;align-items:flex-end">
+        <button class="btn btn-p" id="btn-add" onclick="addTask()">+ 添加任务</button>
+      </div>
+    </div>
+    <div class="hint">演示版直接模拟采集结果；接入真实网站时，把「模拟数据」替换为 maxun 生成的 API 调用即可。</div>
+  </section>
+
+  <!-- ===== 2 我的采集任务 ===== -->
+  <section class="card">
+    <h2><span class="step">2</span>我的采集任务</h2>
+    <div id="task-list"></div>
+    <div class="res-head" style="margin-top:14px">
+      <button class="btn btn-s" id="btn-run-all" onclick="runAll()">▶ 立即采集全部任务</button>
+      <span class="sub" id="run-status"></span>
+    </div>
+    <div class="progress"><i id="prog-bar"></i></div>
+  </section>
+
+  <!-- ===== 3 本次采集结果 ===== -->
+  <section class="card">
+    <h2><span class="step">3</span>本次采集结果</h2>
+    <div id="result-area"></div>
+  </section>
+
+  <!-- ===== 4 变化告警 ===== -->
+  <section class="card">
+    <h2><span class="step">4</span>变化告警</h2>
+    <div id="alarm-list"></div>
+  </section>
+
+  <footer>Demo 仅用于展示采集-对比-告警的完整闭环；实际使用请基于 maxun 本地部署接入真实数据源。</footer>
+</div>
+
+<script>
+/* ================= 数据模型 ================= */
+var KEY = "scraper_tasks_v1";
+var SEED = [
+  {id:1, name:"供应商A报价监控", url:"https://supplier-a.com/price-list", fields:["商品名称","单价","库存"], freq:"每天 09:00", alert:"价格变化",
+   lastRun:"2026-09-25 09:00", lastData:[
+     {商品名称:"冻虾仁 500g", 单价:32.5, 库存:1200},
+     {商品名称:"黑虎虾 1kg", 单价:58.0, 库存:800},
+     {商品名称:"三文鱼刺身 300g", 单价:45.0, 库存:0},
+     {商品名称:"北极贝 200g", 单价:28.0, 库存:640}]},
+  {id:2, name:"竞品价格监控", url:"https://market.example.com/search?q=盒饭", fields:["商品名称","平台","价格","月销量"], freq:"每 6 小时", alert:"价格下降",
+   lastRun:"2026-09-25 18:00", lastData:[
+     {商品名称:"招牌卤肉饭", 平台:"平台A", 价格:22.0, 月销量:3520},
+     {商品名称:"红烧牛肉饭", 平台:"平台B", 价格:24.0, 月销量:2980},
+     {商品名称:"鸡腿饭", 平台:"平台A", 价格:18.5, 月销量:4120},
+     {商品名称:"番茄牛腩饭", 平台:"平台C", 价格:26.0, 月销量:1560}]},
+  {id:3, name:"行业政策动态", url:"https://news.example.com/food-policy", fields:["标题","来源","发布时间"], freq:"每周一 09:00", alert:"任何变化",
+   lastRun:"2026-09-21 09:00", lastData:[
+     {标题:"餐饮数字化服务规范征求意见稿发布", 来源:"行业观察", 发布时间:"2026-09-18"},
+     {标题:"预制菜新国标正式实施", 来源:"食安日报", 发布时间:"2026-09-15"},
+     {标题:"外卖平台抽成比例新规试点", 来源:"商业周刊", 发布时间:"2026-09-10"}]}
+];
+function loadTasks(){ try{var raw=localStorage.getItem(KEY); if(raw) return JSON.parse(raw);}catch(e){} return JSON.parse(JSON.stringify(SEED)); }
+function saveTasks(t){ try{localStorage.setItem(KEY, JSON.stringify(t));}catch(e){} }
+var TASKS = loadTasks();
+var lastResult = null; /* 本次采集结果 */
+var alarms = [];
+var running = false;
+
+/* ================= 2 任务列表渲染 ================= */
+function fmtMeta(t){
+  var d = t.lastData || [];
+  var n = d.length;
+  return '<span class="tag">'+(t.freq||"手动")+'</span>'+
+         '<span class="tag '+(n>0?'ok':'warn')+'">字段 '+((t.fields||[]).length)+' 个 · 上次 '+(t.lastRun||"未采集")+' · '+n+' 条</span>'+
+         '<span class="tag">告警：'+(t.alert||"关闭")+'</span>';
+}
+function renderTasks(){
+  var el = document.getElementById("task-list");
+  if(!TASKS.length){ el.innerHTML='<div class="empty">还没有采集任务，用上方表单添加一个。</div>'; return; }
+  el.innerHTML = TASKS.map(function(t){
+    return '<div class="task">'+
+      '<div class="t-main">'+
+        '<div class="t-name">'+esc(t.name)+'</div>'+
+        '<div class="t-url">'+esc(t.url)+'</div>'+
+        '<div class="t-meta">'+fmtMeta(t)+'</div>'+
+      '</div>'+
+      '<div class="t-ops">'+
+        '<button class="btn btn-s btn-sm" onclick="runOne('+t.id+')">采集</button>'+
+        '<button class="btn btn-s btn-sm" onclick="delTask('+t.id+')">删除</button>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+}
+
+/* ================= 1 新建任务 ================= */
+function addTask(){
+  var name=document.getElementById("in-name").value.trim();
+  var url=document.getElementById("in-url").value.trim();
+  var fields=document.getElementById("in-fields").value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean);
+  var freq=document.getElementById("in-freq").value;
+  var alert=document.getElementById("in-alert").value;
+  if(!name||!url){ toast("请填写任务名称和目标网址"); return; }
+  if(!fields.length){ toast("请至少填写一个采集字段"); return; }
+  var t={id:Date.now(), name:name, url:url, fields:fields, freq:freq, alert:alert, lastRun:null, lastData:[]};
+  TASKS.unshift(t); saveTasks(TASKS); renderTasks();
+  document.getElementById("in-name").value=""; document.getElementById("in-url").value="";
+  toast("任务「"+name+"」已添加");
+}
+function delTask(id){
+  TASKS=TASKS.filter(function(t){return t.id!==id;}); saveTasks(TASKS); renderTasks();
+  toast("任务已删除");
+}
+
+/* ================= 模拟采集引擎 ================= */
+function mockRows(t){
+  var F=t.fields||["商品名称","单价","库存"];
+  var baseNames=["经典款","精选款","实惠装","大份装","家庭装","尝鲜款","旗舰款","标准款"];
+  var names=[];
+  for(var i=0;i<4;i++){ names.push(baseNames[Math.floor(Math.random()*baseNames.length)]+"·"+t.name.slice(0,4)); }
+  return names.map(function(nm,idx){
+    var row={}; F.forEach(function(f){
+      if(f.indexOf("名称")>-1||f.indexOf("标题")>-1){ row[f]=nm+(idx+1)+"号"; }
+      else if(f.indexOf("价格")>-1||f.indexOf("单价")>-1||f.indexOf("成本")>-1){ row[f]=+( (Math.random()*40+10).toFixed(1) ); }
+      else if(f.indexOf("库存")>-1){ row[f]=Math.floor(Math.random()*1500); }
+      else if(f.indexOf("销量")>-1){ row[f]=Math.floor(Math.random()*5000); }
+      else if(f.indexOf("时间")>-1||f.indexOf("日期")>-1){ row[f]="2026-09-26"; }
+      else if(f.indexOf("来源")>-1){ row[f]="示例来源"; }
+      else { row[f]="示例值"+idx; }
+    });
+    return row;
+  });
+}
+function rowKey(r, F){
+  return F.map(function(f){return r[f];}).join("|");
+}
+function diffData(prev, cur, F, alertMode){
+  var out={rows:cur, marks:{}, alarms:[]};
+  var prevMap={}, curMap={};
+  (prev||[]).forEach(function(r){prevMap[rowKey(r,F)]=r;});
+  cur.forEach(function(r,i){curMap[rowKey(r,F)]=r;});
+  cur.forEach(function(r,i){
+    var k=rowKey(r,F);
+    if(!prevMap[k]){ out.marks[i]="new"; out.alarms.push({kind:"new", msg:"新增条目："+r[F[0]]}); return; }
+    var p=prevMap[k];
+    var diffed=false;
+    F.forEach(function(f){
+      var pv=p[f], cv=r[f];
+      if(typeof pv==="number"&&typeof cv==="number"&&pv!==cv){
+        diffed=true;
+        var dir=cv<pv?"down":"up";
+        out.marks[i]=dir;
+        if(alertMode==="价格下降"&&dir!=="down") return;
+        if(alertMode==="价格变化"||alertMode==="价格下降"||alertMode==="任何变化"){
+          out.alarms.push({kind:dir, msg:"价格"+ (dir==="down"?"下降":"上涨")+"：'"+r[F[0]]+"' "+(F[1]?("从 "+pv+" 变为 "+cv):"")});
+        }
+      }
+    });
+    if(!diffed && alertMode==="任何变化"){ /* 无数值变化但被扫描到，不告警 */ }
+  });
+  (prev||[]).forEach(function(r){
+    if(!curMap[rowKey(r,F)]){ out.alarms.push({kind:"gone", msg:"条目下架/消失："+r[F[0]]}); }
+  });
+  return out;
+}
+function runTask(t, done){
+  setTimeout(function(){
+    var cur=mockRows(t);
+    var F=t.fields||[];
+    var d=diffData(t.lastData, cur, F, t.alert);
+    var now=new Date();
+    function pad(n){return n<10?"0"+n:n;}
+    t.lastRun=now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate())+" "+pad(now.getHours())+":"+pad(now.getMinutes());
+    t.lastData=cur;
+    lastResult={task:t, diff:d, time:t.lastRun};
+    d.alarms.forEach(function(a){a.task=t.name; a.time=t.lastRun; alarms.unshift(a);});
+    if(alarms.length>50) alarms=alarms.slice(0,50);
+    saveTasks(TASKS); renderTasks(); renderResult(); renderAlarms();
+    done();
+  }, 260+Math.random()*400);
+}
+function runOne(id){
+  if(running) return;
+  var t=TASKS.filter(function(x){return x.id===id;})[0];
+  if(!t) return;
+  running=true; setBusy(true,"正在采集「"+t.name+"」…");
+  runTask(t, function(){ running=false; setBusy(false,""); });
+}
+function runAll(){
+  if(running) return;
+  if(!TASKS.length){ toast("还没有任务"); return; }
+  running=true; setBusy(true,"正在采集全部 "+TASKS.length+" 个任务…");
+  var bar=document.getElementById("prog-bar"), done=0;
+  var next=function(i){
+    if(i>=TASKS.length){ running=false; setBusy(false,"采集完成：共 "+TASKS.length+" 个任务，产生 "+alarms.length+" 条告警"); return; }
+    runTask(TASKS[i], function(){ done++; bar.style.width=Math.round(done/TASKS.length*100)+"%"; setTimeout(function(){next(i+1);},120); });
+  };
+  next(0);
+}
+function setBusy(on, msg){
+  document.getElementById("btn-run-all").disabled=on;
+  document.getElementById("run-status").innerText=msg||"";
+}
+
+/* ================= 3 结果渲染 ================= */
+function renderResult(){
+  var el=document.getElementById("result-area");
+  if(!lastResult){ el.innerHTML='<div class="empty">点击「采集」后，这里展示本次抓取的结构化数据与上次对比。</div>'; return; }
+  var t=lastResult.task, F=t.fields||[], d=lastResult.diff;
+  var heads=F.slice(1).map(function(f){return "<th>"+esc(f)+"</th>";}).join("");
+  var note="（首列为条目标识，用于跨次对比）";
+  var rows=d.rows.map(function(r,i){
+    var mark=d.marks[i];
+    var badge = mark==="new"?'<span class="new">新增</span>':(mark==="down"?'<span class="down">▼ 下降</span>':(mark==="up"?'<span class="up">▲ 上涨</span>':""));
+    var tds=F.slice(1).map(function(f){
+      var v=r[f];
+      var cls="";
+      if(typeof v==="number"&&(f.indexOf("价格")>-1||f.indexOf("单价")>-1||f.indexOf("成本")>-1)){
+        if(mark==="down") cls=" down"; else if(mark==="up") cls=" up";
+      }
+      return "<td class='"+cls+"'>"+esc(v)+"</td>";
+    }).join("");
+    return "<tr><td>"+badge+" "+esc(r[F[0]])+"</td>"+tds+"</tr>";
+  }).join("");
+  el.innerHTML=
+    '<div class="res-head"><span class="ttl">'+esc(t.name)+'</span><span class="sub">采集时间 '+lastResult.time+' · 共 '+d.rows.length+' 条 · 变化 '+d.alarms.length+' 处</span>'+
+    '<button class="btn btn-s btn-sm" onclick="exportCSV()">导出 CSV</button></div>'+
+    '<table><colgroup><col style="width:30%">'+F.slice(1).map(function(){return '<col>';}).join("")+'</colgroup><tr><th>条目 '+note+'</th>'+heads+'</tr>'+rows+'</table>'+
+    '<div class="hint">标 ▼ 表示价格下降（潜在进货机会），▲ 表示上涨，绿色「新增」为本次新出现的条目。</div>';
+}
+function exportCSV(){
+  if(!lastResult){ toast("请先采集一次再导出"); return; }
+  var t=lastResult.task, F=t.fields||[];
+  var lines=[["任务","采集时间"].concat(F)];
+  lastResult.diff.rows.forEach(function(r){
+    lines.push([t.name,lastResult.time].concat(F.map(function(f){return r[f];})));
+  });
+  var csv=lines.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(",");}).join("\n");
+  var blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=t.name+"_"+lastResult.time.replace(/[: ]/g,"-")+".csv";
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},300);
+  toast("CSV 已导出");
+}
+
+/* ================= 4 告警渲染 ================= */
+function renderAlarms(){
+  var el=document.getElementById("alarm-list");
+  if(!alarms.length){ el.innerHTML='<div class="empty">暂无告警。采集后若数据有变化（价格变动 / 新增 / 下架），会在这里列出。</div>'; return; }
+  el.innerHTML=alarms.slice(0,20).map(function(a){
+    var cls=a.kind==="down"?"ok":(a.kind==="up"?"bad":(a.kind==="gone"?"bad":"warn"));
+    var label=a.kind==="down"?"利好：价格下降":(a.kind==="up"?"注意：价格上涨":(a.kind==="gone"?"注意：条目消失":"新增"));
+    return '<div class="alarm '+cls+'"><span class="a-time">'+esc(a.time)+'</span><div><b>['+esc(a.task)+'] '+label+'</b><br>'+esc(a.msg)+'</div></div>';
+  }).join("");
+}
+
+/* ================= 工具 ================= */
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+var toastTimer=null;
+function toast(msg){
+  var old=document.getElementById("toast"); if(old) old.remove();
+  var d=document.createElement("div");
+  d.id="toast";
+  d.style.cssText="position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#17356E;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.18)";
+  d.innerText=msg; document.body.appendChild(d);
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ d.style.opacity="0"; d.style.transition="opacity .3s"; setTimeout(function(){d.remove();},320); },1800);
+}
+
+/* ================= 启动 ================= */
+renderTasks(); renderResult(); renderAlarms();
+</script>
+</body>
+</html>
