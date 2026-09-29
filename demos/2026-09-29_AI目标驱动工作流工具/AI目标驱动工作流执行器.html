@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 目标驱动工作流执行器</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230E1B2E'/><circle cx='38' cy='50' r='16' fill='%2334D399'/><circle cx='62' cy='50' r='16' fill='%2366B8FF'/><rect x='26' y='68' width='48' height='8' rx='4' fill='%23A78BFA'/></svg>">
+<style>
+:root{
+  --bg:#0E1B2E; --bg2:#12243C; --card:#162B47; --card2:#1B3560;
+  --ink:#E8F1FB; --sub:#9FB6D0; --line:#2A4570;
+  --acc:#34D399; --acc2:#66B8FF; --acc3:#A78BFA;
+  --warn:#FBBF24; --err:#F87171;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:linear-gradient(160deg,var(--bg),#0A1420 70%);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:28px 18px 60px}
+.wrap{max-width:1060px;margin:0 auto}
+header{display:flex;align-items:flex-start;gap:14px;margin-bottom:22px}
+.logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#08131F;box-shadow:0 4px 18px rgba(52,211,153,.28)}
+h1{font-size:22px;letter-spacing:.3px}
+.sub{color:var(--sub);font-size:13px;margin-top:3px;line-height:1.6}
+.badge{display:inline-block;background:rgba(52,211,153,.14);color:var(--acc);border:1px solid rgba(52,211,153,.35);border-radius:20px;padding:2px 10px;font-size:11px;margin-left:8px;vertical-align:middle}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+.panel h2{font-size:14px;color:var(--acc2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.panel h2 .n{width:22px;height:22px;border-radius:6px;background:var(--card2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:var(--acc2)}
+/* 目标输入 */
+.tip{font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.7}
+.goal-row{display:flex;gap:10px;flex-wrap:wrap}
+#goalInput{flex:1;min-width:260px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:12px 14px;font-size:14px;outline:none}
+#goalInput:focus{border-color:var(--acc2)}
+#runBtn{background:linear-gradient(135deg,var(--acc),#2BB889);color:#06160F;border:none;border-radius:10px;padding:12px 26px;font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:0 3px 12px rgba(52,211,153,.25)}
+#runBtn:hover{transform:translateY(-1px)}
+#runBtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.preset{background:var(--card2);border:1px solid var(--line);color:var(--sub);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;transition:all .15s}
+.preset:hover{border-color:var(--acc2);color:var(--ink)}
+.preset.active{border-color:var(--acc);color:var(--acc);background:rgba(52,211,153,.08)}
+/* 执行画布 */
+.stage{display:none;flex-direction:column;gap:10px}
+.stage.show{display:flex}
+.ai-think{background:var(--bg2);border:1px dashed var(--line);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.8;color:var(--sub)}
+.ai-think b{color:var(--acc2)}
+.chain{display:flex;flex-direction:column;gap:8px}
+.step{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;opacity:.45;transition:all .25s}
+.step.run{opacity:1;border-color:var(--acc);box-shadow:0 0 0 1px rgba(52,211,153,.3),0 4px 16px rgba(52,211,153,.12)}
+.step.done{opacity:1;border-color:rgba(52,211,153,.5)}
+.step.fail{border-color:var(--err);opacity:1}
+.step .idx{width:28px;height:28px;border-radius:8px;background:var(--bg);flex:none;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--sub)}
+.step.run .idx{background:var(--acc);color:#06160F}
+.step.done .idx{background:rgba(52,211,153,.2);color:var(--acc)}
+.step.fail .idx{background:var(--err);color:#fff}
+.step .body{flex:1;min-width:0}
+.step .tool{font-size:11px;color:var(--acc3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.step .title{font-size:14px;font-weight:600;margin-bottom:4px}
+.step .desc{font-size:12px;color:var(--sub);line-height:1.6}
+.step .out{margin-top:8px;background:var(--bg);border-radius:8px;padding:8px 10px;font-size:12px;color:#B9D4F0;display:none;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,Consolas,monospace}
+.step .out.show{display:block}
+.step .meta{margin-top:6px;font-size:11px;color:var(--sub);display:flex;gap:12px}
+.spin{width:14px;height:14px;border:2px solid rgba(52,211,153,.3);border-top-color:var(--acc);border-radius:50%;animation:r .7s linear infinite;display:inline-block;vertical-align:-2px;margin-right:6px}
+@keyframes r{to{transform:rotate(360deg)}}
+/* 结果区 */
+.result{display:none;margin-top:4px}
+.result.show{display:block}
+.result-head{font-size:14px;font-weight:700;color:var(--acc);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.file{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px}
+.file .fname{font-size:13px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.file .fname svg{flex:none}
+.file .fdesc{font-size:12px;color:var(--sub);line-height:1.6}
+.file .fmeta{margin-top:8px;font-size:11px;color:var(--acc3)}
+.logs{margin-top:12px;background:#08131F;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#9FB6D0;max-height:200px;overflow:auto;line-height:1.8}
+.logs .t{color:var(--acc2)}
+.logs .w{color:var(--warn)}
+.logs .e{color:var(--err)}
+.done-banner{display:none;margin-top:14px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.4);color:var(--acc);border-radius:12px;padding:14px 16px;font-size:14px;font-weight:600}
+.done-banner.show{display:block}
+.foot{margin-top:22px;color:#5E7A9E;font-size:12px;text-align:center;line-height:1.8}
+@media (max-width:640px){
+  body{padding:18px 12px 40px}
+  h1{font-size:19px}
+  #goalInput{font-size:16px}
+  .step{padding:10px 12px}
+  .file-grid{grid-template-columns:1fr}
+  .step .desc{font-size:13px}
+  .tip{font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">AI</div>
+    <div>
+      <h1>AI 目标驱动工作流执行器<span class="badge">灵感 · Beam AI</span></h1>
+      <div class="sub">传统工作流是「人设计每一步」；这里是「告诉 AI 目标 + 给它工具箱，AI 自己拆解步骤、调用工具、完成并报告」。</div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2><span class="n">1</span>输入你的目标</h2>
+    <div class="tip">用一句话描述想自动完成的事。AI 会像编排器一样拆解成步骤链，并为每步挑选合适的工具（全部为演示数据，浏览器本地执行）。</div>
+    <div class="goal-row">
+      <input id="goalInput" type="text" placeholder="例如：把 9 月销售数据整理成日报并发送邮件" maxlength="80">
+      <button id="runBtn">开始执行</button>
+    </div>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">2</span>执行过程</h2>
+    <div class="stage" id="stage">
+      <div class="ai-think" id="thinkBox"></div>
+      <div class="chain" id="chain"></div>
+      <div class="result" id="resultArea">
+        <div class="result-head">✓ 任务完成 · 交付物</div>
+        <div class="file-grid" id="files"></div>
+        <div class="logs" id="logs"></div>
+      </div>
+      <div class="done-banner" id="doneBanner"></div>
+    </div>
+  </div>
+
+  <div class="foot">数据与执行均为浏览器内模拟演示 · 目标驱动式工作流（AI 自主拆解/选工具/执行）是 Beam AI 9/29 更新的核心模式</div>
+</div>
+<script>
+/* ========== 预设目标 ========== */
+var PRESETS = [
+  {label:'销售日报 + 邮件', text:'把 9 月销售数据整理成日报并发送邮件'},
+  {label:'对账差异报表', text:'对账后发现差异项，生成差异报表并标红预警'},
+  {label:'库存补货提醒', text:'检查库存低于阈值的产品，自动生成补货单'}
+];
+
+/* ========== 虚拟工具库 ========== */
+var TOOLS = {
+  excel_read: {name:'读取Excel', desc:'加载工作表并解析字段'},
+  clean: {name:'数据清洗', desc:'去重、补空、统一格式'},
+  stats: {name:'汇总统计', desc:'按维度聚合计算'},
+  report: {name:'报表生成', desc:'排版生成交付文档'},
+  mail: {name:'邮件发送', desc:'通过SMTP发送给收件人'},
+  api: {name:'API调用', desc:'调用业务系统接口取数'},
+  compare: {name:'数据比对', desc:'双表逐行比对差异'},
+  alert: {name:'预警通知', desc:'命中规则触发提醒'},
+  export: {name:'导出交付', desc:'生成可下载产物'}
+};
+
+/* ========== 目标识别 → 步骤链编排（模拟AI拆解） ========== */
+function planFor(goal){
+  var g = goal;
+  // 优先级匹配
+  if (g.indexOf('对账') > -1 || (g.indexOf('差异') > -1 && g.indexOf('报表') > -1)){
+    return {
+      think:'识别到「对账/差异」意图 → 我需要：取两侧数据 → 逐行比对 → 标记差异 → 生成报表并预警',
+      steps:[
+        {tool:'excel_read', title:'读取对账单（A表）', desc:'加载银行流水与内部账务，字段：日期/金额/商户/状态', out:'A表 42 行 · B表 42 行 · 读取完成'},
+        {tool:'api', title:'拉取系统侧流水（B表）', desc:'从财务系统 API 拉取同周期数据，用于交叉核对', out:'API 返回 42 条 · 时间范围 09/01-09/30'},
+        {tool:'compare', title:'逐行比对差异', desc:'按 日期+金额+商户 三键比对，找出只在单侧出现的记录', out:'共比对 42×42 行 · 发现差异 3 条（A侧多 1 笔，B侧多 2 笔）'},
+        {tool:'clean', title:'差异标记与原因归类', desc:'把差异按类型归类：未入账/金额不符/重复入账', out:'3 条差异已分类 · 未入账 1 · 金额不符 2'},
+        {tool:'report', title:'生成差异报表', desc:'产出差异明细表，异常行标红，附差异原因列', out:'差异报表.xlsx · 3 行异常已标红'},
+        {tool:'alert', title:'发送预警通知', desc:'差异金额超阈值（¥10,000），触发财务负责人预警', out:'预警已发送 · 收件人：财务负责人 · 摘要：3 条差异，合计 ¥32,800'}
+      ],
+      files:[
+        {name:'对账差异报表.xlsx', desc:'3 条差异明细 + 原因归类 + 合计差额 ¥32,800（演示数据）', meta:'行数 45 · 大小 38KB'},
+        {name:'预警通知.txt', desc:'发送给财务负责人的预警摘要文本', meta:'1 条 · 大小 1KB'}
+      ]
+    };
+  }
+  if (g.indexOf('库存') > -1 || g.indexOf('补货') > -1){
+    return {
+      think:'识别到「库存/补货」意图 → 我需要：读取库存 → 对照安全阈值 → 计算缺口 → 生成补货单',
+      steps:[
+        {tool:'excel_read', title:'读取库存表', desc:'加载 SKU 级库存，字段：货号/品名/当前库存/安全库存', out:'读取 128 个 SKU · 数据完整'},
+        {tool:'stats', title:'计算缺口 = 安全库存 − 当前库存', desc:'逐 SKU 计算差额，仅保留缺口 > 0 的项', out:'缺口 SKU 9 个 · 合计需补 4,620 件'},
+        {tool:'clean', title:'按优先级排序补货', desc:'按缺口率降序排，标注高/中/低优先级', out:'高优 2 · 中优 4 · 低优 3'},
+        {tool:'report', title:'生成补货单', desc:'产出补货建议单：货号/建议数量/优先级/参考供应商', out:'补货单.xlsx · 9 行'},
+        {tool:'alert', title:'推送补货提醒', desc:'高优 SKU 缺口率 > 30%，即时通知采购群', out:'提醒已推送 · 采购群 · 2 个高优 SKU'}
+      ],
+      files:[
+        {name:'库存补货单.xlsx', desc:'9 个缺货 SKU 的建议补货量 + 优先级（演示数据）', meta:'行数 9 · 大小 22KB'},
+        {name:'补货提醒.txt', desc:'高优 SKU 的采购群提醒文案', meta:'1 条 · 大小 1KB'}
+      ]
+    };
+  }
+  if (g.indexOf('日报') > -1 || (g.indexOf('邮件') > -1) || g.indexOf('销售') > -1){
+    return {
+      think:'识别到「日报/邮件」意图 → 我需要：读取销售数据 → 清洗 → 按区域/品类汇总 → 生成日报 → 发送邮件',
+      steps:[
+        {tool:'excel_read', title:'读取销售明细', desc:'加载 9 月销售流水，字段：日期/区域/品类/金额/单量', out:'读取 1,860 行 · 覆盖 6 区域 12 品类'},
+        {tool:'clean', title:'数据清洗', desc:'去重 12 条、补全 5 个空值、统一金额格式', out:'清洗后有效记录 1,848 行'},
+        {tool:'stats', title:'按区域×品类汇总', desc:'计算各区域销售额/单量/客单价/环比', out:'6 区域 × 12 品类汇总完成'},
+        {tool:'report', title:'生成销售日报', desc:'排版：总览卡 + 区域排行 + 品类结构 + 环比趋势', out:'销售日报.html · 含 4 个数据卡片'},
+        {tool:'mail', title:'发送邮件', desc:'日报作为附件发送给管理层，正文含 Top3 摘要', out:'邮件已发送 · 收件人：管理层 · 主题：9月销售日报'}
+      ],
+      files:[
+        {name:'销售日报.html', desc:'9 月销售总览：总销售额 ¥2,864,300 · 环比 +8.2%（演示数据）', meta:'1 页 · 大小 45KB'},
+        {name:'销售日报_数据表.xlsx', desc:'区域×品类汇总明细，可二次分析', meta:'行数 72 · 大小 18KB'}
+      ]
+    };
+  }
+  // 兜底：通用编排
+  return {
+    think:'未命中预设场景 → 按通用流程编排：数据准备 → 处理 → 产出 → 通知',
+    steps:[
+      {tool:'excel_read', title:'读取输入数据', desc:'加载演示数据集（销售/对账/库存样例）', out:'读取 3 个示例数据源'},
+      {tool:'clean', title:'数据清洗', desc:'去重、补空、标准化', out:'清洗完成 · 0 错误'},
+      {tool:'stats', title:'核心指标计算', desc:'对目标字段做聚合与对比', out:'指标计算完成'},
+      {tool:'report', title:'生成结果文档', desc:'把结果整理为可交付文档', out:'结果文档已生成'},
+      {tool:'export', title:'归档交付', desc:'产物归档并生成访问记录', out:'已归档 · 可下载'}
+    ],
+    files:[
+      {name:'处理结果.xlsx', desc:'按目标生成的汇总结果（演示数据）', meta:'行数 20 · 大小 16KB'},
+      {name:'执行报告.txt', desc:'步骤、耗时与产物清单', meta:'1 条 · 大小 2KB'}
+    ]
+  };
+}
+
+/* ========== 执行器 ========== */
+var chainEl, thinkEl, resultEl, filesEl, logsEl, bannerEl;
+var running = false;
+
+function $(id){return document.getElementById(id)}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function log(line){
+  var div=document.createElement('div');
+  div.innerHTML='<span class="t">[' + new Date().toLocaleTimeString('zh-CN',{hour12:false}) + ']</span> ' + line;
+  logsEl.appendChild(div);
+  logsEl.scrollTop = logsEl.scrollHeight;
+}
+
+function sleep(ms){return new Promise(function(res){setTimeout(res,ms)})}
+
+async function runGoal(goal){
+  if(running) return;
+  running = true;
+  $('runBtn').disabled = true;
+  var plan = planFor(goal);
+  chainEl.innerHTML='';
+  filesEl.innerHTML='';
+  logsEl.innerHTML='';
+  $('resultArea').classList.remove('show');
+  $('doneBanner').classList.remove('show');
+  $('stage').classList.add('show');
+
+  // 1. AI 思考
+  thinkEl.innerHTML = '<span class="spin"></span><b>AI 正在拆解目标…</b><br>' + esc(plan.think);
+  await sleep(900);
+  thinkEl.innerHTML = '<b>✓ 目标已拆解</b> · ' + esc(plan.think.split('→')[0]);
+
+  // 2. 逐步骤执行
+  for (var i=0;i<plan.steps.length;i++){
+    var s = plan.steps[i];
+    var t = TOOLS[s.tool] || TOOLS.export;
+    var el = document.createElement('div');
+    el.className='step';
+    el.innerHTML = '<div class="idx">'+(i+1)+'</div>'
+      + '<div class="body"><div class="tool">' + esc(t.name) + ' · 工具</div>'
+      + '<div class="title">' + esc(s.title) + '</div>'
+      + '<div class="desc">' + esc(s.desc) + '</div>'
+      + '<div class="meta"><span class="spin"></span>运行中…</div>'
+      + '<div class="out"></div></div>';
+    chainEl.appendChild(el);
+    await sleep(180);
+    el.classList.add('run');
+    log('执行步骤 '+(i+1)+'：'+s.title, '');
+    await sleep(650 + Math.random()*500);
+    el.querySelector('.out').textContent = s.out;
+    el.querySelector('.out').classList.add('show');
+    el.querySelector('.meta').innerHTML = '<span style="color:#34D399">✓ 完成</span> · 耗时 ' + (0.4 + Math.random()*0.8).toFixed(1) + 's';
+    el.classList.remove('run');
+    el.classList.add('done');
+    log('✓ '+s.tool+' → '+s.out, '');
+  }
+
+  // 3. 结果区
+  await sleep(300);
+  plan.files.forEach(function(f){
+    var card=document.createElement('div');
+    card.className='file';
+    card.innerHTML='<div class="fname"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#66B8FF" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' + esc(f.name) + '</div>'
+      + '<div class="fdesc">' + esc(f.desc) + '</div><div class="fmeta">' + esc(f.meta) + '</div>';
+    filesEl.appendChild(card);
+  });
+  $('resultArea').classList.add('show');
+  $('doneBanner').textContent = '任务完成：'+goal;
+  $('doneBanner').classList.add('show');
+  log('任务完成，产物 '+plan.files.length+' 个已归档', '');
+  running=false;
+  $('runBtn').disabled=false;
+}
+
+/* ========== 初始化 ========== */
+document.addEventListener('DOMContentLoaded', function(){
+  chainEl=$('chain'); thinkEl=$('thinkBox'); resultEl=$('resultArea');
+  filesEl=$('files'); logsEl=$('logs'); bannerEl=$('doneBanner');
+  var pWrap=$('presets');
+  PRESETS.forEach(function(p,i){
+    var b=document.createElement('button');
+    b.className='preset';
+    b.textContent=p.label;
+    b.onclick=function(){
+      document.querySelectorAll('.preset').forEach(function(x){x.classList.remove('active')});
+      b.classList.add('active');
+      $('goalInput').value=p.text;
+    };
+    pWrap.appendChild(b);
+  });
+  $('runBtn').onclick=function(){
+    var g=$('goalInput').value.trim();
+    if(!g){$('goalInput').focus();return}
+    runGoal(g);
+  };
+  $('goalInput').addEventListener('keydown',function(e){if(e.key==='Enter')$('runBtn').click()});
+});
+</script>
+</body>
+</html>
