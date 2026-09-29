@@ -1,5 +1,6 @@
 # 中间产物与调试文件，不入库
 _shots/
+/sheets/
 demos/作品集总览/sheets/
 *.tmp
 *.tmp-*
