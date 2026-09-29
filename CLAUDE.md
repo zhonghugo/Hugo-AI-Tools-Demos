@@ -39,7 +39,7 @@
 
 ## 验证与交付（必做，踩过坑）
 
-- 交付前用 **Playwright** 端到端断言（html skill 的 shot.py 当前环境可用，路径 `.../.skills/html/scripts/shot.py`）：
+- 交付前用 **Playwright** 端到端断言（html skill 的 shot.py 当前环境可用，路径 `/home/user/.doubao/agent_mode/workspace/.skills/html/scripts/shot.py`）：
   `executable_path="/opt/vm/preinstall/ms-playwright/chromium-1169/chrome-linux/chrome"`（默认 headless shell 不存在）
   断言：交互闭环（点击→状态变化）、CSV/下载回读、移动端 390px 视口、无 console error
 - 产物一律 `present_files` 交付；搜索/抓取返回的 URL 不作为交付物
