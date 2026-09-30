@@ -1,6 +1,8 @@
 # CLAUDE.md — AI 小工具每日工作流（豆包办公会话）
 
 > 本文件供下次会话的 AI 阅读：项目约定、硬边界、已知坑。变更日志不进本文件（归 daily_news_*.json 与飞书台账）。
+>
+> **交接手册（飞书文档，其他 AI 可直接访问）**：https://fes49z7yv9.feishu.cn/docx/QVgVd74lNosLylxo0Gkc8FMPnGo
 
 ## 项目定位
 

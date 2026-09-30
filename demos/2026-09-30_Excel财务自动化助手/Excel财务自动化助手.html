@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel 财务自动化助手</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#111a2c; --panel2:#0e1626; --border:#1f2b45;
+    --text:#e8edf7; --muted:#8b9ac0; --primary:#4f8cff; --primary2:#38d9a9;
+    --red:#ff5c6c; --yellow:#ffc24b; --blue:#5aa2ff; --green:#3ecf8e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;padding:20px 16px 60px}
+  .wrap{max-width:1100px;margin:0 auto}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary2));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0}
+  h1{font-size:24px;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:13px;margin:4px 0 18px}
+  .badge{display:inline-block;background:rgba(79,140,255,.12);color:var(--primary);border:1px solid rgba(79,140,255,.35);border-radius:20px;padding:2px 10px;font-size:12px;margin-left:6px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+  .card h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .card h3 .idx{width:22px;height:22px;border-radius:50%;background:rgba(79,140,255,.15);color:var(--primary);font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+  .tpl{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .tpl-btn{flex:1;min-width:130px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--text);text-align:left;transition:.2s}
+  .tpl-btn small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .tpl-btn.on{border-color:var(--primary);background:rgba(79,140,255,.12)}
+  .field{margin:10px 0}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .field input,.field select,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;outline:none}
+  .field input:focus,.field textarea:focus{border-color:var(--primary)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .chip{background:var(--panel2);border:1px solid var(--border);border-radius:18px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--muted);transition:.2s}
+  .chip:hover{color:var(--primary);border-color:var(--primary)}
+  .btn{background:linear-gradient(135deg,var(--primary),var(--primary2));border:none;color:#fff;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+  .btn:hover{filter:brightness(1.1)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.ghost{background:var(--panel2);border:1px solid var(--border);color:var(--text)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  th{background:#18233f;color:#cfe0ff;padding:8px 10px;text-align:left;border:1px solid var(--border);font-weight:600}
+  td{padding:7px 10px;border:1px solid var(--border);color:var(--text)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.focus td{background:rgba(79,140,255,.10)}
+  tr.ok td{background:rgba(62,207,142,.06)}
+  tr.warn td{background:rgba(255,92,108,.10)}
+  tr.alert td{background:rgba(255,194,75,.08)}
+  tr.info td{background:rgba(90,162,255,.08)}
+  .st{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+  .st.green{background:rgba(62,207,142,.15);color:var(--green)}
+  .st.red{background:rgba(255,92,108,.15);color:var(--red)}
+  .st.yellow{background:rgba(255,194,75,.15);color:var(--yellow)}
+  .st.blue{background:rgba(90,162,255,.15);color:var(--blue)}
+  .st.gray{background:rgba(139,154,192,.15);color:var(--muted)}
+  .logbox{background:#0a1120;border:1px solid var(--border);border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12px;max-height:260px;overflow-y:auto;color:#aab8d8}
+  .logbox div{padding:3px 0;border-bottom:1px dashed #18233f}
+  .logbox .step{color:var(--primary2)}
+  .logbox .warn{color:var(--yellow)}
+  .logbox .err{color:var(--red)}
+  .report{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:14px}
+  .rep{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+  .rep b{font-size:20px;color:var(--primary);display:block}
+  .rep span{font-size:11px;color:var(--muted)}
+  .footer{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
+  .empty{color:var(--muted);text-align:center;padding:26px 0;font-size:13px}
+  .spin{display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-left:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  @media(max-width:560px){h1{font-size:19px}.card{padding:14px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Ex</div>
+    <div>
+      <h1>Excel 财务自动化助手<span class="badge">9/30 资讯 · Univer 1.0（5星）</span></h1>
+      <div class="sub">用一句自然语言指挥 Agent 填表、写公式、做校验 —— 复刻「AI Agent 结构化操作 Office 表格」思路，聚焦财务月结场景</div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h3><span class="idx">1</span>选择财务模板</h3>
+      <div class="tpl" id="tplWrap"></div>
+      <div class="field">
+        <label>业务参数（可改，影响示例数据与阈值）</label>
+        <input id="paramInput" placeholder="如：月份 2026-06；阈值 15">
+      </div>
+      <div class="field">
+        <label>自然语言指令（或点下方预设）</label>
+        <textarea id="cmdInput" rows="3" placeholder="例如：把 6 月实际报销填入 C 列，计算偏差率 =(C-B)/B，偏差率&gt;15% 标红预警"></textarea>
+      </div>
+      <div class="chips" id="chipWrap"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="runBtn">开始执行<span class="spin" id="spin"></span></button>
+        <button class="btn ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="idx">2</span>表格工作区（Agent 正在操作）</h3>
+      <div id="sheetArea"><div class="empty">选择模板并下达指令后，Agent 将在这里逐步填表、写公式、标色校验</div></div>
+      <div class="report" id="reportWrap" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3><span class="idx">3</span>执行日志（AI 思考链）</h3>
+    <div class="logbox" id="logBox"><div>· 等待指令……</div></div>
+    <div style="margin-top:12px;display:flex;gap:10px">
+      <button class="btn ghost" id="exportBtn" disabled>导出 CSV</button>
+    </div>
+  </div>
+
+  <div class="footer">单文件 HTML · 数据与执行均为本地模拟，可直接运行、可转发 · 源自 Univer 1.0（开源 Office Harness for AI Agents）</div>
+</div>
+
+<script>
+/* ============ 模板与示例数据 ============ */
+const TPLS = {
+  expense: {
+    name: "月度费用报销汇总表", desc: "各部门预算 vs 实际报销",
+    headers: ["部门","预算(元)","实际报销(元)","偏差率","状态"],
+    rows: [["销售部",50000,null,null,"待计算"],["市场部",30000,null,null,"待计算"],["技术部",40000,null,null,"待计算"],["财务部",20000,null,null,"待计算"],["行政部",15000,null,null,"待计算"]],
+    fillHint: "6月实际报销", threshold: 15
+  },
+  payment: {
+    name: "销售回款对账表", desc: "客户应收 vs 实收、差异",
+    headers: ["客户","应收金额(元)","实收金额(元)","回款差异(元)","状态"],
+    rows: [["客户A",120000,null,null,"待计算"],["客户B",80000,null,null,"待计算"],["客户C",65000,null,null,"待计算"],["客户D",40000,null,null,"待计算"]],
+    fillHint: "本月实收", threshold: 0
+  },
+  budget: {
+    name: "部门预算差异分析表", desc: "预算 vs 实际支出、执行率",
+    headers: ["部门","年度预算(元)","实际支出(元)","差异额(元)","执行率","状态"],
+    rows: [["研发部",1000000,null,null,null,"待计算"],["市场部",600000,null,null,null,"待计算"],["运营部",400000,null,null,null,"待计算"],["人事部",300000,null,null,null,"待计算"]],
+    fillHint: "本季实际支出", threshold: 80
+  }
+};
+
+/* 预设指令（文案 + 动作序列） */
+const PRESETS = {
+  expense: {
+    cmd: "把 6 月实际报销金额填入 C 列，计算偏差率 =(C-B)/B，偏差率>15% 标红预警，否则标记正常",
+    actions: [
+      {op:"fill", col:2, type:"ratio", base:1, min:.82, max:1.28, fmt:"num"},
+      {op:"formula", col:3, expr:"(C{r}-B{r})/B{r}", fmt:"pct"},
+      {op:"cond", check:3, write:4, rule:["f>0.15","red","超支预警"], elseRule:["green","正常"]}
+    ]
+  },
+  payment: {
+    cmd: "填入本月实收金额到 C 列，计算回款差异 =应收-实收，差异>0 标黄待催收，=0 标记已结清",
+    actions: [
+      {op:"fill", col:2, type:"ratio", base:1, min:.55, max:1.0, fmt:"num"},
+      {op:"formula", col:3, expr:"B{r}-C{r}", fmt:"num"},
+      {op:"cond", check:3, write:4, rule:["f>0","yellow","待催收"], elseRule:["green","已结清"]}
+    ]
+  },
+  budget: {
+    cmd: "填入本季实际支出到 C 列，计算差异额 =预算-实际，执行率 =实际/预算，执行率>100% 标红超支，<80% 标蓝提醒，其余正常",
+    actions: [
+      {op:"fill", col:2, type:"ratio", base:1, min:.7, max:1.15, fmt:"num"},
+      {op:"formula", col:3, expr:"B{r}-C{r}", fmt:"num"},
+      {op:"formula", col:4, expr:"C{r}/B{r}", fmt:"pct"},
+      {op:"cond", check:4, write:5, rule:["f>1","red","超支"], rule2:["f<0.8","blue","执行偏低"], elseRule:["green","正常"]}
+    ]
+  }
+};
+
+let state = { tpl:"expense", data:null, done:false };
+
+/* ============ 初始化 ============ */
+function buildTplBtns(){
+  const wrap = document.getElementById("tplWrap");
+  wrap.innerHTML = "";
+  Object.keys(TPLS).forEach(k=>{
+    const t = TPLS[k];
+    const b = document.createElement("button");
+    b.className = "tpl-btn" + (k===state.tpl?" on":"");
+    b.innerHTML = "<b>"+t.name+"</b><small>"+t.desc+"</small>";
+    b.onclick = ()=>{ state.tpl = k; state.done=false; buildTplBtns(); buildChips(); resetTable(k); log("已切换模板：「"+t.name+"」"); };
+    wrap.appendChild(b);
+  });
+}
+function buildChips(){
+  const wrap = document.getElementById("chipWrap");
+  wrap.innerHTML = "";
+  const p = PRESETS[state.tpl];
+  if(!p) return;
+  const c = document.createElement("span");
+  c.className = "chip";
+  c.title = p.cmd;
+  c.textContent = p.cmd.slice(0,28)+"…";
+  c.onclick = ()=>{ document.getElementById("cmdInput").value = p.cmd; log("已载入当前模板的预设指令"); };
+  wrap.appendChild(c);
+}
+function resetTable(k){
+  const t = TPLS[k];
+  state.data = t.rows.map(r=>[...r]);
+  renderTable();
+  document.getElementById("reportWrap").style.display = "none";
+  document.getElementById("exportBtn").disabled = true;
+}
+function log(msg, cls){
+  const box = document.getElementById("logBox");
+  const d = document.createElement("div");
+  if(cls) d.className = cls;
+  d.textContent = "· " + msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+function renderTable(){
+  const t = TPLS[state.tpl];
+  const lastCol = t.headers.length - 1;
+  const area = document.getElementById("sheetArea");
+  let html = "<table><thead><tr>" + t.headers.map(h=>"<th>"+h+"</th>").join("") + "</tr></thead><tbody>";
+  state.data.forEach((r,i)=>{
+    html += "<tr id=\"row"+i+"\">" + r.map((c,j)=>{
+      const cls = (j===1||j===2||j===3) ? "num" : "";
+      if(j===lastCol && typeof c === "string" && c!=="待计算"){
+        const map = {green:"green",red:"red",yellow:"yellow",blue:"blue"};
+        const color = map[c]||"gray";
+        const label = {green:"正常",red:"预警",yellow:"待催收",blue:"提醒",gray:"未知"}[c]||c;
+        return "<td><span class=\"st "+color+"\">"+label+"</span></td>";
+      }
+      if(j===lastCol) return "<td>"+c+"</td>";
+      return "<td class=\""+cls+"\">"+(c==null?"":(typeof c==="number"?fmtNum(c,j):c))+"</td>";
+    }).join("") + "</tr>";
+  });
+  html += "</tbody></table>";
+  area.innerHTML = html;
+}
+function fmtNum(v, col){
+  if(v==null) return "";
+  if(isNaN(v)) return String(v);
+  return v.toLocaleString("zh-CN",{maximumFractionDigits:2});
+}
+
+/* ============ 指令解析（规则引擎模拟 AI 理解） ============ */
+function parseCmd(cmd, tpl){
+  const acts = [];
+  // 预设精确匹配
+  const preset = PRESETS[tpl];
+  if(preset && cmd.trim() === preset.cmd.trim()) return {ok:true, actions:preset.actions.map(a=>({...a}))};
+  // 简易规则：识别 填/计算/标色 关键词
+  const mFill = cmd.match(/填\s*([A-Z])\s*列/);
+  const mFml  = cmd.match(/([A-Z])\s*=\s*([^，。;]+)/);
+  const mCond = cmd.match(/([A-Z])\s*([<>]=?)\s*([\d.]+)\s*(%?)\s*(标红|标黄|标蓝|预警|提醒)?/);
+  if(!mFill && !mFml) return {ok:false, msg:"未能识别指令。请使用预设指令，或按「填 C 列 / 计算 D=C-B / 偏差率>15% 标红」格式描述。"};
+  if(mFill){
+    const col = colIdx(mFill[1]);
+    if(col==null || col<2) return {ok:false, msg:"填列需在 C 列及之后"};
+    acts.push({op:"fill", col, type:"ratio", base:1, min:.8, max:1.25, fmt:"num"});
+  }
+  if(mFml){
+    const lhs = colIdx(mFml[1]);
+    const expr = mFml[2].replace(/[A-Z]/g, m=>{const c=colIdx(m); return (c==null?"0":(c<2?"B":c<3?"C":c<4?"D":"E"))+"{r}";});
+    if(lhs!=null) acts.push({op:"formula", col:lhs, expr, fmt:(expr.includes("/")?"pct":"num")});
+  }
+  if(mCond){
+    const col = colIdx(mCond[1]);
+    const color = mCond[5] || "red";
+    let num = parseFloat(mCond[3]);
+    if(mCond[4] === "%") num = num/100;
+    const condExpr = "f" + mCond[2] + num;
+    if(col!=null) acts.push({op:"cond", check:col, write:TPLS[state.tpl].headers.length-1, rule:[condExpr, color, "命中"], elseRule:["green","正常"]});
+  }
+  if(!acts.length) return {ok:false, msg:"未能识别指令动作"};
+  return {ok:true, actions:acts};
+}
+function colIdx(c){ const v = c.toUpperCase().charCodeAt(0)-65; return v>=0&&v<=4?v:null; }
+
+/* ============ 执行引擎（模拟 Agent 逐步操作） ============ */
+async function execute(){
+  const t = TPLS[state.tpl];
+  const cmd = document.getElementById("cmdInput").value.trim();
+  if(!cmd){ log("请先输入指令或选择预设", "warn"); return; }
+  const parsed = parseCmd(cmd, state.tpl);
+  if(!parsed.ok){ log(parsed.msg, "err"); return; }
+  const acts = parsed.actions;
+  if(!state.done) resetTable(state.tpl);
+  const runBtn = document.getElementById("runBtn");
+  runBtn.disabled = true; document.getElementById("spin").style.display="inline-block";
+  document.getElementById("exportBtn").disabled = true;
+  log("收到指令："+cmd);
+  log("AI 解析 → 规划 "+acts.length+" 个动作："+acts.map(a=>a.op).join(" → "), "step");
+
+  const rows = state.data;
+  const stats = {ok:0, warn:0, fail:0};
+
+  for(let ai=0; ai<acts.length; ai++){
+    const a = acts[ai];
+    log("执行步骤 "+(ai+1)+"/"+acts.length+"："+stepName(a));
+    await sleep(420);
+    if(a.op==="fill"){
+      for(let i=0;i<rows.length;i++){
+        const b = rows[i][1];
+        const v = b * (a.min + Math.random()*(a.max-a.min));
+        rows[i][a.col] = Math.round(v*100)/100;
+        flashRow(i);
+        await sleep(70);
+      }
+      log("已填充 "+(a.col===2?"C 列(实际值)":a.col===3?"D 列(派生值)":"E 列")+" "+rows.length+" 行");
+    } else if(a.op==="formula"){
+      for(let i=0;i<rows.length;i++){
+        const val = evalFormula(a.expr, rows[i]);
+        rows[i][a.col] = val;
+        flashRow(i);
+        await sleep(70);
+      }
+      log("已写入公式并计算 "+rows.length+" 行");
+    } else if(a.op==="cond"){
+      let hit = 0;
+      const stCol = TPLS[state.tpl].headers.length - 1;
+      for(let i=0;i<rows.length;i++){
+        const f = rows[i][a.check];
+        const match = a.rule && evalCond(a.rule[0], f);
+        const match2 = a.rule2 && evalCond(a.rule2[0], f);
+        if(match){ rows[i][stCol] = a.rule[1]; hit++; }
+        else if(match2){ rows[i][stCol] = a.rule2[1]; }
+        else if(a.elseRule){ rows[i][stCol] = a.elseRule[0]; }
+        flashRow(i); await sleep(60);
+      }
+      stats.warn += hit; stats.ok += rows.length - hit;
+      log("条件校验完成：命中 "+hit+" 行，其余正常", hit?"warn":"step");
+    }
+  }
+  state.done = true;
+  renderTable();
+  buildReport(stats, acts);
+  document.getElementById("exportBtn").disabled = false;
+  runBtn.disabled = false; document.getElementById("spin").style.display="none";
+  log("全部执行完成 ✅ 可导出 CSV","step");
+}
+function stepName(a){
+  if(a.op==="fill") return "填充数值（模拟 Agent 写入实际数据）";
+  if(a.op==="formula") return "写入公式："+a.expr;
+  if(a.op==="cond") return "条件校验（"+a.rule[0]+" → "+a.rule[1]+"）";
+  return a.op;
+}
+function evalFormula(expr, row){
+  // {r} 行号占位无实际意义（数据取自 row），先清除；再按列字母整体替换行数据
+  const n = v => (typeof v === "number" && !isNaN(v) ? v : 0);
+  let s = expr.replace(/\{r\}/g, "");
+  s = s.replace(/B/g, n(row[1])).replace(/C/g, n(row[2])).replace(/D/g, n(row[3])).replace(/E/g, n(row[4]));
+  try{ const v = Function('"use strict";return ('+s+')')(); return Math.round(v*10000)/10000; }
+  catch(e){ return NaN; }
+}
+function evalCond(cond, f){
+  if(f==null || isNaN(f)) return false;
+  const m = cond.match(/^f\s*([<>]=?)\s*(-?[\d.]+)$/);
+  if(!m) return false;
+  const v = parseFloat(m[2]);
+  if(m[1]===">") return f>v; if(m[1]==="<") return f<v;
+  if(m[1]===">=") return f>=v; if(m[1]==="<=") return f<=v;
+  return false;
+}
+function flashRow(i){
+  const tr = document.getElementById("row"+i);
+  if(tr){ tr.classList.remove("focus"); void tr.offsetWidth; tr.classList.add("focus"); }
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+/* ============ 报告与导出 ============ */
+function buildReport(stats, acts){
+  const wrap = document.getElementById("reportWrap");
+  wrap.style.display = "grid";
+  const t = TPLS[state.tpl];
+  const total = state.data.length;
+  const stCol = t.headers.length - 1;
+  let warnCount = 0;
+  state.data.forEach(r=>{ if(r[stCol]==="red"||r[stCol]==="yellow"||r[stCol]==="blue") warnCount++; });
+  wrap.innerHTML =
+    "<div class=\"rep\"><b>"+total+"</b><span>处理行数</span></div>"+
+    "<div class=\"rep\"><b>"+acts.length+"</b><span>执行动作</span></div>"+
+    "<div class=\"rep\"><b>"+warnCount+"</b><span>预警行数</span></div>"+
+    "<div class=\"rep\"><b>0</b><span>失败步骤</span></div>"+
+    "<div class=\"rep\"><b>100%</b><span>公式计算率</span></div>";
+}
+document.getElementById("exportBtn").onclick = function(){
+  const t = TPLS[state.tpl];
+  let csv = "\ufeff" + t.headers.join(",") + "\n";
+  state.data.forEach(r=>{
+    csv += r.map(c=>{
+      if(c==null) return "";
+      let s = (typeof c==="number") ? String(c) : c;
+      if(s.includes(",")||s.includes("\n")) s = '"'+s.replace(/"/g,'""')+'"';
+      return s;
+    }).join(",") + "\n";
+  });
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = t.name + ".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  log("已导出 CSV："+t.name+".csv");
+};
+document.getElementById("resetBtn").onclick = function(){
+  state.done = false;
+  resetTable(state.tpl);
+  document.getElementById("cmdInput").value = "";
+  log("已重置表格");
+};
+document.getElementById("runBtn").onclick = execute;
+document.getElementById("paramInput").value = "月份 2026-06；阈值 15%";
+
+/* init */
+buildTplBtns(); buildChips(); resetTable("expense");
+log("就绪：选择模板 → 输入/选择指令 → 开始执行。示例数据为本地模拟。","step");
+</script>
+</body>
+</html>
