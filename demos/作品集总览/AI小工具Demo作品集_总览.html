@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>17</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/01</b><span>持续产出</span></div>
+      <div><b>18</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/02</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-02", name:"自动化流程自积累工具",
+    desc:"像自进化 Agent 一样把重复任务变成自己的技能：输入自然语言任务→模拟执行（拆解/采集/计算/交付/通知）→成功后自动沉淀为「技能卡片」存入本地技能库→下次输入相似任务时自动命中并一键复用。内置销售日报、月度对账、报销催办 3 个场景，技能存 localStorage 刷新不丢。灵感来自 GenericAgent「执行→沉淀→复用」闭环。",
+    src:"10/02 资讯 · GenericAgent（5星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-02_%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8B%E8%87%AA%E7%A7%AF%E7%B4%AF%E5%B7%A5%E5%85%B7/%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8B%E8%87%AA%E7%A7%AF%E7%B4%AF%E5%B7%A5%E5%85%B7.html"
+  },
   {
     date:"10-01", name:"业务流程可视化生成器",
     desc:"输入一句中文，把业务流程变成可点击的交互式流程图：内置订单履约、财务月度对账、报销审批 3 个模板，支持「客户提交订单→仓库拣货→物流配送→签收确认」这类自然语言描述直接解析成环节，点击节点查看负责人/耗时/触发条件/常见卡点，可导出 SVG 或流程描述。灵感来自 Archify「自然语言生成架构图/工作流图」AI 技能。",

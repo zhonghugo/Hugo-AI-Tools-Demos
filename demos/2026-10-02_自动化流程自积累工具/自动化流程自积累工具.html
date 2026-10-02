@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自动化流程自积累工具 · 执行→沉淀→复用</title>
+<style>
+:root{
+  --bg:#0f1222; --card:#171b30; --card2:#1e2340; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --chip:#232a4d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.top{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:18px 0 14px}
+.inp{flex:1;min-width:280px;display:flex;gap:8px}
+.inp input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:11px 14px;font-size:14px;outline:none}
+.inp input:focus{border-color:var(--pri)}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:11px 20px;font-size:14px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:active{transform:scale(.97)}
+.btn.sm{padding:7px 12px;font-size:12px;border-radius:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--fg);transition:.15s}
+.chip:hover{border-color:var(--pri);color:#fff}
+.main{display:flex;gap:14px;flex-wrap:wrap}
+.col{flex:1.7;min-width:360px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1;min-width:280px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:10px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.log{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:210px;overflow-y:auto;line-height:1.9}
+.log .ok{color:var(--ok)} .log .w{color:var(--warn)} .log .p{color:var(--pri)} .log .done{color:#cdd4ff}
+.skillcard{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:10px;cursor:pointer;transition:.15s}
+.skillcard:hover{border-color:var(--pri)}
+.skillcard .nm{font-size:14px;font-weight:600}
+.skillcard .kw{font-size:11px;color:var(--pri);margin-top:3px}
+.skillcard .st{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6}
+.skillcard .use{margin-top:8px;display:inline-block}
+.match{background:linear-gradient(135deg,rgba(108,123,255,.18),rgba(139,108,255,.18));border:1px solid var(--pri);border-radius:12px;padding:12px;font-size:13px;line-height:1.9;margin-bottom:10px}
+.match b{color:var(--ok)}
+.empty{color:var(--muted);text-align:center;padding:40px 14px;font-size:13px;line-height:2}
+.card-new{background:linear-gradient(135deg,#1b2a4d,#2a2350);border:1px solid var(--pri);border-radius:12px;padding:14px;margin-bottom:12px}
+.card-new .nm{font-size:15px;font-weight:700;color:#fff}
+.card-new .steps{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.8}
+.card-new .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.card-new input{background:#0f1222;border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:8px 10px;font-size:13px;width:100%;margin-top:8px;outline:none}
+.card-new input:focus{border-color:var(--pri)}
+@media(max-width:760px){ .col{min-width:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>自动化流程自积累工具
+    <span class="sub">像 GenericAgent 一样「执行 → 沉淀 → 复用」：任务跑通后自动保存为技能卡片，下次类似任务一键调用 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="top">
+    <div class="inp">
+      <input id="task" placeholder="用自然语言描述一个重复任务，如：每天导出销售报表发给经理" />
+      <button class="btn" onclick="runTask()">执行任务</button>
+    </div>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>Agent 执行过程 <small>模拟自进化 Agent：拆解 → 执行 → 验证 → 沉淀</small></h3>
+        <div class="log" id="log"></div>
+        <div id="pendingCard" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>技能库 <small>已沉淀 <span id="cnt">0</span> 个技能 · 本地保存</small></h3>
+        <div id="lib"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ─────────── 内置任务模板：名称 / 触发关键词 / 步骤链（含输出与验证） ─────────── */
+const JOBS = [
+  {
+    name:"销售日报生成", kw:["销售","日报","报表","导出","发给经理"],
+    steps:[
+      ["连接销售系统（已登录会话）","读取当日订单流水 2,346 笔"],
+      ["导出当日销售明细","生成 sales_20261002.csv（8 列 × 2,346 行）"],
+      ["计算日报指标","销售额 ¥1,284,600 / 订单 2,346 / 客单价 ¥547.6"],
+      ["生成日报图表","柱状图 + 环比 +4.2%（vs 昨日）"],
+      ["发送邮件给经理","主题：10/02 销售日报，已发送"]
+    ]
+  },
+  {
+    name:"月度对账差异排查", kw:["对账","流水","差异","账面","核对"],
+    steps:[
+      ["导出银行流水","本月 1,028 笔，合计 ¥5,632,400"],
+      ["导出账面记录","本月 1,021 笔，合计 ¥5,629,880"],
+      ["双向比对差异","7 笔差异，金额差 ¥2,520"],
+      ["差异归因分析","3 笔未达账 / 2 笔手续费入错科目 / 2 笔跨期"],
+      ["输出差异报告","差异清单 + 调整建议，已存 对账报告_10月.xlsx"]
+    ]
+  },
+  {
+    name:"报销单催办跟进", kw:["报销","审批","催","未审批","待审"],
+    steps:[
+      ["查询待审报销单","本月 18 单待审批，超 3 天 9 单"],
+      ["按部门汇总催办","销售 4 / 研发 3 / 运营 2"],
+      ["逐单发送催办提醒","飞书消息 × 9，附超期天数"],
+      ["跟踪回复情况","12:00 前回复 6 单，剩余 3 单升级提醒"]
+    ]
+  }
+];
+const SK_KEY = "ai_skill_lib_v1";
+let lib = [];          // 技能库
+let running = false;
+
+const $ = id => document.getElementById(id);
+const logEl = $("log");
+function log(msg, cls){ logEl.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; logEl.scrollTop = logEl.scrollHeight; }
+function clearLog(){ logEl.innerHTML = ""; }
+
+/* 技能库：加载 / 保存 */
+function loadLib(){
+  try{ lib = JSON.parse(localStorage.getItem(SK_KEY) || "[]"); }catch(e){ lib = []; }
+  renderLib();
+}
+function saveLib(){ localStorage.setItem(SK_KEY, JSON.stringify(lib)); renderLib(); }
+
+function renderLib(){
+  $("cnt").textContent = lib.length;
+  const box = $("lib");
+  if(!lib.length){ box.innerHTML = '<div class="empty">还没有技能。执行一次任务，成功后自动沉淀为技能卡片</div>'; return; }
+  box.innerHTML = lib.map((s, i) => `
+    <div class="skillcard" onclick="viewSkill(${i})">
+      <div class="nm">#${String(i+1).padStart(2,"0")} ${s.name}</div>
+      <div class="kw">触发：${s.kw.join(" / ")}</div>
+      <div class="st">${s.steps.map(x => x[0]).join(" → ")}</div>
+      <span class="btn ghost sm use">复用执行</span>
+    </div>`).join("");
+}
+function viewSkill(i){
+  const s = lib[i];
+  $("task").value = s.kw[0] + " 任务";
+  log(`📌 已载入技能「${s.name}」，点击下方按钮一键复用`, "p");
+  const pc = $("pendingCard");
+  pc.innerHTML = `<div class="match"><b>技能匹配</b>：输入的任务命中「${s.name}」（关键词：${s.kw.join(" / ")}）<br>
+    <button class="btn sm" onclick="runSkill(${i})">一键复用执行</button>
+    <button class="btn ghost sm" onclick="runNewTask()">按新任务重新执行</button></div>`;
+  window._skill = s;
+}
+
+/* 一键复用：直接重放技能步骤 */
+function runSkill(i){
+  const s = lib[i];
+  if(running) return;
+  running = true; clearLog(); $("pendingCard").innerHTML = "";
+  log(`命中技能「${s.name}」，开始一键复用执行…`, "ok");
+  s.steps.forEach((st, idx) => {
+    setTimeout(() => {
+      log(`步骤 ${idx+1}/${s.steps.length}：${st[0]}`, "p");
+      setTimeout(() => log(`   ↳ ${st[1]}`, "done"), 350);
+      if(idx === s.steps.length - 1){
+        setTimeout(() => { log(`✅ 复用执行完成，产出：${s.name}（耗时 42 秒）`, "ok"); running = false; }, 700);
+      }
+    }, idx * 1100);
+  });
+}
+
+/* 匹配技能：命中即提示复用，否则走新任务执行 */
+function runTask(){
+  const t = $("task").value.trim();
+  if(!t){ alert("请先输入任务描述"); return; }
+  clearLog(); $("pendingCard").innerHTML = "";
+  log(`收到任务：「${t}」`, "w");
+  const hit = lib.find(s => s.kw.some(k => t.includes(k)));
+  if(hit){
+    log(`🧠 识别到相似历史任务 → 命中技能「${hit.name}」`, "ok");
+    $("pendingCard").innerHTML = `<div class="match"><b>技能匹配</b>：此任务与已沉淀技能「${hit.name}」高度相似（关键词命中）<br>
+      选择：<button class="btn sm" onclick="runSkill(${lib.indexOf(hit)})">一键复用</button>
+      <button class="btn ghost sm" onclick="execNew()">作为新任务执行并沉淀新技能</button></div>`;
+    window._hitSkill = hit;
+  } else {
+    log("🧠 未命中历史技能，按新任务拆解执行", "w");
+    execNew();
+  }
+}
+function runNewTask(){
+  $("pendingCard").innerHTML = "";
+  log("🧠 按新任务拆解执行，跳过复用", "w");
+  execNew();
+}
+
+/* 新任务执行：拆解 → 逐步执行 → 生成技能卡片待确认 */
+function execNew(){
+  const t = $("task").value.trim();
+  if(running) return;
+  running = true;
+  const steps = [
+    ["连接业务系统（已登录会话）", `读取目标数据源，认证通过`],
+    ["采集所需数据", `拉取与任务相关的原始数据并清洗`],
+    ["按规则处理计算", `执行核心逻辑（指标 / 汇总 / 校验）`],
+    ["生成交付物", `产出报表 / 文档 / 消息，并自校验通过`],
+    ["通知结果并归档", `发送结果给接收人，记录执行日志`]
+  ];
+  steps.forEach((st, idx) => {
+    setTimeout(() => {
+      log(`步骤 ${idx+1}/${steps.length}：${st[0]}`, "p");
+      setTimeout(() => log(`   ↳ ${st[1]}`, "done"), 350);
+      if(idx === steps.length - 1){
+        setTimeout(() => {
+          log("✅ 任务执行成功，自动沉淀技能卡片…", "ok");
+          renderNewCard(t, steps);
+          running = false;
+        }, 700);
+      }
+    }, idx * 1000);
+  });
+}
+
+/* 沉淀技能卡片：自动取名+关键词，用户可改后入库 */
+function renderNewCard(task, steps){
+  const name = task.length > 14 ? task.slice(0, 14) + "…" : task;
+  const kwAuto = task.replace(/[，。；;、\s]/g, "").slice(0, 6).split("").join(" / ");
+  $("pendingCard").innerHTML = `
+    <div class="card-new">
+      <div class="nm">🧠 新技能待沉淀</div>
+      <div class="steps">步骤链：${steps.map(s => s[0]).join(" → ")}</div>
+      <input id="skName" value="${name}" placeholder="技能名称" />
+      <input id="skKw" value="${kwAuto}" placeholder="触发关键词（用 / 分隔）" />
+      <div class="btns">
+        <button class="btn sm" onclick="saveSkill()">保存为技能</button>
+        <button class="btn ghost sm" onclick="$('pendingCard').innerHTML=''">丢弃</button>
+      </div>
+    </div>`;
+  window._newSkill = { steps };
+}
+function saveSkill(){
+  const nm = $("skName").value.trim() || "未命名技能";
+  const kw = $("skKw").value.split(/[\/\s,，]+/).filter(Boolean);
+  lib.push({ name: nm, kw: kw.length ? kw : [nm], steps: window._newSkill.steps });
+  saveLib();
+  $("pendingCard").innerHTML = `<div class="match"><b>已入库</b>：技能「${nm}」已保存，下次输入类似任务即可一键复用</div>`;
+  log(`✅ 技能「${nm}」已沉淀到技能库（第 ${lib.length} 个）`, "ok");
+}
+
+/* 示例任务 chips */
+(() => {
+  const box = $("chips");
+  ["每天导出销售报表发给经理","核对本月银行流水和账面差异","催办上月未审批的报销单"].forEach(t => {
+    const c = document.createElement("button");
+    c.className = "chip"; c.textContent = t;
+    c.onclick = () => { $("task").value = t; runTask(); };
+    box.appendChild(c);
+  });
+  loadLib();
+  log("就绪：内置 3 个任务模板；执行成功后可沉淀技能，技能存于本地浏览器（localStorage）", "w");
+})();
+</script>
+</body>
+</html>
