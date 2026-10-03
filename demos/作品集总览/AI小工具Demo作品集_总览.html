@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>18</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/02</b><span>持续产出</span></div>
+      <div><b>19</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/03</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-03", name:"Agent 安全策略配置器",
+    desc:"像 OpenAPPA 一样给 AI Agent 加「确定性护栏」：业务表单定义数据级别（公开/内部/机密/绝密）与每个工具、外发目的地的允许上限 → 一键生成 TOML 策略文件 → 内置 6 个攻击场景（越级读机密、shell 改生产、绝密外发等）逐条演示拦截/放行及依据链，可切换「默认/严格/开放」三套预设策略观察判定联动。讲清 Agent 安全方案时非常好用。",
+    src:"10/03 资讯 · OpenAPPA（5星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-03_Agent%E5%AE%89%E5%85%A8%E7%AD%96%E7%95%A5%E9%85%8D%E7%BD%AE%E5%99%A8/Agent%E5%AE%89%E5%85%A8%E7%AD%96%E7%95%A5%E9%85%8D%E7%BD%AE%E5%99%A8.html"
+  },
   {
     date:"10-02", name:"自动化流程自积累工具",
     desc:"像自进化 Agent 一样把重复任务变成自己的技能：输入自然语言任务→模拟执行（拆解/采集/计算/交付/通知）→成功后自动沉淀为「技能卡片」存入本地技能库→下次输入相似任务时自动命中并一键复用。内置销售日报、月度对账、报销催办 3 个场景，技能存 localStorage 刷新不丢。灵感来自 GenericAgent「执行→沉淀→复用」闭环。",

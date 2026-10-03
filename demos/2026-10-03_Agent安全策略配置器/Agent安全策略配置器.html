@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 安全策略配置器 · 像 APPA 一样给 AI 加护栏</title>
+<style>
+:root{
+  --bg:#0f1222; --card:#171b30; --card2:#1e2340; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --chip:#232a4d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1200px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.top{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:18px 0 14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--fg);transition:.15s}
+.chip:hover{border-color:var(--pri);color:#fff}
+.main{display:flex;gap:14px;flex-wrap:wrap}
+.col{flex:1.25;min-width:380px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.4;min-width:340px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:10px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed #262d52;font-size:13px;flex-wrap:wrap}
+.row:last-child{border-bottom:none}
+.row .lv{font-weight:700;min-width:56px}
+.row select{background:#0f1222;border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:6px 8px;font-size:12px;outline:none;flex:1;min-width:120px}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:#232a4d;color:var(--muted);border:1px solid var(--line)}
+.tag.lv4{background:rgba(255,107,129,.15);color:var(--bad);border-color:rgba(255,107,129,.4)}
+.tag.lv3{background:rgba(255,179,92,.15);color:var(--warn);border-color:rgba(255,179,92,.4)}
+.tag.lv2{background:rgba(108,123,255,.15);color:var(--pri);border-color:rgba(108,123,255,.4)}
+.tag.lv1{background:rgba(47,217,138,.13);color:var(--ok);border-color:rgba(47,217,138,.4)}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn.sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn:active{transform:scale(.97)}
+pre.toml{background:#0d1122;border:1px solid var(--line);border-radius:10px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#9fe8c8;white-space:pre-wrap;line-height:1.7;max-height:230px;overflow-y:auto;margin-top:10px}
+.attacks{display:flex;flex-direction:column;gap:10px}
+.atk{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s}
+.atk:hover{border-color:var(--pri)}
+.atk .tt{font-size:13px;font-weight:600}
+.atk .meta{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.7}
+.atk .meta span{margin-right:10px}
+.verdict{margin-top:8px;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.7;display:none}
+.verdict.block{display:block;background:rgba(255,107,129,.12);border:1px solid rgba(255,107,129,.4);color:#ffb3bf}
+.verdict.allow{display:block;background:rgba(47,217,138,.1);border:1px solid rgba(47,217,138,.4);color:#a8efcd}
+.log{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:170px;overflow-y:auto;line-height:1.9}
+.log .block{color:var(--bad)} .log .allow{color:var(--ok)} .log .p{color:var(--pri)}
+.stat{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.stat .box{flex:1;min-width:90px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.stat .box b{font-size:20px;display:block}
+.stat .box span{font-size:11px;color:var(--muted)}
+.stat .box.b .b2{color:var(--bad)} .stat .box.a .b2{color:var(--ok)}
+@media(max-width:800px){ .col,.side{min-width:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Agent 安全策略配置器
+    <span class="sub">借鉴 OpenAPPA「确定性 Agent 护栏」：用业务表单定义数据级别与工具策略 → 生成 TOML 策略文件 → 内置攻击场景演示拦截/放行决策 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 数据级别 <small>给数据定密级，策略按级管控</small></h3>
+        <div id="lvRows"></div>
+      </div>
+      <div class="panel">
+        <h3>② 工具访问策略 <small>每个工具允许访问的最低级别上限</small></h3>
+        <div id="toolRows"></div>
+      </div>
+      <div class="panel">
+        <h3>③ 外发规则 <small>数据外发目的地白名单（允许外发的最高级别）</small></h3>
+        <div id="egRows"></div>
+      </div>
+      <div class="panel">
+        <h3>④ 策略文件 <small>一键生成 TOML，可直接用于 Agent 配置</small></h3>
+        <button class="btn" onclick="genToml()">生成 TOML 策略</button>
+        <button class="btn ghost" onclick="copyToml()" style="margin-left:8px">复制</button>
+        <pre class="toml" id="toml">（点击上方按钮生成）</pre>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>攻击场景模拟 <small>点击场景，APPA 按你的策略逐条判定</small></h3>
+        <div class="attacks" id="atkList"></div>
+      </div>
+      <div class="panel">
+        <h3>决策日志 <small>每次判定的依据链</small></h3>
+        <div class="stat">
+          <div class="box b"><b class="b2" id="cntBlock">0</b><span>拦截</span></div>
+          <div class="box a"><b class="b2" id="cntAllow">0</b><span>放行</span></div>
+          <div class="box"><b id="cntTotal">0</b><span>评估</span></div>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ─────────── 数据：级别 / 工具 / 外发目的地 / 攻击场景 ─────────── */
+const LEVELS = [
+  { id:"lv1", name:"公开",  desc:"对外公开信息，无泄露风险" },
+  { id:"lv2", name:"内部",  desc:"公司内部可见，禁外发" },
+  { id:"lv3", name:"机密",  desc:"财务/人事/业务核心数据，严控" },
+  { id:"lv4", name:"绝密",  desc:"密钥/客户隐私/未公开战略" }
+];
+const LV_RANK = { lv1:1, lv2:2, lv3:3, lv4:4 };
+const TOOLS = [
+  { id:"file_read",  name:"文件读取",   def:"lv3" },
+  { id:"file_write", name:"文件写入",   def:"lv2" },
+  { id:"shell",      name:"代码执行(shell)", def:"lv2" },
+  { id:"network",    name:"网络请求",   def:"lv1" },
+  { id:"db_query",   name:"数据库查询", def:"lv3" },
+  { id:"key_read",   name:"密钥读取",   def:"lv4" }
+];
+const EG = [
+  { id:"slack",  name:"Slack / 内部群", def:"lv3" },
+  { id:"email",  name:"内部邮箱",       def:"lv3" },
+  { id:"web",    name:"公网(任意域名)", def:"lv1" }
+];
+/* 攻击场景：{t:名称, tool, lv:涉及数据级别, dst:外发目的地, desc} */
+const ATTACKS = [
+  { t:"读取 /etc/passwd 后 curl 外发到公网", tool:"file_read", lv:"lv4", dst:"web",
+    why:"文件读取(机密)+外发公网(仅公开)" },
+  { t:"读取公开商品页抓取价格写入内部表", tool:"network", lv:"lv1", dst:"slack",
+    why:"网络请求(公开)+内部群(内部)" },
+  { t:"调用 shell 修改生产环境配置", tool:"shell", lv:"lv3", dst:"—",
+    why:"shell 允许上限(内部)< 涉密数据(机密)" },
+  { t:"查询财务明细表并邮件发送给同事", tool:"db_query", lv:"lv3", dst:"email",
+    why:"数据库(机密)+内部邮箱(内部)" },
+  { t:"读取客户隐私表后上传到公网存储", tool:"db_query", lv:"lv4", dst:"web",
+    why:"数据库上限(机密)< 绝密，且外发仅公网" },
+  { t:"读取密钥文件写入本地日志", tool:"key_read", lv:"lv4", dst:"—",
+    why:"密钥读取上限(绝密)< 实际绝密数据" }
+];
+
+const $ = id => document.getElementById(id);
+const logEl = $("log");
+let stats = { block:0, allow:0 };
+
+/* 渲染三类配置行 */
+function renderLv(){
+  $("lvRows").innerHTML = LEVELS.map(l => `
+    <div class="row">
+      <span class="tag lv${l.id[2]}">${l.name}</span>
+      <span style="flex:1;color:var(--muted);font-size:12px">${l.desc}</span>
+      <span class="lv" style="min-width:44px">${l.id.toUpperCase()}</span>
+    </div>`).join("");
+}
+function renderTools(){
+  $("toolRows").innerHTML = TOOLS.map(t => `
+    <div class="row">
+      <span style="min-width:120px">${t.name}</span>
+      <select id="tool_${t.id}" onchange="touch()">
+        ${LEVELS.map(l => `<option value="${l.id}" ${l.id===t.def?"selected":""}>允许至 ${l.name}</option>`).join("")}
+      </select>
+    </div>`).join("");
+}
+function renderEg(){
+  $("egRows").innerHTML = EG.map(e => `
+    <div class="row">
+      <span style="min-width:120px">${e.name}</span>
+      <select id="eg_${e.id}" onchange="touch()">
+        ${LEVELS.map(l => `<option value="${l.id}" ${l.id===e.def?"selected":""}>允许至 ${l.name}</option>`).join("")}
+      </select>
+    </div>`).join("");
+}
+function renderAttacks(){
+  $("atkList").innerHTML = ATTACKS.map((a, i) => `
+    <div class="atk" onclick="simulate(${i})">
+      <div class="tt">#${i+1} ${a.t}</div>
+      <div class="meta">
+        <span>工具：<b>${TOOLS.find(t=>t.id===a.tool).name}</b></span>
+        <span>数据级别：<b>${LEVELS.find(l=>l.id===a.lv).name}</b></span>
+        <span>目的地：<b>${a.dst}</b></span>
+      </div>
+      <div class="verdict" id="v${i}"></div>
+    </div>`).join("");
+}
+
+/* 读取当前策略配置 */
+function policy(){
+  const tool = {};
+  TOOLS.forEach(t => tool[t.id] = $("tool_"+t.id).value);
+  const eg = {};
+  EG.forEach(e => eg[e.id] = $("eg_"+e.id).value);
+  return { tool, eg };
+}
+
+/* 判定一个攻击：返回 {allow, reasons[]} */
+function judge(a){
+  const p = policy();
+  const reasons = [];
+  const tMax = p.tool[a.tool];
+  const tRank = LV_RANK[tMax], lvRank = LV_RANK[a.lv];
+  if(tRank < lvRank){
+    reasons.push(`工具「${TOOLS.find(t=>t.id===a.tool).name}」仅允许访问至 ${LEVELS.find(l=>l.id===tMax).name}，而本次数据为 ${LEVELS.find(l=>l.id===a.lv).name} → 越级读取`);
+    return { allow:false, reasons };
+  }
+  reasons.push(`数据级别 ${LEVELS.find(l=>l.id===a.lv).name} ≤ 工具上限 ${LEVELS.find(l=>l.id===tMax).name}，读取放行`);
+  if(a.dst !== "—"){
+    const dMax = p.eg[a.dst];
+    const dRank = LV_RANK[dMax];
+    if(dRank < lvRank){
+      reasons.push(`外发目的地「${EG.find(e=>e.id===a.dst).name}」仅允许 ${LEVELS.find(l=>l.id===dMax).name} 及以下，本次 ${LEVELS.find(l=>l.id===a.lv).name} 数据 → 外发拦截`);
+      return { allow:false, reasons };
+    }
+    reasons.push(`目的地允许级别 ${LEVELS.find(l=>l.id===dMax).name} ≥ 数据级别，外发放行`);
+  }
+  return { allow:true, reasons };
+}
+
+/* 模拟攻击 */
+function simulate(i){
+  const a = ATTACKS[i];
+  const r = judge(a);
+  const el = $("v"+i);
+  if(r.allow){ stats.allow++; } else { stats.block++; }
+  stats.total = stats.block + stats.allow;
+  $("cntBlock").textContent = stats.block;
+  $("cntAllow").textContent = stats.allow;
+  $("cntTotal").textContent = stats.total;
+  el.className = "verdict " + (r.allow ? "allow" : "block");
+  el.innerHTML = (r.allow ? "✅ 放行" : "⛔ 拦截") + " — " + r.reasons.join("；");
+  logEl.innerHTML += `<div class="${r.allow?'allow':'block'}">[评估#${stats.total}] ${a.t.slice(0,26)}… → ${r.allow?'放行':'拦截'}：${r.reasons[0]}</div>`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+/* 生成 TOML 策略文件 */
+function genToml(){
+  const p = policy();
+  const L = LEVELS, T = TOOLS, E = EG;
+  let s = "# Agent 安全策略（OpenAPPA 风格 TOML）\n# 生成时间：" + new Date().toLocaleString("zh-CN") + "\n\n";
+  s += "[data_levels]\n" + L.map(l => `${l.id} = "${l.name}"  # ${l.desc}`).join("\n") + "\n\n";
+  s += "[tools]\n" + T.map(t => `${t.id} = { name = "${t.name}", max_level = "${p.tool[t.id]}" }`).join("\n") + "\n\n";
+  s += "[egress]\n" + E.map(e => `${e.id} = { name = "${e.name}", max_level = "${p.eg[e.id]}" }`).join("\n") + "\n";
+  $("toml").textContent = s;
+  logEl.innerHTML += `<div class="p">[策略] 已生成 TOML 策略文件（${T.length} 工具 / ${E.length} 外发规则）</div>`;
+}
+function copyToml(){
+  const t = $("toml").textContent;
+  if(!t.includes("[tools]")){ alert("请先生成 TOML"); return; }
+  navigator.clipboard ? navigator.clipboard.writeText(t).then(()=>logEl.innerHTML += `<div class="allow">[策略] TOML 已复制到剪贴板</div>`) : null;
+}
+function touch(){ $("toml").textContent = "（配置已变化，点击「生成 TOML 策略」刷新）"; }
+
+/* 预设策略 chips */
+const PRESETS = {
+  "默认安全基线": null,
+  "严格模式（财务场景）": {
+    tool:{ file_read:"lv2", file_write:"lv2", shell:"lv1", network:"lv1", db_query:"lv3", key_read:"lv3" },
+    eg:{ slack:"lv2", email:"lv2", web:"lv1" }
+  },
+  "开放研发模式": {
+    tool:{ file_read:"lv4", file_write:"lv3", shell:"lv3", network:"lv2", db_query:"lv3", key_read:"lv4" },
+    eg:{ slack:"lv3", email:"lv3", web:"lv1" }
+  }
+};
+function loadPreset(name){
+  const p = PRESETS[name];
+  if(!p){ renderTools(); renderEg(); return; }
+  TOOLS.forEach(t => { const sel = $("tool_"+t.id); sel.value = p.tool[t.id] || t.def; });
+  EG.forEach(e => { const sel = $("eg_"+e.id); sel.value = p.eg[e.id] || e.def; });
+  logEl.innerHTML += `<div class="p">[策略] 已载入预设「${name}」</div>`;
+}
+(() => {
+  const box = $("chips");
+  Object.keys(PRESETS).forEach(n => {
+    const c = document.createElement("button");
+    c.className = "chip"; c.textContent = n;
+    c.onclick = () => { document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on")); c.classList.add("on"); loadPreset(n); touch(); };
+    box.appendChild(c);
+  });
+  renderLv(); renderTools(); renderEg(); renderAttacks();
+  genToml();
+  logEl.innerHTML = `<div class="p">就绪：APPA 决策引擎已加载，点击左侧攻击场景逐条评估（默认安全基线策略）</div>`;
+})();
+</script>
+</body>
+</html>
