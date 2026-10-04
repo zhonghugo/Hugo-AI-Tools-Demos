@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>19</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/03</b><span>持续产出</span></div>
+      <div><b>20</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/04</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-04", name:"多 Agent 团队编排配置器",
+    desc:"像 OpenRig 一样用 YAML 定义 Agent 团队拓扑：业务表单配置主控与子 Agent 的角色、任务依赖与汇报关系 → 一键生成 YAML 拓扑文件 → 内置模拟面板按依赖分层分发任务、收集结果、处理失败（自动重试/终止），预置财务结账、电商运营、客服工单 3 个真实团队模板，失败可「注入」可控演示。直接对齐多平台 Master+Subagent 的编排架构建设。",
+    src:"10/04 资讯 · OpenRig（5星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-04_%E5%A4%9AAgent%E5%9B%A2%E9%98%9F%E7%BC%96%E6%8E%92%E9%85%8D%E7%BD%AE%E5%99%A8/%E5%A4%9AAgent%E5%9B%A2%E9%98%9F%E7%BC%96%E6%8E%92%E9%85%8D%E7%BD%AE%E5%99%A8.html"
+  },
   {
     date:"10-03", name:"Agent 安全策略配置器",
     desc:"像 OpenAPPA 一样给 AI Agent 加「确定性护栏」：业务表单定义数据级别（公开/内部/机密/绝密）与每个工具、外发目的地的允许上限 → 一键生成 TOML 策略文件 → 内置 6 个攻击场景（越级读机密、shell 改生产、绝密外发等）逐条演示拦截/放行及依据链，可切换「默认/严格/开放」三套预设策略观察判定联动。讲清 Agent 安全方案时非常好用。",

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多 Agent 团队编排配置器 · YAML 拓扑 + 模拟运行</title>
+<style>
+:root{
+  --bg:#0f1222; --card:#171b30; --card2:#1e2340; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --chip:#232a4d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 14px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--fg);transition:.15s}
+.chip:hover{border-color:var(--pri);color:#fff}
+.chip.on{background:linear-gradient(135deg,var(--pri),var(--pri2));border-color:transparent;color:#fff}
+.main{display:flex;gap:14px;flex-wrap:wrap}
+.col{flex:1.3;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.5;min-width:380px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:10px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed #262d52;font-size:13px;flex-wrap:wrap}
+.row:last-child{border-bottom:none}
+.row input[type=text]{flex:1;min-width:80px;background:#0f1222;border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:7px 10px;font-size:13px;outline:none}
+.row input[type=text]:focus{border-color:var(--pri)}
+.row select{background:#0f1222;border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:6px 8px;font-size:12px;outline:none}
+.mini{font-size:11px;color:var(--muted)}
+.role-badge{font-size:10px;padding:2px 7px;border-radius:99px;background:#232a4d;color:var(--pri);border:1px solid var(--line);white-space:nowrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn.sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn:active{transform:scale(.97)}
+pre.yaml{background:#0d1122;border:1px solid var(--line);border-radius:10px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#9fe8c8;white-space:pre-wrap;line-height:1.7;max-height:260px;overflow-y:auto;margin-top:10px}
+.stage{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.stg{flex:1;min-width:120px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px}
+.stg .h{font-size:11px;color:var(--muted);margin-bottom:8px}
+.stg .ag{background:#0f1222;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;line-height:1.5;border-left:3px solid var(--line)}
+.stg .ag.run{border-left-color:var(--pri);box-shadow:0 0 0 1px rgba(108,123,255,.35)}
+.stg .ag.done{border-left-color:var(--ok);opacity:.95}
+.stg .ag.fail{border-left-color:var(--bad)}
+.stg .ag .st{font-size:10px;display:block;margin-top:3px}
+.stg .ag.done .st{color:var(--ok)} .stg .ag.fail .st{color:var(--bad)} .stg .ag.run .st{color:var(--pri)}
+.log{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:170px;overflow-y:auto;line-height:1.9}
+.log .ok{color:var(--ok)} .log .w{color:var(--warn)} .log .p{color:var(--pri)} .log .fail{color:var(--bad)}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+@media(max-width:860px){ .col,.side{min-width:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>多 Agent 团队编排配置器
+    <span class="sub">像 OpenRig 一样用 YAML 定义 Agent 团队拓扑：业务表单配置主控与子 Agent 的角色/依赖/汇报 → 生成 YAML → 模拟任务分发、结果收集与失败恢复 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 主控 Agent <small>团队协调者：分派任务、收集结果、处理失败</small></h3>
+        <div id="masterRow"></div>
+      </div>
+      <div class="panel">
+        <h3>② 子 Agent 列表 <small>角色 / 职责 / 依赖前置 Agent / 上报对象</small></h3>
+        <div id="agentRows"></div>
+      </div>
+      <div class="panel">
+        <h3>③ 编排策略 <small>并行度与失败处理</small></h3>
+        <div class="row">
+          <span class="mini" style="min-width:56px">并行度</span>
+          <select id="fanout" onchange="touchYaml()"><option value="1">严格串行</option><option value="2" selected>2 路并行</option><option value="3">3 路并行</option><option value="99">全部并行</option></select>
+          <span class="mini">失败重试</span>
+          <select id="retry" onchange="touchYaml()"><option value="0">不重试</option><option value="1" selected>重试 1 次</option><option value="2">重试 2 次</option></select>
+          <span class="mini">失败后</span>
+          <select id="onfail" onchange="touchYaml()"><option value="skip" selected>标记失败并继续</option><option value="halt">终止整个流程</option></select>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>④ 生成的 YAML 拓扑 <small>可直接用于 OpenRig / 自建编排器</small></h3>
+        <button class="btn sm" onclick="genYaml()">生成 YAML</button>
+        <button class="btn ghost sm" onclick="copyYaml()" style="margin-left:6px">复制</button>
+        <pre class="yaml" id="yaml">（点击上方按钮生成）</pre>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>⑤ 模拟运行 <small>按依赖拓扑分层分发任务</small></h3>
+        <div class="stage" id="stages"></div>
+        <div class="actions">
+          <button class="btn" onclick="runSim()">▶ 运行编排</button>
+          <button class="btn ghost" onclick="toggleFail()" id="failBtn">注入一次失败</button>
+          <button class="btn ghost" onclick="resetSim()">重置</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>执行日志 <small>任务分发 / 结果收集 / 失败恢复</small></h3>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ─────────── 预设团队：{name, master, strategy, agents:[{id,name,role,dep:[],to}]} ─────────── */
+const TEAMS = {
+  "财务结账团队": {
+    master:{ name:"CFO 助手", strategy:"并行 2 · 重试 1 · 失败继续" },
+    agents:[
+      { id:"a1", name:"数据采集", role:"从 ERP/银行/报销系统拉取当月数据", dep:[], to:"master", out:"已采集 3 大系统 1,284 条凭证与流水" },
+      { id:"a2", name:"对账专员", role:"核对流水与账面差异并归因", dep:["a1"], to:"master", out:"已对账完成，差异 12 笔全部归因" },
+      { id:"a3", name:"报表生成", role:"生成资产负债表/利润表/现金流量表", dep:["a2"], to:"master", out:"已生成三表并附附注" },
+      { id:"a4", name:"质量审核", role:"三表勾稽校验 + 差异清单复核", dep:["a3"], to:"master", out:"三表勾稽校验通过，出具审核结论" }
+    ]
+  },
+  "电商运营团队": {
+    master:{ name:"运营指挥", strategy:"并行 2 · 重试 1 · 失败继续" },
+    agents:[
+      { id:"b1", name:"竞品监控", role:"采集竞品价格与促销变动", dep:[], to:"master", out:"已监控 6 个竞品 24 组 SKU 变动" },
+      { id:"b2", name:"价格建议", role:"按毛利规则输出调价建议", dep:["b1"], to:"master", out:"已输出 8 条调价建议并测算毛利" },
+      { id:"b3", name:"活动文案", role:"生成 3 版促销文案供人工挑选", dep:["b2"], to:"master", out:"已生成 3 版促销文案" },
+      { id:"b4", name:"发布执行", role:"更新店铺价格与活动配置", dep:["b3"], to:"master", out:"已更新 8 个 SKU 价格并上架活动" }
+    ]
+  },
+  "客服工单团队": {
+    master:{ name:"客服主管", strategy:"并行 3 · 重试 1 · 失败继续" },
+    agents:[
+      { id:"c1", name:"工单分类", role:"按渠道/紧急度给工单打标", dep:[], to:"master", out:"已分类 46 张工单" },
+      { id:"c2", name:"意图识别", role:"识别用户诉求并抽取关键信息", dep:[], to:"master", out:"已识别 5 类意图并抽取要素" },
+      { id:"c3", name:"常规回复", role:"命中知识库则自动回复", dep:["c2"], to:"master", out:"已自动回复 38 单" },
+      { id:"c4", name:"疑难升级", role:"无法解决则转人工并附上下文摘要", dep:["c1","c2"], to:"master", out:"已升级 8 单并附上下文摘要" }
+    ]
+  }
+};
+const $ = id => document.getElementById(id);
+const logEl = $("log");
+let team = TEAMS["财务结账团队"];
+let injectFail = false, running = false;
+
+
+function log(msg, cls){ logEl.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; logEl.scrollTop = logEl.scrollHeight; }
+function clearLog(){ logEl.innerHTML = ""; }
+
+function renderTeam(){
+  const m = team.master;
+  $("masterRow").innerHTML = `
+    <div class="row">
+      <span class="role-badge">主控</span>
+      <input type="text" id="mName" value="${m.name}" onchange="touchYaml()" style="max-width:200px" />
+      <span class="mini" style="flex:1">职责：统一分派任务、收集结果、失败时重试/终止</span>
+    </div>`;
+  $("agentRows").innerHTML = team.agents.map((a, i) => `
+    <div class="row">
+      <span class="role-badge">Agent${i+1}</span>
+      <input type="text" id="ag_${a.id}" value="${a.name}" style="max-width:130px" onchange="touchYaml()" />
+      <span class="mini" style="flex:1">${a.role}</span>
+      <span class="mini">依赖：${a.dep.length ? a.dep.map(d=>team.agents.find(x=>x.id===d)?.name||d).join("+") : "无"}</span>
+      <span class="mini">上报：${a.to === "master" ? m.name : a.to}</span>
+    </div>`).join("");
+  renderStages();
+  genYaml();
+}
+function renderStages(){
+  // 按依赖分层
+  const layers = [];
+  const done = new Set();
+  let remain = team.agents.length;
+  while(remain > 0){
+    const layer = team.agents.filter(a => !done.has(a.id) && a.dep.every(d => done.has(d)));
+    layer.forEach(a => done.add(a.id));
+    layers.push(layer); remain -= layer.length;
+  }
+  $("stages").innerHTML = layers.map((l, i) => `
+    <div class="stg"><div class="h">层级 ${i+1}${l.length>1?`（${l.length} 路并行）`:""}</div>
+      ${l.map(a => `<div class="ag" id="agbox_${a.id}"><b>${a.name}</b><span class="st">待命 · ${a.role.slice(0,18)}</span></div>`).join("")}
+    </div>`).join("");
+}
+function setAgState(id, st, text){
+  const el = $("agbox_" + id);
+  if(!el) return;
+  el.className = "ag " + st;
+  el.querySelector(".st").textContent = text;
+}
+
+/* 生成 YAML */
+function genYaml(){
+  const teamName = Object.keys(TEAMS).find(k => TEAMS[k] === team) || "自定义团队";
+  const mName = ($("mName") ? $("mName").value : team.master.name) || team.master.name;
+  const fanout = $("fanout").value, retry = $("retry").value, onfail = $("onfail").value;
+  const ags = team.agents.map(a => {
+    const nm = ($("ag_"+a.id) ? $("ag_"+a.id).value : a.name) || a.name;
+    return `  - id: ${a.id}\n    name: "${nm}"\n    role: "${a.role}"\n    depends_on: [${a.dep.map(d=>'"'+d+'"').join(", ")}]\n    report_to: ${a.to}`;
+  }).join("\n");
+  const y = `# Agent 团队拓扑（OpenRig 风格 YAML）\nteam:\n  name: "${teamName}"\n  master:\n    name: "${mName}"\n    strategy:\n      fanout: ${fanout === "99" ? "all" : fanout}\n      retry: ${retry}\n      on_failure: ${onfail}\nagents:\n${ags}`;
+  $("yaml").textContent = y;
+  return y;
+}
+function touchYaml(){ genYaml(); }
+function copyYaml(){
+  const t = $("yaml").textContent;
+  if(!t.includes("agents:")){ alert("请先生成 YAML"); return; }
+  navigator.clipboard ? navigator.clipboard.writeText(t).then(()=>log("YAML 拓扑已复制到剪贴板","ok")) : null;
+}
+
+/* 模拟运行：按拓扑分层，失败注入 */
+function runSim(){
+  if(running) return;
+  running = true; clearLog(); renderStages();
+  const retryN = parseInt($("retry").value, 10);
+  const fanout = parseInt($("fanout").value, 10);
+  const onfail = $("onfail").value;
+  log(`▶ 开始编排「${Object.keys(TEAMS).find(k=>TEAMS[k]===team) || "自定义团队"}」：主控 ${team.master.name} 分派 ${team.agents.length} 个子 Agent`, "p");
+  // 建依赖拓扑
+  const byDep = {};
+  team.agents.forEach(a => { byDep[a.id] = { a, done:false, fail:0, waiting:true }; });
+  let failFlag = false;  // 注入失败标记（只触发一次）
+  const step = () => {
+    if(team.agents.every(a => byDep[a.id].done)){
+      const fcnt = team.agents.filter(a => byDep[a.id].fail > 0).length;
+      log(`✅ 编排完成：${team.agents.length - fcnt} 个成功 / ${fcnt} 个失败，结果已汇总上报主控`, "ok");
+      running = false; return;
+    }
+    const ready = team.agents.filter(a => !byDep[a.id].done && byDep[a.id].waiting && a.dep.every(d => byDep[d] && byDep[d].done));
+    if(!ready.length) return;   // 依赖未就绪：等待中的 Agent 完成后会再次推进
+    const batch = ready.slice(0, fanout === 99 ? ready.length : fanout);
+    batch.forEach(a => { byDep[a.id].waiting = false; });
+    batch.forEach(async (a) => {
+      const n = byDep[a.id];
+      setAgState(a.id, "run", "运行中…");
+      log(`  ↳ 分发「${a.name}」给 ${a.to === "master" ? team.master.name : a.to}`, "p");
+      await sleep(650 + Math.random()*400);
+      // 失败判定：仅由「注入失败」按钮触发（演示可控）
+      let failed = false;
+      if(injectFail && !failFlag){ failed = true; failFlag = true; injectFail = false; $("failBtn").textContent = "注入一次失败"; }
+      if(failed && n.fail < retryN){
+        n.fail++;
+        setAgState(a.id, "fail", `执行失败 → 第 ${n.fail} 次重试`);
+        log(`  ⚠ 「${a.name}」执行失败（超时），自动重试第 ${n.fail} 次`, "w");
+        byDep[a.id].waiting = true;
+      } else if(failed){
+        n.fail++; n.done = true;
+        setAgState(a.id, "fail", "重试耗尽 · 已标记失败上报");
+        log(`  ⛔ 「${a.name}」重试 ${retryN} 次仍失败，标记失败并上报主控`, "fail");
+        if(onfail === "halt"){ log("⛔ 失败策略=终止：流程停止，等待人工介入", "fail"); running = false; return; }
+      } else {
+        n.done = true;
+        setAgState(a.id, "done", "完成 · " + a.out);
+        log(`  ✅ 「${a.name}」执行成功 → ${a.out}`, "ok");
+      }
+      step();   // 完成/重试后主动推进
+    });
+  };
+  step();
+}
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function toggleFail(){
+  if(injectFail){ injectFail = false; $("failBtn").textContent = "注入一次失败"; }
+  else { injectFail = true; $("failBtn").textContent = "已注入（下次运行触发）"; }
+}
+function resetSim(){ if(running) return; clearLog(); renderStages(); log("已重置，等待运行", "w"); }
+
+/* 预设 chips */
+(() => {
+  const box = $("chips");
+  Object.keys(TEAMS).forEach(n => {
+    const c = document.createElement("button");
+    c.className = "chip"; c.textContent = n;
+    c.onclick = () => {
+      document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on")); c.classList.add("on");
+      team = TEAMS[n]; injectFail = false; $("failBtn").textContent = "注入一次失败";
+      renderTeam(); log(`已载入预设团队「${n}」`, "p");
+    };
+    box.appendChild(c);
+  });
+  document.querySelector(".chip").classList.add("on");
+  renderTeam();
+  log("就绪：内置 3 个 Agent 团队模板；点「运行编排」按依赖拓扑分发，可注入失败观察重试/终止策略", "w");
+})();
+</script>
+</body>
+</html>
