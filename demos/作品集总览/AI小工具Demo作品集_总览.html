@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>20</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/04</b><span>持续产出</span></div>
+      <div><b>21</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/05</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-05", name:"零拷贝数据自动化演示器",
+    desc:"像 UiPath×Snowflake 零拷贝集成一样讲清「数据不动、规则到数据边执行」：内置示例库存台账与订单流水 → 业务表单配置自动化规则（库存告警补货 / 账实差异核查 / 超时催发货）→ 同一规则在两套架构下对比执行：传统 ETL 复制（先复制数据再跑规则，分钟级延迟）vs 零拷贝直连（规则引擎到数据边执行，0 复制实时触发）→ 命中自动生成补货单 / 差异清单并写入审计日志。讲企业级 Agent 数据治理时非常好用。",
+    src:"10/05 资讯 · UiPath×Snowflake（5星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-05_%E9%9B%B6%E6%8B%B7%E8%B4%9D%E6%95%B0%E6%8D%AE%E8%87%AA%E5%8A%A8%E5%8C%96%E6%BC%94%E7%A4%BA%E5%99%A8/%E9%9B%B6%E6%8B%B7%E8%B4%9D%E6%95%B0%E6%8D%AE%E8%87%AA%E5%8A%A8%E5%8C%96%E6%BC%94%E7%A4%BA%E5%99%A8.html"
+  },
   {
     date:"10-04", name:"多 Agent 团队编排配置器",
     desc:"像 OpenRig 一样用 YAML 定义 Agent 团队拓扑：业务表单配置主控与子 Agent 的角色、任务依赖与汇报关系 → 一键生成 YAML 拓扑文件 → 内置模拟面板按依赖分层分发任务、收集结果、处理失败（自动重试/终止），预置财务结账、电商运营、客服工单 3 个真实团队模板，失败可「注入」可控演示。直接对齐多平台 Master+Subagent 的编排架构建设。",

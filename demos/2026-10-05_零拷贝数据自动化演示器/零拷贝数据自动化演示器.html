@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>零拷贝数据自动化演示器 · 数据不动、规则到数据边执行</title>
+<style>
+:root{
+  --bg:#0f1222; --card:#171b30; --card2:#1e2340; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --chip:#232a4d; --etl:#ff9d6b; --zc:#39d0ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.15;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.5;min-width:380px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:10px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--muted);text-align:left;font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px dashed #262d52}
+td.ok{color:var(--ok)} td.warn{color:var(--warn)} td.bad{color:var(--bad)}
+.rule{display:flex;align-items:center;gap:10px;padding:10px;background:var(--card2);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;font-size:13px}
+.rule .nm{font-weight:600;min-width:110px}
+.rule .d{flex:1;color:var(--muted);font-size:12px;line-height:1.5}
+.switch{position:relative;width:38px;height:20px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#0f1222;border:1px solid var(--line);border-radius:99px;transition:.2s;cursor:pointer}
+.slider:before{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:.2s}
+.switch input:checked + .slider{background:linear-gradient(135deg,var(--pri),var(--pri2));border-color:transparent}
+.switch input:checked + .slider:before{transform:translateX(18px);background:#fff}
+.arch{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 4px}
+.arc{flex:1;min-width:250px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.arc.etl{border-top:3px solid var(--etl)} .arc.zc{border-top:3px solid var(--zc)}
+.arc .t{font-size:12px;font-weight:600;margin-bottom:8px}
+.arc.etl .t{color:var(--etl)} .arc.zc .t{color:var(--zc)}
+.path{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);flex-wrap:wrap;padding:6px 0}
+.node{background:#0f1222;border:1px solid var(--line);border-radius:8px;padding:5px 9px;white-space:nowrap}
+.node.hl{border-color:var(--pri);color:#fff;box-shadow:0 0 0 1px rgba(108,123,255,.4)}
+.arrow{color:var(--muted)}
+.metrics{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.metric{flex:1;min-width:100px;background:#0f1222;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.metric .v{font-size:18px;font-weight:700;color:var(--zc)}
+.metric .l{font-size:11px;color:var(--muted);margin-top:4px}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn.sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn:active{transform:scale(.97)}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:210px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .zc{color:var(--zc)} .audit .etl{color:var(--etl)}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+@media(max-width:860px){ .col,.side{min-width:0} .arch{flex-direction:column} .arc{min-width:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>零拷贝数据自动化演示器
+    <span class="sub">像 UiPath×Snowflake 零拷贝集成一样讲清「数据不动、规则到数据边执行」：示例订单库存 → 配置自动化规则 → 对比传统 ETL 复制 vs 零拷贝直连 → 审计日志逐条可查 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 业务数据（示例固化）<small>库存台账 + 今日订单流水</small></h3>
+        <div id="tables"></div>
+      </div>
+      <div class="panel">
+        <h3>② 自动化规则 <small>业务表单：触发条件 → 动作（规则引擎执行）</small></h3>
+        <div id="rules"></div>
+      </div>
+      <div class="panel">
+        <h3>③ 执行结果 <small>规则命中后自动生成的单据</small></h3>
+        <div id="docs" style="font-size:13px;color:var(--muted)">暂无触发，点下方「模拟数据变化」+「运行规则引擎」</div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>④ 架构对比 <small>同一规则在两套架构下如何执行</small></h3>
+        <div class="arch">
+          <div class="arc etl">
+            <div class="t">传统 ETL 复制</div>
+            <div class="path" id="pathEtl"></div>
+            <div class="metrics">
+              <div class="metric"><div class="v" id="mEtlTime">—</div><div class="l">耗时</div></div>
+              <div class="metric"><div class="v" id="mEtlCopy">—</div><div class="l">复制数据量</div></div>
+              <div class="metric"><div class="v" id="mEtlStale">—</div><div class="l">数据新鲜度</div></div>
+            </div>
+          </div>
+          <div class="arc zc">
+            <div class="t">零拷贝直连</div>
+            <div class="path" id="pathZc"></div>
+            <div class="metrics">
+              <div class="metric"><div class="v" id="mZcTime">—</div><div class="l">耗时</div></div>
+              <div class="metric"><div class="v" id="mZcCopy">—</div><div class="l">复制数据量</div></div>
+              <div class="metric"><div class="v" id="mZcStale">—</div><div class="l">数据新鲜度</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="simNewData()">🔄 模拟数据变化</button>
+          <button class="btn ghost" onclick="runEngine()">▶ 运行规则引擎</button>
+          <button class="btn ghost" onclick="resetAll()">重置</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>⑤ 审计日志 <small>每步动作：时间 / 规则 / 触发数据 / 路径 / 耗时</small></h3>
+        <div class="audit" id="audit"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ── 示例业务数据：库存台账（4 个 SKU）+ 今日订单流水 ── */
+let stock = [
+  { sku:"SKU-1001", name:"蓝牙耳机 A1", inv:320, threshold:150 },
+  { sku:"SKU-1002", name:"智能手表 S2", inv:58,  threshold:80  },
+  { sku:"SKU-1003", name:"充电宝 100W", inv:212, threshold:100 },
+  { sku:"SKU-1004", name:"桌面支架 T9", inv:47,  threshold:60  }
+];
+let orders = [
+  { id:"SO-0901", sku:"SKU-1001", qty:40,  status:"已发货" },
+  { id:"SO-0902", sku:"SKU-1002", qty:22,  status:"已发货" },
+  { id:"SO-0903", sku:"SKU-1003", qty:15,  status:"待发货" },
+  { id:"SO-0904", sku:"SKU-1004", qty:18,  status:"待发货" }
+];
+/* ── 自动化规则（业务表单配置） ── */
+const RULES = [
+  { id:"r1", name:"库存告警补货", cond:"库存 < 阈值", action:"自动生成补货单并通知采购", on:true, kind:"stock" },
+  { id:"r2", name:"账实差异核查", cond:"盘点数 ≠ 账面数", action:"生成差异清单推送财务复核", on:true, kind:"diff" },
+  { id:"r3", name:"超时未发货提醒", cond:"订单待发货 > 2 小时", action:"生成催发货工单", on:false, kind:"timeout" }
+];
+let docs = [];
+let docNo = 0;                            // 单据编号
+let zcCount = 0, etlCount = 0;          // 两种路径命中执行次数
+let zcCopied = 0, etlCopied = 0;        // 复制数据量
+let pathActive = null;                  // 当前高亮路径
+const $ = id => document.getElementById(id);
+const A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function clearAudit(){ A.innerHTML = ""; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+/* ── 渲染 ── */
+function renderTables(){
+  $("tables").innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin:4px 0 6px">库存台账</div>
+    <table><tr><th>SKU</th><th>商品</th><th>库存</th><th>安全阈值</th><th>状态</th></tr>
+    ${stock.map(s => {
+      const st = s.inv < s.threshold ? `<span class="bad">低库存</span>` : (s.inv < s.threshold*1.5 ? `<span class="warn">接近阈值</span>` : `<span class="ok">正常</span>`);
+      return `<tr><td>${s.sku}</td><td>${s.name}</td><td>${s.inv}</td><td>${s.threshold}</td><td>${st}</td></tr>`;
+    }).join("")}</table>
+    <div style="font-size:12px;color:var(--muted);margin:10px 0 6px">今日订单流水</div>
+    <table><tr><th>订单号</th><th>SKU</th><th>数量</th><th>状态</th></tr>
+    ${orders.map(o => `<tr><td>${o.id}</td><td>${o.sku}</td><td>${o.qty}</td><td>${o.status === "待发货" ? '<span class="warn">待发货</span>' : '<span class="ok">已发货</span>'}</td></tr>`).join("")}</table>`;
+}
+function renderRules(){
+  $("rules").innerHTML = RULES.map(r => `
+    <div class="rule">
+      <span class="nm">${r.name}</span>
+      <span class="d">条件：${r.cond} → 动作：${r.action}</span>
+      <label class="switch"><input type="checkbox" ${r.on ? "checked" : ""} onchange="RULES.find(x=>x.id==='${r.id}').on=this.checked;log('规则「${r.name}」已'+(this.checked?'启用':'停用'),'w')"><span class="slider"></span></label>
+    </div>`).join("");
+}
+function renderDocs(){
+  if(!docs.length){ $("docs").innerHTML = '<span style="font-size:13px;color:var(--muted)">暂无触发，点下方「模拟数据变化」+「运行规则引擎」</span>'; return; }
+  $("docs").innerHTML = `<table><tr><th>单据号</th><th>规则</th><th>内容</th><th>路径</th></tr>
+    ${docs.map(d => `<tr><td>${d.no}</td><td>${d.rule}</td><td>${d.content}</td><td class="${d.path === "零拷贝" ? "zc" : "etl"}">${d.path}</td></tr>`).join("")}</table>`;
+}
+function renderMetrics(){
+  $("mEtlTime").textContent = etlCount ? (3.8 + etlCopied*0.05).toFixed(1) + "s" : "—";
+  $("mEtlCopy").textContent = etlCopied ? etlCopied + " 行" : "0 行";
+  $("mEtlStale").textContent = etlCount ? "分钟级" : "—";
+  $("mZcTime").textContent = zcCount ? (0.2 + zcCount*0.02).toFixed(1) + "s" : "—";
+  $("mZcCopy").textContent = zcCopied ? zcCopied + " 行" : "0 行";
+  $("mZcStale").textContent = zcCount ? "实时" : "—";
+}
+function drawPath(el, nodes){
+  el.innerHTML = nodes.map((n, i) => `${i ? '<span class="arrow">→</span>' : ""}<span class="node" id="${el.id}_n${i}">${n}</span>`).join("");
+}
+function hlPath(elId, idx){
+  const el = $(elId);
+  [...el.querySelectorAll(".node")].forEach((n, i) => n.classList.toggle("hl", i === idx));
+}
+
+/* ── 架构对比：同一规则两路径动画 ── */
+async function demoEtl(){
+  const path = $("pathEtl"); if(!path.childElementCount) drawPath(path, ["源数据库", "ETL 复制", "数据仓库", "规则引擎", "写回单据"]);
+  for(let i = 0; i < 5; i++){ hlPath("pathEtl", i); await sleep(430); }
+}
+async function demoZc(){
+  const path = $("pathZc"); if(!path.childElementCount) drawPath(path, ["源数据库", "规则引擎（到数据边）", "执行动作", "写回单据"]);
+  for(let i = 0; i < 4; i++){ hlPath("pathZc", i); await sleep(300); }
+}
+
+/* ── 运行规则引擎（命中规则 → 生成单据 + 审计日志 + 两路径演示） ── */
+async function runEngine(){
+  const hit = [];
+  RULES.filter(r => r.on).forEach(r => {
+    if(r.kind === "stock"){
+      stock.forEach(s => { if(s.inv < s.threshold) hit.push({ rule:r, sku:s.sku, detail:`${s.name} 库存 ${s.inv} < 阈值 ${s.threshold}`, act:`生成补货单：建议补至 ${s.threshold*2}` }); });
+    }
+    if(r.kind === "diff"){
+      // 模拟：SKU-1003 盘点数比账面少 12
+      hit.push({ rule:r, sku:"SKU-1003", detail:"盘点数 200 ≠ 账面数 212（差 12）", act:"生成账实差异清单推送财务复核" });
+    }
+    if(r.kind === "timeout"){
+      orders.filter(o => o.status === "待发货").forEach(o => hit.push({ rule:r, sku:o.sku, detail:`订单 ${o.id} 待发货超时`, act:"生成催发货工单" }));
+    }
+  });
+  if(!hit.length){ log("规则引擎扫描完成：当前数据无命中规则（可点「模拟数据变化」制造命中）", "w"); return; }
+
+  pathActive = "etl"; etlCount++; etlCopied += stock.length + orders.length;
+  log(`▶ 触发 ${hit.length} 条命中：传统 ETL 复制执行中（先复制 ${stock.length + orders.length} 行到仓库…）`, "etl");
+  await demoEtl();
+  hit.forEach(h => {
+    const no = "PO-" + String(++docNo).padStart(3, "0");
+    docs.push({ no, rule:h.rule.name, content:h.act, path:"ETL复制" });
+    log(`  📄 生成「${no}」${h.rule.name}：${h.detail} → ${h.act}（ETL：分钟级延迟）`, "etl");
+  });
+  renderDocs(); renderMetrics();
+
+  await sleep(600);
+  pathActive = "zc"; zcCount++;   // 零拷贝路径：0 行复制（zcCopied 保持 0）
+  log(`▶ 同一规则改走零拷贝直连：数据不动，规则引擎直接到源数据边执行（0 行复制）`, "zc");
+  await demoZc();
+  hit.forEach(h => {
+    const no = "PO-" + String(++docNo).padStart(3, "0");
+    docs.push({ no, rule:h.rule.name, content:h.act, path:"零拷贝" });
+    log(`  📄 生成「${no}」${h.rule.name}：${h.detail} → ${h.act}（零拷贝：实时触发）`, "zc");
+  });
+  renderDocs(); renderMetrics();
+  log(`✅ 两架构对比完成：ETL 复制 ${stock.length + orders.length} 行/分钟级 vs 零拷贝 0 行/实时；规则结果完全一致`, "ok");
+}
+
+/* ── 模拟数据变化 ── */
+function simNewData(){
+  stock.forEach(s => { s.inv = Math.max(10, s.inv - Math.floor(Math.random()*40)); });
+  const o = { id:"SO-" + String(900 + Math.floor(Math.random()*99)), sku:"SKU-100" + (1 + Math.floor(Math.random()*4)), qty: 5 + Math.floor(Math.random()*30), status: Math.random() < .5 ? "待发货" : "已发货" };
+  orders.push(o);
+  renderTables();
+  log(`🔄 模拟数据变化：库存随机下降；新订单 ${o.id}（${o.sku} ×${o.qty}）入库`, "p");
+  const low = stock.filter(s => s.inv < s.threshold);
+  if(low.length) log(`   当前 ${low.length} 个 SKU 已低于安全阈值，可运行规则引擎验证`, "w");
+}
+
+function resetAll(){ clearAudit(); docs = []; zcCount = 0; etlCount = 0; zcCopied = 0; etlCopied = 0; renderDocs(); renderMetrics(); log("已重置（数据与规则保留）", "w"); }
+
+renderTables(); renderRules(); renderDocs(); renderMetrics();
+log("就绪：3 条自动化规则可启停；「模拟数据变化」制造命中 →「运行规则引擎」对比两套架构执行效果", "w");
+</script>
+</body>
+</html>
