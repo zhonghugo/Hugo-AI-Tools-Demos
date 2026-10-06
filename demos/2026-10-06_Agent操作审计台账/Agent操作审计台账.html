@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 操作审计台账 · MCP 触发自动化场景全链路审计</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --ro:#39d0ff; --rw:#ffd36b; --dest:#ff6b81;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.stats{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap}
+.stat{flex:1;min-width:130px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat .v{font-size:22px;font-weight:700}
+.stat .l{font-size:12px;color:var(--muted);margin-top:3px}
+.main{display:flex;gap:14px;flex-wrap:wrap}
+.col{flex:1.1;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.4;min-width:380px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.scene{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--card2);border:1px solid var(--line);border-radius:10px;margin-bottom:9px;cursor:pointer;transition:.15s;font-size:13px}
+.scene:hover{border-color:var(--pri)}
+.scene.sel{border-color:var(--pri);box-shadow:0 0 0 1px rgba(108,123,255,.45)}
+.scene .nm{font-weight:600;min-width:130px}
+.scene .d{flex:1;color:var(--muted);font-size:12px;line-height:1.5}
+.tag{font-size:11px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.tag.ro{color:var(--ro);border-color:rgba(57,208,255,.45)}
+.tag.rw{color:var(--rw);border-color:rgba(255,211,107,.45)}
+.tag.dest{color:var(--dest);border-color:rgba(255,107,129,.45)}
+.chain{display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px;font-size:12px;color:var(--muted);min-height:58px}
+.node{background:#0f1222;border:1px solid var(--line);border-radius:8px;padding:6px 11px;white-space:nowrap}
+.node.hl{border-color:var(--pri);color:#fff;box-shadow:0 0 0 1px rgba(108,123,255,.45)}
+.node.cur{opacity:.55}
+.arrow{color:var(--muted)}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--muted);text-align:left;font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px dashed #262d52;vertical-align:top}
+td.ok{color:var(--ok)} td.warn{color:var(--warn)} td.bad{color:var(--bad)} td.ro{color:var(--ro)} td.rw{color:var(--rw)} td.dest{color:var(--dest)}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:220px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .ro{color:var(--ro)} .audit .rw{color:var(--rw)} .audit .dest{color:var(--dest)}
+.overlay{position:fixed;inset:0;background:rgba(6,8,18,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.overlay.show{display:flex}
+.appr{width:min(520px,92vw);background:#1a1f3a;border:1px solid var(--dest);border-radius:16px;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.appr h4{color:var(--dest);font-size:15px;margin-bottom:12px}
+.appr .row{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px dashed #2a3158}
+.appr .row b{color:var(--fg)}
+.appr .warnbox{margin:12px 0;background:rgba(255,107,129,.08);border:1px dashed rgba(255,107,129,.4);border-radius:10px;padding:10px;font-size:12px;color:var(--warn);line-height:1.7}
+.appr .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+@media(max-width:860px){ .col,.side{min-width:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Agent 操作审计台账
+    <span class="sub">像 Adobe Workfront Fusion 成为 MCP 服务器那样演示「Agent 经 MCP 触发企业自动化」的全链路审计：场景清单 → 链路动画 → 每步留痕（谁/何时/权限/是否破坏性）→ 破坏性操作弹审批卡 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="stats">
+    <div class="stat"><div class="v" id="sExec">0</div><div class="l">今日执行次数</div></div>
+    <div class="stat"><div class="v" id="sBlock" style="color:var(--dest)">0</div><div class="l">破坏性操作拦截/拒绝</div></div>
+    <div class="stat"><div class="v" id="sAppr" style="color:var(--warn)">0</div><div class="l">审批通过后执行</div></div>
+    <div class="stat"><div class="v" id="sPct" style="color:var(--ok)">100%</div><div class="l">操作留痕覆盖率</div></div>
+  </div>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 自动化场景清单 <small>点击选择 → 模拟 Agent 经 MCP 触发</small></h3>
+        <div id="scenes"></div>
+      </div>
+      <div class="panel">
+        <h3>② 链路演示 <small>Agent → MCP 服务器 → 场景执行 → 结果写回</small></h3>
+        <div class="chain" id="chain"></div>
+        <div class="actions">
+          <button class="btn" id="btnTrigger" onclick="trigger()">▶ 模拟 Agent 触发执行</button>
+          <button class="btn ghost" onclick="resetAll()">重置</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>③ 审计台账 <small>每步留痕：谁 / 何时 / 触发了什么 / 读写权限 / 结果</small></h3>
+        <div id="ledger" style="font-size:13px;color:var(--muted)">暂无记录，选择场景后点「模拟 Agent 触发执行」</div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>④ 审计日志流 <small>逐条流水（含审批卡交互）</small></h3>
+        <div class="audit" id="audit"></div>
+      </div>
+      <div class="panel">
+        <h3>⑤ 治理说明 <small>为什么审计台账是 RPA 落地的必选项</small></h3>
+        <div style="font-size:13px;color:var(--muted);line-height:2">
+          · <span style="color:var(--ro)">只读操作</span>：自动执行，仅记录留痕<br>
+          · <span style="color:var(--rw)">可写操作</span>：自动执行，写前记录目标与影响<br>
+          · <span style="color:var(--dest)">破坏性操作</span>：<b style="color:var(--dest)">必须人工审批</b>，未批准则拒绝执行<br>
+          · 每条操作生成唯一审计编号（AU-xxx），含操作者、时间、权限、结果，可导出为合规报告素材
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="appr">
+    <h4>⚠ 破坏性操作审批</h4>
+    <div class="row"><span style="color:var(--muted)">操作编号</span><b id="apNo">—</b></div>
+    <div class="row"><span style="color:var(--muted)">场景</span><b id="apScene">—</b></div>
+    <div class="row"><span style="color:var(--muted)">发起 Agent</span><b id="apAgent">—</b></div>
+    <div class="row"><span style="color:var(--muted)">影响范围</span><b id="apImpact">—</b></div>
+    <div class="warnbox">该操作<b style="color:var(--dest)">不可回滚</b>，可能影响业务数据。请确认操作详情后选择「批准执行」或「拒绝」。拒绝后将记入审计台账且不执行任何变更。</div>
+    <div class="btns">
+      <button class="btn ghost" onclick="decideAppr(false)" style="border-color:var(--bad)">✕ 拒绝</button>
+      <button class="btn" onclick="decideAppr(true)">✓ 批准执行</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ── 内置示例：自动化场景清单（含权限分级） ── */
+const SCENES = [
+  { id:"s1", name:"月度财务对账", desc:"读取应收/应付台账，核对差异并生成对账报告", perm:"只读", kind:"ro" },
+  { id:"s2", name:"生成补货建议单", desc:"扫描库存低于阈值 SKU，写入补货建议单", perm:"可写", kind:"rw" },
+  { id:"s3", name:"批量更新客户折扣", desc:"按名单批量改写客户折扣字段（120 条）", perm:"可写", kind:"rw" },
+  { id:"s4", name:"删除过期日志数据", desc:"清理 90 天前审计日志（约 2 万条，不可回滚）", perm:"破坏性", kind:"dest" },
+  { id:"s5", name:"覆盖上月预算表", desc:"用新预算版本整体覆盖上月预算工作簿", perm:"破坏性", kind:"dest" }
+];
+let selId = "s1";
+let auditNo = 0, execCount = 0, blockCount = 0, apprCount = 0;
+let pending = null;          // 待审批的操作
+let chainBusy = false;
+const $ = id => document.getElementById(id);
+const A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function now(){ const d = new Date(); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`; }
+function drawChain(nodes){
+  $("chain").innerHTML = nodes.map((n,i) => `${i?'<span class="arrow">→</span>':""}<span class="node" data-i="${i}">${n}</span>`).join("");
+}
+function hlChain(i, active=true){
+  [...$("chain").querySelectorAll(".node")].forEach((n,idx) => {
+    n.classList.toggle("hl", active && idx===i);
+    n.classList.toggle("cur", !active && idx===i);
+  });
+}
+
+/* ── 场景渲染 ── */
+function renderScenes(){
+  $("scenes").innerHTML = SCENES.map(s => `
+    <div class="scene ${s.id===selId?"sel":""}" onclick="selId='${s.id}';renderScenes();log('已选择场景「${s.name}」，可触发执行','w')">
+      <span class="nm">${s.name}</span>
+      <span class="d">${s.desc}</span>
+      <span class="tag ${s.kind}">${s.perm}</span>
+    </div>`).join("");
+}
+
+/* ── 审计记录 ── */
+let ledgerRecs = [];
+function addLedger(rec){
+  ledgerRecs.push(rec);
+  renderLedger();
+}
+function renderLedger(){
+  const l = $("ledger");
+  if(!ledgerRecs.length){ l.innerHTML = "暂无记录，选择场景后点「模拟 Agent 触发执行」"; return; }
+  const permCls = {ro:"ro",rw:"rw",dest:"dest"};
+  const resCls = r => r.result==="已批准执行"?"ok":(r.result==="已拒绝"?"bad":(r.result==="执行成功"?"ok":"warn"));
+  l.innerHTML = `<table><tr><th>编号</th><th>时间</th><th>操作者</th><th>场景</th><th>权限</th><th>结果</th></tr>` +
+    ledgerRecs.map(r => `<tr><td>${r.no}</td><td>${r.time}</td><td>${r.agent}</td><td>${r.scene}</td><td class="${permCls[r.kind]}">${r.perm}</td><td class="${resCls(r)}">${r.result}</td></tr>`).join("") +
+    `</table>`;
+}
+
+/* ── 模拟 Agent 经 MCP 触发 ── */
+async function trigger(){
+  if(chainBusy) return;
+  const s = SCENES.find(x=>x.id===selId);
+  chainBusy = true; $("btnTrigger").disabled = true;
+  if(!$("chain").childElementCount) drawChain(["AI Agent", "MCP 服务器", "Fusion 场景", "执行业务数据", "结果写回"]);
+  const no = "AU-" + String(++auditNo).padStart(3,"0");
+  log(`▶ 发起「${s.name}」：Agent 调用 MCP 工具请求执行（权限要求：${s.perm}）`, "p");
+  for(let i=0;i<4;i++){ hlChain(i); await sleep(420); }
+  hlChain(-1,false);
+
+  if(s.kind === "dest"){
+    // 破坏性操作 → 弹审批卡
+    pending = { no, scene:s, time:now(), agent:"AutoAgent-X" };
+    log(`⛔ 检测到破坏性操作：弹审批卡，等待人工确认（${no}）`, "dest");
+    $("apNo").textContent = no;
+    $("apScene").textContent = s.name;
+    $("apAgent").textContent = "AutoAgent-X";
+    $("apImpact").textContent = s.desc;
+    $("overlay").classList.add("show");
+    chainBusy = false; $("btnTrigger").disabled = false;
+    return;
+  }
+
+  // 普通操作自动执行
+  await sleep(500);
+  hlChain(4); await sleep(420);
+  const res = { no, time:now(), agent:"AutoAgent-X", scene:s.name, perm:s.perm, kind:s.kind, result:"执行成功" };
+  addLedger(res); execCount++;
+  log(`  ✓ ${no} 执行成功：${s.name}（${s.perm}，自动执行）`, s.kind==="ro"?"ro":"rw");
+  refreshStats(); hlChain(-1,false);
+  chainBusy = false; $("btnTrigger").disabled = false;
+}
+
+/* ── 审批决定 ── */
+function decideAppr(approve){
+  $("overlay").classList.remove("show");
+  const p = pending; pending = null;
+  if(approve){
+    addLedger({ no:p.no, time:now(), agent:"AutoAgent-X", scene:p.scene.name, perm:p.scene.perm, kind:"dest", result:"已批准执行" });
+    apprCount++;
+    log(`  ✓ ${p.no} 已批准：${p.scene.name} 执行完成（破坏性操作，人工审批通过）`, "dest");
+  }else{
+    addLedger({ no:p.no, time:now(), agent:"AutoAgent-X", scene:p.scene.name, perm:p.scene.perm, kind:"dest", result:"已拒绝" });
+    blockCount++;
+    log(`  ✕ ${p.no} 已拒绝：${p.scene.name} 未执行任何变更（审批卡拦截成功）`, "dest");
+  }
+  refreshStats();
+}
+
+function refreshStats(){
+  $("sExec").textContent = execCount;
+  $("sBlock").textContent = blockCount;
+  $("sAppr").textContent = apprCount;
+  $("sPct").textContent = "100%";
+}
+function resetAll(){
+  auditNo = 0; execCount = 0; blockCount = 0; apprCount = 0; pending = null; ledgerRecs = [];
+  renderLedger();
+  A.innerHTML = ""; drawChain([]);
+  refreshStats();
+  log("已重置（场景清单保留，可继续演示）", "w");
+}
+
+renderScenes(); drawChain([]); refreshStats();
+log("就绪：选择场景 →「模拟 Agent 触发执行」；只读/可写自动执行，破坏性操作会弹审批卡", "w");
+</script>
+</body>
+</html>

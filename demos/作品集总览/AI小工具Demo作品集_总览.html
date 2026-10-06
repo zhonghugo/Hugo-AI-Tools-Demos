@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>21</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/05</b><span>持续产出</span></div>
+      <div><b>22</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/06</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-06", name:"Agent 操作审计台账",
+    desc:"像 Adobe Workfront Fusion 成为 MCP 服务器那样演示「Agent 经 MCP 触发企业自动化」的全链路审计：内置 5 个权限分级的自动化场景（只读/可写/破坏性）→ 选择场景模拟 Agent 经 MCP 服务器发起执行（链路动画）→ 只读与可写操作自动执行并留痕，破坏性操作（删日志/覆盖预算表）弹审批卡，人工批准或拒绝后才执行 → 审计台账逐条记录编号/时间/操作者/权限/结果 + 审计日志流水 + 治理说明。讲企业 RPA 落地『治理与审计』主题的强素材。",
+    src:"10/06 资讯 · Adobe Workfront Fusion（5星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-06_Agent%E6%93%8D%E4%BD%9C%E5%AE%A1%E8%AE%A1%E5%8F%B0%E8%B4%A6/Agent%E6%93%8D%E4%BD%9C%E5%AE%A1%E8%AE%A1%E5%8F%B0%E8%B4%A6.html"
+  },
   {
     date:"10-05", name:"零拷贝数据自动化演示器",
     desc:"像 UiPath×Snowflake 零拷贝集成一样讲清「数据不动、规则到数据边执行」：内置示例库存台账与订单流水 → 业务表单配置自动化规则（库存告警补货 / 账实差异核查 / 超时催发货）→ 同一规则在两套架构下对比执行：传统 ETL 复制（先复制数据再跑规则，分钟级延迟）vs 零拷贝直连（规则引擎到数据边执行，0 复制实时触发）→ 命中自动生成补货单 / 差异清单并写入审计日志。讲企业级 Agent 数据治理时非常好用。",
