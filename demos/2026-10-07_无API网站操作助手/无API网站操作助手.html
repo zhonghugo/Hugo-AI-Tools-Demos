@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>无 API 网站操作助手 · 自然语言 → 浏览器自动化</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.15;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.35;min-width:380px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.tasks{display:flex;flex-direction:column;gap:8px}
+.task{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:13px;transition:.15s}
+.task:hover{border-color:var(--pri)}
+.task.sel{border-color:var(--pri);box-shadow:0 0 0 1px rgba(108,123,255,.45)}
+.task .nm{font-weight:600;flex:1}
+.task .steps{color:var(--muted);font-size:12px}
+textarea.inp{width:100%;background:#0f1222;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:10px;font-size:13px;font-family:inherit;min-height:54px;resize:vertical}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.plan{display:flex;flex-direction:column;gap:6px}
+.plan .st{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px;background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--muted)}
+.plan .st b{color:var(--fg);font-weight:600}
+.plan .st .num{width:20px;height:20px;border-radius:50%;background:#0f1222;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);flex-shrink:0}
+.plan .st.run .num{color:#fff;border-color:var(--pri)}
+.plan .st.ok .num{background:var(--ok);border-color:var(--ok);color:#062}
+.plan .st.warn .num{background:var(--warn);border-color:var(--warn);color:#341}
+.plan .st.run{border-color:var(--pri);color:#fff}
+.plan .st.ok{border-color:rgba(47,217,138,.4)}
+.plan .st.warn{border-color:rgba(255,179,92,.5)}
+.browser{background:#0f1222;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.browser .bar{display:flex;align-items:center;gap:8px;background:var(--card2);border-bottom:1px solid var(--line);padding:8px 12px}
+.browser .dot{width:9px;height:9px;border-radius:50%}
+.browser .url{flex:1;background:#0f1222;border:1px solid var(--line);border-radius:7px;padding:4px 10px;font-size:11px;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+.browser .body{min-height:230px;padding:16px;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;line-height:2}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.report{font-size:12px;line-height:1.9;color:var(--muted)}
+.report b{color:var(--fg)}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:150px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .cy{color:var(--cy)}
+@media(max-width:860px){ .col,.side{min-width:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>无 API 网站操作助手
+    <span class="sub">像 Hark Pro 云端电脑操作 Agent 那样演示「无 API 系统的浏览器自动化」：自然语言任务 → 自动编排操作步骤 → 模拟浏览器逐部执行（含截图验证与异常重试）→ 生成操作报告 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 任务输入 <small>自然语言描述 → 自动编排浏览器操作步骤</small></h3>
+        <div class="tasks" id="tasks"></div>
+        <textarea class="inp" id="nlInput" placeholder="或自由输入任务描述，如：在 ERP 系统里导出上月华东区订单明细并保存为 Excel"></textarea>
+        <div class="actions">
+          <button class="btn" id="btnPlan" onclick="parsePlan()">⚙ 解析并编排步骤</button>
+          <button class="btn ghost" id="btnRun" onclick="run()" disabled>▶ 开始执行</button>
+          <button class="btn ghost" onclick="resetAll()">重置</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>② 解析结果 <small>意图 → 操作步骤序列</small></h3>
+        <div class="plan" id="plan"><span style="font-size:12px;color:var(--muted)">输入任务后点「解析并编排步骤」</span></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>③ 浏览器执行 <small>模拟无头浏览器逐步操作，每步截图验证</small></h3>
+        <div class="browser">
+          <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url" id="bUrl">about:blank</span></div>
+          <div class="body" id="bBody">等待任务解析…</div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--ok)"></i>成功</span>
+          <span><i style="background:var(--warn)"></i>异常重试</span>
+          <span><i style="background:var(--bad)"></i>失败</span>
+          <span><i style="background:var(--cy)"></i>截图验证</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>④ 操作报告 <small>执行统计与结果汇总</small></h3>
+        <div class="report" id="report">暂无执行记录</div>
+      </div>
+      <div class="panel">
+        <h3>⑤ 执行日志 <small>每步动作 + 验证 + 异常处理</small></h3>
+        <div class="audit" id="audit"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ── 内置示例任务：自然语言 → 步骤序列（含异常设计） ── */
+const TASKS = [
+  { id:"t1", name:"批量导出本月订单数据", text:"在订单管理系统里，批量导出本月全部订单数据并保存为 Excel",
+    steps:[
+      { act:"打开订单管理系统", url:"erp.example.com/login", desc:"系统登录页", verify:true },
+      { act:"输入账号密码并登录", url:"erp.example.com/home", desc:"已进入工作台", verify:true },
+      { act:"进入订单管理模块", url:"erp.example.com/orders", desc:"订单列表已加载", verify:false },
+      { act:"设置筛选：本月全部订单", url:"erp.example.com/orders?month=this", desc:"筛选条件已应用", verify:true, retry:true },
+      { act:"点击「导出 Excel」", url:"erp.example.com/orders/export", desc:"导出成功，文件已保存到下载目录", verify:true }
+    ]},
+  { id:"t2", name:"下载上月财务对账单", text:"登录财务系统，下载上月对账单 PDF",
+    steps:[
+      { act:"打开财务系统", url:"fin.example.com/login", desc:"财务系统登录页", verify:false },
+      { act:"登录并进入报表中心", url:"fin.example.com/reports", desc:"报表中心已打开", verify:true },
+      { act:"选择上月对账单并下载 PDF", url:"fin.example.com/reports/statement", desc:"对账单下载完成", verify:true }
+    ]},
+  { id:"t3", name:"抓取竞品价格表", text:"打开电商平台，搜索目标商品，抓取前 20 条价格保存为表格",
+    steps:[
+      { act:"打开电商平台", url:"mall.example.com", desc:"首页已加载", verify:false },
+      { act:"搜索商品关键词", url:"mall.example.com/search?kw=商品", desc:"搜索结果已展示", verify:true },
+      { act:"翻页抓取前 20 条价格", url:"mall.example.com/search?page=1", desc:"已抓取 20 条价格数据", verify:true },
+      { act:"保存为价格对比表", url:"mall.example.com/export", desc:"表格已导出", verify:true, retry:true }
+    ]}
+];
+let selTask = null, plan = [], running = false, finished = false;
+const $ = id => document.getElementById(id);
+const A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function renderTasks(){
+  $("tasks").innerHTML = TASKS.map(t => `
+    <div class="task ${selTask && selTask.id===t.id?"sel":""}" onclick="pickTask('${t.id}')">
+      <span class="nm">${t.name}</span><span class="steps">${t.steps.length} 步</span>
+    </div>`).join("");
+}
+function pickTask(id){
+  selTask = TASKS.find(t=>t.id===id);
+  $("nlInput").value = selTask.text;
+  renderTasks();
+  log(`已选择任务「${selTask.name}」`, "w");
+  plan = []; renderPlan();
+  $("bBody").innerHTML = "等待任务解析…"; $("bUrl").textContent = "about:blank";
+  $("report").innerHTML = "暂无执行记录";
+  finished = false; $("btnRun").disabled = true; $("btnPlan").disabled = false;
+}
+
+/* ── 解析：NL → 步骤序列 ── */
+async function parsePlan(){
+  const raw = $("nlInput").value.trim();
+  if(!raw){ log("请先输入任务描述", "w"); return; }
+  let steps = null;
+  if(selTask && raw === selTask.text){ steps = selTask.steps.map(s=>({...s})); }
+  else{
+    // 自由输入：按常见动作词启发式切分（演示用）
+    const acts = ["导出","下载","抓取","登录","打开","搜索","保存","汇总","发送"];
+    const parts = raw.split(/[，,。；;、\s]+/).filter(Boolean);
+    steps = parts.filter(p => acts.some(a => p.includes(a))).map((p,i) => ({
+      act:p, url:`app${i}.example.com/step${i+1}`, desc:`执行「${p}」`, verify:i%2===0
+    }));
+    if(steps.length < 2) steps = [{act:"打开目标系统", url:"app.example.com", desc:"已打开系统", verify:false},
+      {act:raw.slice(0,18)+"…", url:"app.example.com/action", desc:"正在执行该动作", verify:true}];
+  }
+  plan = steps;
+  renderPlan();
+  log(`已解析出 ${plan.length} 个操作步骤`, "p");
+  $("btnRun").disabled = false; $("btnPlan").disabled = false;
+  finished = false;
+}
+function renderPlan(){
+  $("plan").innerHTML = plan.length ? plan.map((s,i) => `
+    <div class="st" data-i="${i}"><span class="num">${i+1}</span><b>${s.act}</b><span>· ${s.desc}</span></div>`).join("")
+    : `<span style="font-size:12px;color:var(--muted)">输入任务后点「解析并编排步骤」</span>`;
+}
+function markStep(i, cls){
+  const st = $("plan").querySelector(`.st[data-i="${i}"]`);
+  if(st) st.classList.add(cls);
+}
+
+/* ── 执行：模拟浏览器逐步操作 ── */
+async function run(){
+  if(running || !plan.length) return;
+  running = true; finished = false;
+  $("btnRun").disabled = true; $("btnPlan").disabled = true;
+  const total = plan.length;
+  let okCount = 0, retryCount = 0, failCount = 0, t0 = Date.now();
+  const shots = [];
+  for(let i = 0; i < total; i++){
+    const s = plan[i];
+    markStep(i, "run");
+    $("bUrl").textContent = s.url;
+    $("bBody").innerHTML = `<div>${s.act}<br><span style="font-size:11px;color:var(--muted)">模拟浏览器加载中…</span></div>`;
+    await sleep(650);
+    // 异常重试设计：标记 retry 的步骤 40% 概率先失败一次再重试成功
+    let done = false;
+    if(s.retry && Math.random() < .4){
+      retryCount++;
+      log(`  ⚠ 步骤 ${i+1}「${s.act}」首次执行异常（页面超时），自动重试…`, "w");
+      markStep(i, "warn");
+      $("bBody").innerHTML = `<div>${s.act}<br><span style="color:var(--warn)">⚠ 首次执行超时，正在自动重试（第 2 次）…</span></div>`;
+      await sleep(700);
+      done = true;
+    }
+    okCount++; markStep(i, "ok");
+    $("bBody").innerHTML = `<div style="color:var(--ok)">✓ ${s.act}<br><span style="font-size:12px;color:var(--muted)">${s.desc}</span></div>`;
+    if(s.verify){
+      await sleep(450);
+      shots.push(`步骤 ${i+1} 截图已保存 shot_${String(i+1).padStart(2,"0")}.png`);
+      log(`  📸 截图验证通过：步骤 ${i+1}「${s.act}」`, "cy");
+    }
+    log(`  ✓ 步骤 ${i+1}/${total}「${s.act}」完成${done?"（重试后成功）":""}`, "ok");
+    await sleep(350);
+    markStep(i, "ok");
+  }
+  // 收尾
+  $("bBody").innerHTML = `<div style="color:var(--ok)">✅ 全部 ${total} 步执行完成<br><span style="font-size:12px;color:var(--muted)">操作报告已生成</span></div>`;
+  const sec = ((Date.now()-t0)/1000).toFixed(1);
+  $("report").innerHTML = `
+    <div><b>任务：</b>${selTask ? selTask.name : $("nlInput").value.trim()}</div>
+    <div><b>执行步骤：</b>${total} 步（成功 ${okCount} / 重试 ${retryCount} / 失败 ${failCount}）</div>
+    <div><b>总耗时：</b>${sec} 秒</div>
+    <div><b>截图验证：</b>${shots.length} 张（${shots.join("、")}）</div>
+    <div style="margin-top:6px;color:var(--ok)">✅ 任务完成：数据已导出/下载，可供后续 RPA 流程使用</div>`;
+  log(`✅ 任务执行完成：${total} 步，耗时 ${sec}s，异常自动重试 ${retryCount} 次`, "ok");
+  running = false; finished = true;
+  $("btnPlan").disabled = false;
+}
+function resetAll(){
+  running = false; finished = false; plan = []; selTask = null;
+  $("nlInput").value = ""; renderPlan(); renderTasks();
+  $("bUrl").textContent = "about:blank"; $("bBody").innerHTML = "等待任务解析…";
+  $("report").innerHTML = "暂无执行记录"; A.innerHTML = "";
+  $("btnRun").disabled = true; $("btnPlan").disabled = false;
+  log("已重置", "w");
+}
+
+renderTasks();
+log("就绪：选择示例任务或输入任务描述 →「解析并编排步骤」→「开始执行」", "w");
+</script>
+</body>
+</html>
