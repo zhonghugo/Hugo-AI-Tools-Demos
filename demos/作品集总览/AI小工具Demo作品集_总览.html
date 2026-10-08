@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>23</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/07</b><span>持续产出</span></div>
+      <div><b>24</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/08</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-08", name:"Excel操作录制器",
+    desc:"像 IrisGo「演示一次，自动运行」那样演示 Excel 自动化零门槛：在模拟工作表上手动点选操作（删除空行/填充缺失值/转换日期格式/按区域汇总/生成透视表）→ 每次操作自动录制为步骤并实时反映在表格数据上 →「生成脚本」把录制步骤转成带中文注释、参数化（文件路径/日期范围）的 pandas+openpyxl 脚本，可复制/下载直接运行 →「批量执行」对 3 个文件套用同一脚本（含失败分支与执行日志）。讲 RPA 落地的『Excel 重复工作自动化』主题的强素材。",
+    src:"10/08 资讯 · IrisGo（4星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-08_Excel%E6%93%8D%E4%BD%9C%E5%BD%95%E5%88%B6%E5%99%A8/Excel%E6%93%8D%E4%BD%9C%E5%BD%95%E5%88%B6%E5%99%A8.html"
+  },
   {
     date:"10-07", name:"无API网站操作助手",
     desc:"像 Hark Pro 云端电脑操作 Agent 那样演示「无 API 系统的浏览器自动化」：选择或输入自然语言任务（批量导出本月订单 / 下载上月对账单 / 抓取竞品价格表）→ 自动解析编排为浏览器操作步骤序列 → 模拟无头浏览器逐步执行（页面/URL 更新 + 每步截图验证，异常步骤自动重试）→ 生成操作报告（步骤数/耗时/截图清单）。讲 RPA 落地的『无 API 系统数据采集』主题的强素材。",

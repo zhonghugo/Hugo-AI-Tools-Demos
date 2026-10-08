@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel 操作录制器 · 手动操作一次 → 自动生成可复用脚本</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+  --codebg:#0d1117; --codeline:#21262d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1320px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.3;min-width:430px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.1;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.op{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer;color:var(--fg);transition:.15s}
+.op:hover{border-color:var(--pri);color:#fff}
+.op:disabled{opacity:.4;cursor:not-allowed}
+table.excel{width:100%;min-width:520px;border-collapse:collapse;font-size:12px;font-family:ui-monospace,Menlo,monospace}
+table.excel th{background:var(--card2);border:1px solid var(--line);padding:5px 8px;text-align:left;color:#cdd4ff;font-weight:600;position:sticky;top:0}
+table.excel td{border:1px solid var(--line);padding:5px 8px;color:var(--fg)}
+table.excel tr.hl td{background:rgba(255,179,92,.10)}
+table.excel tr.del td{color:#565e88;text-decoration:line-through}
+.sheetbox{max-height:290px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.steps{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow:auto}
+.step{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px;background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--muted)}
+.step b{color:var(--fg)}
+.step .no{width:19px;height:19px;border-radius:50%;background:#0f1222;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--cy);flex-shrink:0}
+.params{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px}
+.params label{display:flex;flex-direction:column;gap:4px;color:var(--muted)}
+.params input{background:#0f1222;border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:6px 9px;font-size:12px;font-family:ui-monospace,Menlo,monospace;width:100%;min-width:0}
+.codebox{background:var(--codebg);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.codebox .bar{display:flex;align-items:center;gap:8px;background:#161b22;border-bottom:1px solid var(--codeline);padding:7px 12px;font-size:11px;color:var(--muted)}
+.codebox pre{margin:0;padding:12px;font-size:12px;line-height:1.75;font-family:ui-monospace,Menlo,Consolas,monospace;color:#a8c0e8;overflow:auto;max-height:300px;white-space:pre-wrap}
+.codebox .btn{background:var(--pri);border:none;border-radius:7px;color:#fff;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:auto}
+.codebox .btn.ghost{background:#21262d;border:1px solid var(--codeline)}
+.batch{display:flex;flex-direction:column;gap:8px}
+.brow{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12px}
+.brow .fn{flex:1;color:var(--fg);font-family:ui-monospace,Menlo,monospace}
+.brow .st{font-size:11px;color:var(--muted)}
+.brow .st.ok{color:var(--ok)} .brow .st.bad{color:var(--bad)} .brow .st.run{color:var(--cy)}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:140px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .cy{color:var(--cy)}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+@media(max-width:900px){ .col,.side{min-width:0;max-width:100%} .main{flex-direction:column} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Excel 操作录制器
+    <span class="sub">像 IrisGo「演示一次，自动运行」那样演示 Excel 自动化零门槛：在模拟工作表里手动点选操作（清洗/填充/汇总/透视）→ 自动录制步骤并生成可复用的 pandas/openpyxl 脚本（参数化、可批量执行）· 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 录制区 <small>在示例工作表上手动操作，每次操作自动记录一步</small></h3>
+        <div class="toolbar">
+          <button class="op" onclick="record('删除空行')">🗑 删除空行</button>
+          <button class="op" onclick="record('填充缺失值')">🧩 填充缺失值</button>
+          <button class="op" onclick="record('转换日期格式')">📅 转换日期格式</button>
+          <button class="op" onclick="record('按区域汇总')">📊 按区域汇总</button>
+          <button class="op" onclick="record('生成透视表')">🔷 生成透视表</button>
+        </div>
+        <div class="sheetbox"><table class="excel" id="xls"></table></div>
+      </div>
+      <div class="panel">
+        <h3>② 录制步骤 <small>操作序列 = 即将生成的脚本逻辑</small></h3>
+        <div class="steps" id="steps"><span style="font-size:12px;color:var(--muted)">尚未录制任何操作，点上方按钮开始</span></div>
+        <div class="actions">
+          <button class="btn" id="btnGen" onclick="genScript()" disabled>⚙ 生成脚本</button>
+          <button class="btn ghost" id="btnBatch" onclick="batchRun()" disabled>🚀 批量执行（3 个文件）</button>
+          <button class="btn ghost" onclick="resetAll()">重置录制</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>③ 参数化配置 <small>生成的脚本引用这些参数，替换即适配新文件</small></h3>
+        <div class="params">
+          <label>源文件路径<input id="pSrc" value="data/销售明细.xlsx"></label>
+          <label>输出文件路径<input id="pOut" value="output/销售汇总结果.xlsx"></label>
+          <label>日期范围（起）<input id="pFrom" value="2026-09-01"></label>
+          <label>日期范围（止）<input id="pTo" value="2026-09-30"></label>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>④ 生成的 Python 脚本 <small>pandas + openpyxl，带中文注释，可直接运行</small></h3>
+        <div class="codebox">
+          <div class="bar"><span>excel_recorder.py</span><button class="btn ghost" id="btnCopy" onclick="copyCode()">复制脚本</button><button class="btn" onclick="downloadCode()">下载 .py</button></div>
+          <pre id="code"># 点击上方「生成脚本」，把录制步骤转为可复用代码</pre>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>⑤ 批量执行 <small>对多个文件套用同一脚本，含执行日志</small></h3>
+        <div class="batch" id="batch"></div>
+        <div class="audit" id="audit"></div>
+        <div class="legend">
+          <span><i style="background:var(--ok)"></i>成功</span>
+          <span><i style="background:var(--bad)"></i>失败</span>
+          <span><i style="background:var(--cy)"></i>执行中</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ── 示例工作表初始数据 ── */
+const INIT = [
+  ["2026-09-02","华东","张伟",2300,"","食品"],
+  ["2026-09-05","华南","李娜",4100,"2026-09-04","数码"],
+  ["","","","","",""],
+  ["2026-09-08","华北","王芳",1850,"","食品"],
+  ["2026-09-11","华东","赵磊",5200,"2026-09-11","数码"],
+  ["2026-09-13","","陈静",960,"","服饰"],
+  ["2026-09-15","华南","孙强",3300,"2026-09-14","食品"],
+  ["","","","","",""],
+  ["2026-09-18","华东","周敏",2760,"","服饰"],
+  ["2026-09-21","华北","吴涛",6400,"2026-09-21","数码"]
+];
+let data = INIT.map(r => [...r]);   // 工作表当前数据（行深拷贝）
+let recorded = [];                   // 录制步骤
+const HEAD = ["日期","区域","销售员","金额","发货日期","品类"];
+const $ = id => document.getElementById(id);
+const A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function renderSheet(){
+  $("xls").innerHTML = "<tr>" + HEAD.map(h => `<th>${h}</th>`).join("") + "</tr>" +
+    data.map((r, i) => {
+      const isEmpty = r.every(c => String(c).trim() === "");
+      return `<tr class="${isEmpty?"del":""}">` + r.map(c => `<td>${c === "" ? "" : c}</td>`).join("") + `</tr>`;
+    }).join("");
+}
+function renderSteps(){
+  $("steps").innerHTML = recorded.length ? recorded.map((s, i) =>
+    `<div class="step"><span class="no">${i+1}</span><b>${s.name}</b><span>· ${s.desc}</span></div>`).join("")
+    : `<span style="font-size:12px;color:var(--muted)">尚未录制任何操作，点上方按钮开始</span>`;
+  $("btnGen").disabled = recorded.length === 0;
+}
+
+/* ── 录制操作：改数据 + 记步骤 ── */
+async function record(op){
+  const i = data.findIndex(r => r.every(c => String(c).trim() === "")); // 首个空行
+  switch(op){
+    case "删除空行":
+      data = data.filter(r => !r.every(c => String(c).trim() === ""));
+      recorded.push({name:"删除空行", desc:`移除 ${INIT.filter(r=>r.every(c=>String(c).trim()==="")).length} 个空行`, code:`# 删除空行\ndf.dropna(how="all", inplace=True)`});
+      break;
+    case "填充缺失值":
+      data = data.map(r => r.every(c => String(c).trim() === "") ? r : r.map(c => c === "" ? "待补充" : c));
+      recorded.push({name:"填充缺失值", desc:"非空行缺失单元格填「待补充」", code:`# 填充缺失值\ndf.fillna("待补充", inplace=True)`});
+      break;
+    case "转换日期格式":
+      data = data.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]]);
+      recorded.push({name:"转换日期格式", desc:"日期列统一为 YYYY-MM-DD", code:`# 日期列统一格式\ndf["日期"] = pd.to_datetime(df["日期"]).dt.strftime("%Y-%m-%d")`});
+      break;
+    case "按区域汇总":
+      data = data.filter(r => !r.every(c => String(c).trim() === "")).filter(r => r[1] !== "");
+      recorded.push({name:"按区域汇总", desc:"按区域分组求和（金额）", code:`# 按区域汇总金额\ngrouped = df.groupby("区域")["金额"].sum().reset_index()`});
+      break;
+    case "生成透视表":
+      recorded.push({name:"生成透视表", desc:"行=区域，列=品类，值=金额求和", code:`# 生成透视表\npivot = df.pivot_table(index="区域", columns="品类", values="金额", aggfunc="sum", fill_value=0)`});
+      break;
+  }
+  renderSheet(); renderSteps();
+  log(`已录制：${op}`, "cy");
+}
+
+/* ── 生成脚本：合并参数 + 录制步骤 ── */
+function genScript(){
+  const src = $("pSrc").value, out = $("pOut").value, f = $("pFrom").value, t = $("pTo").value;
+  let code = `"""Excel 操作录制器 - 自动生成的批处理脚本
+由网页录制 ${recorded.length} 步操作自动生成；修改下方参数即可适配新文件。
+运行: python excel_recorder.py
+依赖: pip install pandas openpyxl
+"""
+import pandas as pd
+
+# ===== 参数配置（录制时生成，可手动修改）=====
+SRC_FILE = "${src}"        # 源文件路径
+OUT_FILE = "${out}"        # 输出文件路径
+DATE_FROM = "${f}"         # 日期范围（起）
+DATE_TO = "${t}"           # 日期范围（止）
+
+def main():
+    # 读取源文件
+    df = pd.read_excel(SRC_FILE)
+    print(f"[1/2] 已读取 {SRC_FILE}，共 {len(df)} 行")
+
+    # ===== 以下为录制的操作步骤 =====
+`;
+  code += recorded.map(s => "    " + s.code.replace(/\n/g, "\n    ")).join("\n\n") + "\n";
+  code += `
+    # 保存结果
+    df.to_excel(OUT_FILE, index=False)
+    print(f"[2/2] 已输出 {OUT_FILE}，共 {len(df)} 行")
+
+if __name__ == "__main__":
+    main()
+`;
+  $("code").textContent = code;
+  $("btnBatch").disabled = false;
+  log(`已生成脚本（${recorded.length} 步操作，${code.split("\n").length} 行）`, "p");
+}
+
+function copyCode(){
+  const t = $("code").textContent;
+  navigator.clipboard && navigator.clipboard.writeText(t).then(() => log("脚本已复制到剪贴板", "ok"));
+}
+function downloadCode(){
+  const blob = new Blob([$("code").textContent], {type:"text/x-python;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "excel_recorder.py"; a.click();
+  URL.revokeObjectURL(a.href);
+  log("已下载 excel_recorder.py", "ok");
+}
+
+/* ── 批量执行：3 个文件套用同一脚本 ── */
+async function batchRun(){
+  const files = ["data/销售明细.xlsx", "data/销售明细-华东.xlsx", "data/销售明细-异常.xlsx"];
+  const box = $("batch");
+  box.innerHTML = files.map((f, i) => `<div class="brow" data-i="${i}"><span class="fn">${f}</span><span class="st">等待执行</span></div>`).join("");
+  let okN = 0;
+  for(let i = 0; i < files.length; i++){
+    const row = box.querySelector(`.brow[data-i="${i}"]`);
+    const st = row.querySelector(".st");
+    st.textContent = "执行中…"; st.className = "st run";
+    await sleep(900);
+    const isFail = files[i].includes("异常");
+    if(isFail){ st.textContent = "✗ 失败：日期列格式异常"; st.className = "st bad"; log(`批量：${files[i]} 执行失败（数据格式不符，可加异常分支重试）`, "w"); }
+    else{ okN++; st.textContent = "✓ 成功（2.3s，输出 1 个文件）"; st.className = "st ok"; log(`批量：${files[i]} 执行成功，输出 ${files[i].replace("data/","output/结果-")}`, "ok"); }
+  }
+  log(`批量执行完成：${okN}/${files.length} 成功${okN===files.length?"，全部通过":""}`, "p");
+}
+
+function resetAll(){
+  data = INIT.map(r => [...r]); recorded = [];
+  renderSheet(); renderSteps();
+  $("code").textContent = "# 点击上方「生成脚本」，把录制步骤转为可复用代码";
+  $("btnGen").disabled = true; $("btnBatch").disabled = true;
+  $("batch").innerHTML = ""; A.innerHTML = "";
+  log("已重置录制", "w");
+}
+
+renderSheet();
+log("就绪：在录制区点选操作（可重复/组合）→「生成脚本」→ 复制或批量执行", "w");
+</script>
+</body>
+</html>
