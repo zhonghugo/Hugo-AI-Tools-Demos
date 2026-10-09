@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会议行动项自动执行器 · 会议记录 → 行动项 → RPA 自动执行</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1320px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.25;min-width:430px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.15;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.meetings{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.meet{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer;color:var(--fg)}
+.meet:hover{border-color:var(--pri)}
+.meet.sel{border-color:var(--pri);box-shadow:0 0 0 1px rgba(108,123,255,.45)}
+textarea.inp{width:100%;background:#0f1222;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:10px;font-size:12.5px;font-family:inherit;min-height:150px;resize:vertical;line-height:1.8}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.items{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto}
+.item{border:1px solid var(--line);border-radius:10px;background:var(--card2);padding:10px 12px;font-size:12.5px}
+.item .row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.item .who{background:rgba(108,123,255,.18);color:#aab6ff;border-radius:6px;padding:2px 7px;font-size:11.5px;font-weight:600}
+.item .act{flex:1;color:var(--fg)}
+.item .due{color:var(--warn);font-size:11.5px;white-space:nowrap}
+.item .match{margin-top:7px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.item .match .rpa{background:rgba(57,208,255,.14);color:var(--cy);border-radius:6px;padding:2px 7px}
+.item .match .pct{color:var(--muted)}
+.item .st{font-size:11px;border-radius:6px;padding:2px 8px;font-weight:600;white-space:nowrap}
+.item .st.todo{background:rgba(143,151,196,.15);color:var(--muted)}
+.item .st.run{background:rgba(57,208,255,.2);color:var(--cy)}
+.item .st.ok{background:rgba(47,217,138,.18);color:var(--ok)}
+.item .st.fail{background:rgba(255,107,129,.18);color:var(--bad)}
+.item .st.man{background:rgba(255,179,92,.18);color:var(--warn)}
+.stats{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}
+.stat{flex:1;min-width:100px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;text-align:center}
+.stat b{display:block;font-size:20px;color:var(--fg)}
+.stat span{color:var(--muted);font-size:11px}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:150px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .cy{color:var(--cy)}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+@media(max-width:900px){ .col,.side{min-width:0;max-width:100%} .main{flex-direction:column} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>会议行动项自动执行器
+    <span class="sub">像 Velozity 多人 AI 办公室那样演示「会议后行动项的自动化闭环」：粘贴会议记录 → AI 提取行动项（负责人/任务/截止时间）→ 匹配可执行的 RPA 流程 → 一键执行并跟踪进度 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 会议记录 <small>选择示例或自由粘贴，点「提取行动项」</small></h3>
+        <div class="meetings" id="meets"></div>
+        <textarea class="inp" id="recInput"></textarea>
+        <div class="actions">
+          <button class="btn" id="btnExtract" onclick="extract()">🔍 提取行动项</button>
+          <button class="btn ghost" onclick="resetAll()">重置</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>② 提取的行动项 <small>AI 解析：谁 / 做什么 / 截止时间 → 匹配 RPA 流程</small></h3>
+        <div class="items" id="items"><span style="font-size:12px;color:var(--muted)">提取后在此展示行动项清单</span></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>③ 执行统计 <small>行动项 → 自动化 → 进度</small></h3>
+        <div class="stats">
+          <div class="stat"><b id="sTotal">0</b><span>行动项总数</span></div>
+          <div class="stat"><b id="sAuto">0</b><span>可自动化（RPA）</span></div>
+          <div class="stat"><b id="sDone">0</b><span>已执行完成</span></div>
+          <div class="stat"><b id="sRate">0%</b><span>自动化覆盖率</span></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--ok)"></i>已完成</span>
+          <span><i style="background:var(--cy)"></i>执行中</span>
+          <span><i style="background:var(--warn)"></i>需人工</span>
+          <span><i style="background:var(--bad)"></i>失败</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>④ RPA 执行日志 <small>行动项 → 匹配流程 → 执行结果</small></h3>
+        <div class="audit" id="audit"></div>
+      </div>
+      <div class="panel">
+        <h3>⑤ 说明 <small>这个工具解决什么</small></h3>
+        <div class="legend" style="margin:0;line-height:1.9;font-size:12px;color:var(--muted)">
+          · 会议后「谁负责什么、何时截止」散落在纪要里，跟进全靠人肉盯<br>
+          · 本工具把行动项结构化 + 匹配已有 RPA 流程 → 一键执行，可自动化的自动跑<br>
+          · 无法自动化的行动项标「需人工」，仍统一纳入待办跟踪<br>
+          · 进度统计让「会议决议是否落地」可量化，是数字化运营的日常闭环
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ── 示例会议记录 ── */
+const MEETS = [
+  { id:"m1", name:"周经营例会", text:
+"本周销售数据整体下滑，王芳负责在周五前输出区域销售分析报告。\n李娜下周一前跟进华东大客户续约，把续约方案发过去。\n张伟本周内更新部门 OKR 看板数据。\n下周例会前，全员完成报销单提交。" },
+  { id:"m2", name:"项目上线对齐会", text:
+"陈静负责明天整理上线检查清单并发群里。\n孙强在下周五前完成竞品价格对比表。\n李磊跟进服务商交付进度，今天下班前给结论。\n会议纪要整理后发给未参会同事并收集确认。" }
+];
+/* ── RPA 流程库：行动项关键词 → 可执行流程 ── */
+const RPA_LIB = [
+  { key:"报告", name:"报表生成 RPA", act:"读取业务数据 → 计算指标 → 生成图表报告", fail:false },
+  { key:"看板", name:"看板更新 RPA", act:"同步最新数据 → 刷新 OKR 看板", fail:false },
+  { key:"报销", name:"报销提交 RPA", act:"读取报销单 → 校验金额/发票 → 提交审批流", fail:false },
+  { key:"跟进", name:"客户跟进 RPA", act:"读取客户信息 → 生成跟进邮件 → 发送并抄送", fail:false },
+  { key:"方案", name:"方案发送 RPA", act:"匹配方案模板 → 填写客户参数 → 发送邮件", fail:false },
+  { key:"清单", name:"清单整理 RPA", act:"按模板生成检查清单 → 标注负责人 → 发群", fail:false },
+  { key:"对比", name:"对比表生成 RPA", act:"抓取价格数据 → 清洗对齐 → 生成对比表", fail:false },
+  { key:"纪要", name:"纪要分发 RPA", act:"整理纪要 → 生成摘要 → 群发并收集确认", fail:false },
+  { key:"确认", name:"确认收集 RPA", act:"发送确认请求 → 汇总回执 → 输出未确认名单", fail:false }
+];
+let items = [];   // 提取出的行动项
+let extracting = false;
+const $ = id => document.getElementById(id);
+const A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function renderMeets(){
+  $("meets").innerHTML = MEETS.map(m =>
+    `<button class="meet" data-id="${m.id}" onclick="pickMeet('${m.id}')">${m.name}</button>`).join("");
+}
+function pickMeet(id){
+  MEETS.forEach(m => {
+    const el = $("meets").querySelector(`.meet[data-id="${m.id}"]`);
+    el.classList.toggle("sel", m.id === id);
+  });
+  $("recInput").value = MEETS.find(m => m.id === id).text;
+}
+
+/* ── 提取行动项：逐行解析（负责人/任务/截止时间） ── */
+async function extract(){
+  if(extracting) return;
+  const raw = $("recInput").value.trim();
+  if(!raw){ log("请先输入会议记录", "w"); return; }
+  extracting = true; items = [];
+  $("items").innerHTML = `<span style="font-size:12px;color:var(--cy)">AI 正在解析会议记录…</span>`;
+  await sleep(700);
+  const lines = raw.split(/\n/).map(s => s.trim()).filter(Boolean);
+  const whoPat = /(王芳|李娜|张伟|陈静|孙强|李磊|刘洋|赵敏|周杰|吴涛|黄丽|全员|未参会)/;
+  const taskPat = /(负责|跟进|更新|提交|整理|完成|输出|发送|给|发)/;
+  const duePat = /(今天|明天|本周|下周|周[一二三四五六日]|周五前|下周一前|下周五前|下班前|例会前|明天|周末)/;
+  const DUE_MAP = { "今天":"今天", "明天":"明天", "本周":"本周内", "下周":"下周末前", "周五前":"周五前", "下周一前":"下周一前", "下周五前":"下周五前", "下班前":"今天下班前", "例会前":"下次例会前" };
+  for(const line of lines){
+    await sleep(320);
+    const whoM = line.match(whoPat);
+    const dueM = line.match(duePat);
+    // 任务文本从动作动词起取，去掉句首背景描述
+    const vM = line.match(/(负责|跟进|更新|提交|整理|完成|输出|发送|把|给)/);
+    let task = line.replace(whoM?.[0]||"", "");
+    task = vM ? task.slice(Math.max(0, task.indexOf(vM[0]))) : task;
+    task = task.replace(/[，。、]/g, "").trim();
+    const due = dueM ? (DUE_MAP[dueM[0]] || dueM[0]) : "未指定";
+    const who = whoM ? whoM[0] : "待指派";
+    const matched = matchRpa(line + task);
+    items.push({ who, task: task.slice(0, 30), due, rpa: matched, status: matched ? "todo" : "man" });
+    renderItems();
+    log(`已提取：「${who}」→ ${task.slice(0,18)}…（截止 ${due}）`, "cy");
+  }
+  refreshStats();
+  extracting = false;
+  log(`提取完成：共 ${items.length} 个行动项，${items.filter(i=>i.rpa).length} 个可自动化`, "p");
+}
+function matchRpa(text){
+  for(const r of RPA_LIB){
+    if(text.includes(r.key)) return { ...r };
+  }
+  return null;
+}
+function renderItems(){
+  $("items").innerHTML = items.length ? items.map((it, i) => `
+    <div class="item" data-i="${i}">
+      <div class="row1">
+        <span class="who">${it.who}</span>
+        <span class="act">${it.task}</span>
+        <span class="due">⏰ ${it.due}</span>
+        <span class="st ${it.status}">${it.status==="todo"?"待执行":(it.status==="run"?"执行中…":(it.status==="ok"?"已完成":(it.status==="fail"?"执行失败":"需人工")))}</span>
+      </div>
+      <div class="match">
+        ${it.rpa ? `<span class="rpa">🤖 ${it.rpa.name}</span><span class="pct">匹配 92% · ${it.rpa.act}</span>` : `<span style="color:var(--warn)">⚠ 未匹配到 RPA 流程，标记为需人工跟进</span>`}
+        ${it.rpa && it.status === "todo" ? `<button class="btn" style="padding:4px 10px;font-size:11px;margin-left:auto" onclick="runItem(${i})">执行</button>` : ""}
+        ${it.rpa && it.status === "fail" ? `<button class="btn" style="padding:4px 10px;font-size:11px;margin-left:auto" onclick="runItem(${i})">重试</button>` : ""}
+      </div>
+    </div>`).join("") : `<span style="font-size:12px;color:var(--muted)">提取后在此展示行动项清单</span>`;
+}
+function refreshStats(){
+  const total = items.length, auto = items.filter(i=>i.rpa).length, done = items.filter(i=>i.status==="ok").length;
+  $("sTotal").textContent = total; $("sAuto").textContent = auto; $("sDone").textContent = done;
+  $("sRate").textContent = total ? Math.round(auto/total*100) + "%" : "0%";
+}
+
+/* ── 一键执行：RPA 模拟 ── */
+async function runItem(i){
+  const it = items[i];
+  if(it.status === "run" || it.status === "ok") return;
+  it.status = "run"; renderItems(); refreshStats();
+  log(`▶ 执行「${it.task.slice(0,18)}…」：${it.rpa.name}（${it.rpa.act}）`, "p");
+  await sleep(200);
+  A.innerHTML += `<div class="cy">    · 第 1 步：${it.rpa.act.split("→")[0].trim()}…</div>`;
+  A.scrollTop = A.scrollHeight;
+  await sleep(650);
+  A.innerHTML += `<div class="cy">    · 第 2 步：${(it.rpa.act.split("→")[1]||"输出结果").trim()}…</div>`;
+  A.scrollTop = A.scrollHeight;
+  await sleep(650);
+  const fail = !it.rpa.fail && Math.random() < .22;
+  if(fail){ it.status = "fail"; log(`✗ 「${it.task.slice(0,18)}…」执行失败（数据源异常），可重试`, "w"); }
+  else{ it.status = "ok"; log(`✓ 「${it.task.slice(0,18)}…」执行完成（耗时 1.6s，结果已输出）`, "ok"); }
+  renderItems(); refreshStats();
+}
+function resetAll(){
+  items = []; extracting = false;
+  $("recInput").value = ""; renderItems(); refreshStats(); A.innerHTML = "";
+  MEETS.forEach(m => $("meets").querySelector(`.meet[data-id="${m.id}"]`).classList.remove("sel"));
+  log("已重置", "w");
+}
+
+renderMeets();
+pickMeet("m1");
+log("就绪：选示例会议记录（或粘贴自己的）→「提取行动项」→ 对可自动化项点「执行」", "w");
+</script>
+</body>
+</html>
