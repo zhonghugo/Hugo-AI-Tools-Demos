@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会议行动项自动执行器 · 会议记录 → 提取行动项 → 匹配RPA流程 → 自动执行</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1320px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.25;min-width:420px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1;min-width:380px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+textarea{width:100%;min-width:0;background:#0f1222;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:12px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical}
+textarea:focus{outline:none;border-color:var(--pri)}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stats div{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center}
+.stats b{display:block;font-size:20px}
+.stats span{font-size:11px;color:var(--muted)}
+.s-total{color:var(--cy)} .s-match{color:var(--pri)} .s-done{color:var(--ok)} .s-pend{color:var(--warn)} .s-late{color:var(--bad)}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;min-width:640px;border-collapse:collapse;font-size:12px}
+th{background:var(--card2);border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;color:#cdd4ff;font-weight:600;white-space:nowrap}
+td{border-bottom:1px solid var(--line);padding:8px 10px;vertical-align:top}
+tr:last-child td{border-bottom:none}
+.owner{color:var(--cy);font-weight:600;white-space:nowrap}
+.due{white-space:nowrap;color:var(--muted)}
+.due.late{color:var(--bad);font-weight:600}
+select{background:#0f1222;border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:5px 8px;font-size:12px;max-width:170px;width:100%;min-width:0}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;white-space:nowrap}
+.tag.pend{background:rgba(255,179,92,.14);color:var(--warn)}
+.tag.run{background:rgba(57,208,255,.14);color:var(--cy)}
+.tag.done{background:rgba(47,217,138,.14);color:var(--ok)}
+.tag.manual{background:rgba(143,151,196,.14);color:var(--muted)}
+.mini{background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:4px 10px;font-size:11px;cursor:pointer;white-space:nowrap}
+.mini:disabled{opacity:.35;cursor:not-allowed}
+.mini.run{border-color:var(--cy);color:var(--cy)}
+.flow{display:flex;flex-direction:column;gap:8px}
+.fitem{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12px;cursor:pointer;transition:.15s}
+.fitem:hover{border-color:var(--pri)}
+.fitem.active{border-color:var(--pri);background:rgba(108,123,255,.10)}
+.fitem b{color:#cdd4ff}
+.fitem .chain{color:var(--muted);font-size:11px;margin-top:4px;line-height:1.7}
+.fitem .chain i{font-style:normal;color:var(--cy)}
+.log{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:190px;overflow-y:auto;line-height:1.9}
+.log .ok{color:var(--ok)} .log .w{color:var(--warn)} .log .p{color:var(--pri)} .log .cy{color:var(--cy)} .log .bad{color:var(--bad)}
+.hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7}
+.badge{display:inline-block;background:rgba(108,123,255,.14);color:#aab4ff;border-radius:6px;padding:2px 8px;font-size:11px;margin-left:6px}
+@media(max-width:560px){
+  body{padding:12px}
+  h1{font-size:18px}
+  .col,.side{min-width:0}
+  .stats{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📋 会议行动项自动执行器<span class="sub">粘贴会议记录 → 自动提取行动项（谁 / 做什么 / 截止）→ 匹配 RPA 流程 → 一键模拟执行并跟踪进度　<span class="badge">示例基准日：2026-10-09（周五）</span></span></h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 会议记录 <small>· 支持粘贴飞书 / 微信会议纪要，已内置示例，可直接修改</small></h3>
+        <textarea id="minutes" rows="11"></textarea>
+        <div class="actions">
+          <button class="btn" id="btnExtract">🔍 提取行动项</button>
+          <button class="btn ghost" id="btnReset">还原示例</button>
+        </div>
+        <div class="hint" id="extractHint"></div>
+      </div>
+
+      <div class="panel">
+        <h3>② 行动项清单 <small>· 流程匹配可下拉调整，未匹配的走人工处理</small></h3>
+        <div class="stats" style="margin-bottom:12px">
+          <div><b class="s-total" id="stTotal">0</b><span>行动项</span></div>
+          <div><b class="s-match" id="stMatch">0</b><span>已匹配流程</span></div>
+          <div><b class="s-done" id="stDone">0</b><span>已执行</span></div>
+          <div><b class="s-pend" id="stPend">0</b><span>待执行</span></div>
+          <div><b class="s-late" id="stLate">0</b><span>已逾期</span></div>
+        </div>
+        <div class="tblwrap">
+          <table id="itemsTable">
+            <thead><tr><th>负责人</th><th>行动项</th><th>截止</th><th>匹配 RPA 流程</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="itemsBody"><tr><td colspan="6" style="color:var(--muted)">点击「提取行动项」开始解析会议记录…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="actions">
+          <button class="btn" id="btnRunAll" disabled>⚡ 一键执行全部已匹配项</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel">
+        <h3>③ RPA 流程库 <small>· 点击卡片可在清单中批量切换同源流程</small></h3>
+        <div class="flow" id="flowList"></div>
+      </div>
+      <div class="panel">
+        <h3>④ 执行日志</h3>
+        <div class="log" id="log"><div># 就绪。粘贴会议记录后点击「提取行动项」。</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 示例会议记录（固化） =====
+var SAMPLE_MINUTES = [
+"【10月第2周运营例会】主持人：周洁　记录：AI助手",
+"",
+"一、上周回顾",
+"- 9月销售数据已归档，GMV 环比 +8%",
+"- 华东区回款进度落后，需要重点跟进",
+"",
+"二、本周行动项",
+"1. 王芳：汇总9月销售数据并生成分区域报表，10月11日前发到运营群",
+"2. 李强：核对华东区客户回款台账，向逾期客户发送催款提醒，10月14日前",
+"3. 赵敏：把库存盘点异常明细录入ERP系统，明天中午12点前完成",
+"4. 陈刚：生成本周运营周报并发邮件给管理层，10月12日下班前",
+"5. 刘洋：整理待报销单据并提交财务系统审核，本周五前",
+"",
+"三、其他",
+"- 下次例会时间：10月16日上午10点"
+].join("\n");
+
+var TODAY = new Date(2026, 9, 9); // 示例基准日 2026-10-09（周五）
+
+// ===== RPA 流程库 =====
+var FLOWS = [
+  { id:"F1", name:"销售数据汇总报表", keywords:["销售","汇总","报表","分区"],
+    steps:["读取销售明细 Excel","数据透视按区域汇总","生成分区域报表","推送到运营群"] },
+  { id:"F2", name:"客户回款催收流程", keywords:["回款","催款","逾期客户"],
+    steps:["读取回款台账","筛选逾期客户","生成催款提醒话术","发送提醒邮件","回写跟进状态"] },
+  { id:"F3", name:"库存明细录入 ERP", keywords:["库存","录入","erp","盘点"],
+    steps:["解析盘点异常明细","规则校验（重复/空值）","写入 ERP 接口","生成录入回执"] },
+  { id:"F4", name:"运营周报生成流程", keywords:["周报","管理层"],
+    steps:["拉取本周运营数据","计算核心指标","套用周报模板","邮件发送管理层"] },
+  { id:"F5", name:"报销单据提交流程", keywords:["报销","单据","财务"],
+    steps:["扫描待报销单据","OCR 识别与校验","提交财务系统审核","通知提交人"] }
+];
+var MANUAL = "人工处理";
+
+// ===== 状态 =====
+var items = []; // {owner, task, due, flowId, status: pend|run|done|manual}
+
+var $ = function(id){ return document.getElementById(id); };
+function log(msg, cls){
+  var box = $("log");
+  var d = document.createElement("div");
+  if(cls) d.className = cls;
+  var t = new Date();
+  var ts = ("0"+t.getHours()).slice(-2)+":"+("0"+t.getMinutes()).slice(-2)+":"+("0"+t.getSeconds()).slice(-2);
+  d.textContent = "[" + ts + "] " + msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ===== 提取行动项（确定性规则解析） =====
+function parseDue(text){
+  var y = TODAY.getFullYear(), m = TODAY.getMonth();
+  function d(day){ return new Date(y, m, day); }
+  var pats = [
+    [/10月(\d{1,2})日/, function(mm){ return d(parseInt(mm[1],10)); }],
+    [/明天/, function(){ return d(TODAY.getDate()+1); }],
+    [/后天/, function(){ return d(TODAY.getDate()+2); }],
+    [/本周日/, function(){ return d(11); }],
+    [/本周[一二三四五六]/, function(mm){
+        var map = {"一":5,"二":6,"三":7,"四":8,"五":9,"六":10};
+        var ch = mm[0].slice(-1);
+        return d(map[ch]);
+    }],
+    [/今天/, function(){ return d(TODAY.getDate()); }]
+  ];
+  for(var i=0;i<pats.length;i++){
+    var mm = text.match(pats[i][0]);
+    if(mm) return pats[i][1](mm);
+  }
+  return null;
+}
+function fmtDate(dt){
+  if(!dt) return "未明确";
+  return (dt.getMonth()+1) + "月" + dt.getDate() + "日";
+}
+function extract(){
+  var lines = $("minutes").value.split("\n");
+  var found = [];
+  lines.forEach(function(raw){
+    var line = raw.trim();
+    var mm = line.match(/^(?:\d+[.、)．]|[-•])\s*(.+)$/);
+    if(!mm) return;
+    var body = mm[1];
+    var pm = body.match(/^([\u4e00-\u9fa5]{2,4})[：:]\s*(.+)$/);
+    if(!pm) return; // 无「负责人：任务」结构的不算行动项
+    var task = pm[2];
+    var due = parseDue(task);
+    found.push({ owner: pm[1], task: task, due: due });
+  });
+  return found;
+}
+function matchFlow(task){
+  var low = task.toLowerCase();
+  for(var i=0;i<FLOWS.length;i++){
+    var f = FLOWS[i];
+    for(var k=0;k<f.keywords.length;k++){
+      if(low.indexOf(f.keywords[k]) >= 0) return f.id;
+    }
+  }
+  return MANUAL;
+}
+
+function renderFlows(){
+  var box = $("flowList");
+  box.innerHTML = "";
+  FLOWS.forEach(function(f){
+    var div = document.createElement("div");
+    div.className = "fitem";
+    div.id = "flow-" + f.id;
+    div.innerHTML = "<b>" + f.id + " · " + f.name + "</b><div class='chain'>" +
+      f.steps.map(function(s,i){ return (i? " → <i>›</i> " : "") + s; }).join("") + "</div>";
+    div.onclick = function(){ applyFlowToAll(f.id); };
+    box.appendChild(div);
+  });
+}
+function applyFlowToAll(fid){
+  var changed = 0;
+  items.forEach(function(it){
+    if(it.status === "pend" || (it.status === "manual" && fid !== MANUAL)){
+      it.flowId = fid; changed++;
+    }
+  });
+  if(changed){
+    log("已把流程 " + fid + " 批量应用到 " + changed + " 个待执行行动项", "p");
+    renderItems();
+  } else {
+    log("没有可切换的待执行项（仅「待执行/人工处理」状态可切换）", "w");
+  }
+}
+
+function renderItems(){
+  var tb = $("itemsBody");
+  tb.innerHTML = "";
+  if(!items.length){
+    tb.innerHTML = "<tr><td colspan='6' style='color:var(--muted)'>没有解析到「负责人：任务」格式的行动项，请检查会议记录。</td></tr>";
+  }
+  items.forEach(function(it, idx){
+    var tr = document.createElement("tr");
+    var late = it.due && it.due < TODAY;
+    var sel = "<select data-idx='" + idx + "'>";
+    var opts = FLOWS.map(function(f){
+      return "<option value='" + f.id + "'" + (it.flowId === f.id ? " selected" : "") + ">" + f.id + " · " + f.name + "</option>";
+    }).join("");
+    sel += "<option value='" + MANUAL + "'" + (it.flowId === MANUAL ? " selected" : "") + ">" + MANUAL + "</option>" + opts + "</select>";
+
+    var statusHtml, btnHtml;
+    if(it.status === "done"){
+      statusHtml = "<span class='tag done'>已完成 ✓</span>";
+      btnHtml = "<button class='mini' disabled>已执行</button>";
+    } else if(it.status === "run"){
+      statusHtml = "<span class='tag run'>执行中…</span>";
+      btnHtml = "<button class='mini' disabled>执行中</button>";
+    } else if(it.flowId === MANUAL){
+      statusHtml = "<span class='tag manual'>人工处理</span>";
+      btnHtml = "<button class='mini' disabled title='未匹配流程，需人工处理'>不可自动执行</button>";
+    } else {
+      statusHtml = "<span class='tag pend'>待执行</span>";
+      btnHtml = "<button class='mini run' data-run='" + idx + "'>▶ 执行</button>";
+    }
+
+    tr.innerHTML =
+      "<td class='owner'>" + it.owner + "</td>" +
+      "<td>" + it.task + "</td>" +
+      "<td class='due" + (late ? " late" : "") + "'>" + fmtDate(it.due) + (late ? " ⚠️" : "") + "</td>" +
+      "<td>" + sel + "</td>" +
+      "<td>" + statusHtml + "</td>" +
+      "<td>" + btnHtml + "</td>";
+    tb.appendChild(tr);
+  });
+
+  tb.querySelectorAll("select").forEach(function(s){
+    s.onchange = function(){
+      var it = items[parseInt(s.getAttribute("data-idx"),10)];
+      if(it.status === "done"){ renderItems(); return; }
+      it.flowId = s.value;
+      log(it.owner + " 的行动项已切换为「" + (s.value === MANUAL ? MANUAL : s.value + " · " + FLOWS.filter(function(f){return f.id===s.value;})[0].name) + "」", "p");
+      renderItems();
+    };
+  });
+  tb.querySelectorAll("button[data-run]").forEach(function(b){
+    b.onclick = function(){ runOne(parseInt(b.getAttribute("data-run"),10)); };
+  });
+  updateStats();
+}
+
+function updateStats(){
+  var total = items.length;
+  var match = items.filter(function(i){ return i.flowId !== MANUAL; }).length;
+  var done = items.filter(function(i){ return i.status === "done"; }).length;
+  var pend = items.filter(function(i){ return i.status === "pend"; }).length;
+  var late = items.filter(function(i){ return i.due && i.due < TODAY && i.status !== "done"; }).length;
+  $("stTotal").textContent = total;
+  $("stMatch").textContent = match;
+  $("stDone").textContent = done;
+  $("stPend").textContent = pend;
+  $("stLate").textContent = late;
+  $("btnRunAll").disabled = items.filter(function(i){ return i.status === "pend" && i.flowId !== MANUAL; }).length === 0;
+  FLOWS.forEach(function(f){
+    var el = $("flow-" + f.id);
+    if(el) el.classList.toggle("active", items.some(function(i){ return i.flowId === f.id && i.status !== "done"; }));
+  });
+}
+
+// ===== 执行模拟 =====
+var running = false;
+function runOne(idx, cb){
+  var it = items[idx];
+  if(!it || it.status === "run" || it.status === "done" || it.flowId === MANUAL){ if(cb)cb(); return; }
+  running = true;
+  it.status = "run";
+  renderItems();
+  var flow = FLOWS.filter(function(f){ return f.id === it.flowId; })[0];
+  log("▶ 启动流程 " + flow.id + "（" + it.owner + "：" + it.task.slice(0,18) + "…）", "cy");
+  var i = 0;
+  (function step(){
+    if(i < flow.steps.length){
+      log("　[" + flow.id + "] " + flow.steps[i] + " … 完成", "ok");
+      i++;
+      setTimeout(step, 220);
+    } else {
+      it.status = "done";
+      running = false;
+      log("✔ " + it.owner + " 的行动项已由流程 " + flow.id + " 自动完成", "ok");
+      renderItems();
+      if(cb) cb();
+    }
+  })();
+}
+function runAll(){
+  var targets = items.map(function(it,idx){ return it; })
+    .map(function(it,idx){ return idx; })
+    .filter(function(idx){ return items[idx].status === "pend" && items[idx].flowId !== MANUAL; });
+  if(!targets.length){ log("没有可自动执行的待执行项", "w"); return; }
+  log("⚡ 一键执行 " + targets.length + " 个已匹配行动项", "p");
+  (function next(){
+    if(!targets.length) return;
+    var idx = targets.shift();
+    runOne(idx, function(){
+      setTimeout(next, 120);
+    });
+  })();
+}
+
+// ===== 事件绑定 =====
+$("btnExtract").onclick = function(){
+  var found = extract();
+  items = found.map(function(f){
+    return { owner: f.owner, task: f.task, due: f.due, flowId: matchFlow(f.task), status: "pend" };
+  });
+  $("extractHint").textContent = found.length
+    ? "已解析出 " + found.length + " 条行动项（格式：「负责人：任务…，截止时间」），未匹配流程的默认人工处理。"
+    : "";
+  if(found.length){
+    log("🔍 解析会议记录：提取 " + found.length + " 条行动项，自动匹配流程 " +
+      items.filter(function(i){return i.flowId!==MANUAL;}).length + " 条，人工处理 " +
+      items.filter(function(i){return i.flowId===MANUAL;}).length + " 条", "p");
+  } else {
+    log("未解析到行动项：每条需以「数字./-」开头且包含「负责人：任务」结构", "w");
+  }
+  renderItems();
+};
+$("btnReset").onclick = function(){
+  $("minutes").value = SAMPLE_MINUTES;
+  items = [];
+  renderItems();
+  log("已还原示例会议记录并清空清单");
+};
+$("btnRunAll").onclick = runAll;
+
+// ===== 初始化 =====
+$("minutes").value = SAMPLE_MINUTES;
+renderFlows();
+renderItems();
+</script>
+</body>
+</html>

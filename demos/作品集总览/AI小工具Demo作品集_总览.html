@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>24</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/08</b><span>持续产出</span></div>
+      <div><b>25</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/09</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-09", name:"会议行动项自动执行器",
+    desc:"像 Velozity「AI 从对话中提取行动项并自动执行」那样演示会议后行动项闭环：粘贴会议纪要 → 规则解析自动提取行动项（负责人/任务/截止日期，如「王芳：汇总9月销售数据…，10月11日前」）→ 按关键词自动匹配 5 个 RPA 流程（销售报表/回款催收/ERP 录入/周报生成/报销提交），下拉可改、未匹配走人工 → 单项或一键模拟执行（逐步日志）→ 统计卡跟踪已匹配/已执行/逾期。讲 RPA 落地的『会议决议到自动执行』主题的强素材。",
+    src:"10/09 资讯 · Velozity（4星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-09_%E4%BC%9A%E8%AE%AE%E8%A1%8C%E5%8A%A8%E9%A1%B9%E8%87%AA%E5%8A%A8%E6%89%A7%E8%A1%8C%E5%99%A8/%E4%BC%9A%E8%AE%AE%E8%A1%8C%E5%8A%A8%E9%A1%B9%E8%87%AA%E5%8A%A8%E6%89%A7%E8%A1%8C%E5%99%A8_%E7%BD%91%E9%A1%B5%E7%89%88.html"
+  },
   {
     date:"10-08", name:"Excel操作录制器",
     desc:"像 IrisGo「演示一次，自动运行」那样演示 Excel 自动化零门槛：在模拟工作表上手动点选操作（删除空行/填充缺失值/转换日期格式/按区域汇总/生成透视表）→ 每次操作自动录制为步骤并实时反映在表格数据上 →「生成脚本」把录制步骤转成带中文注释、参数化（文件路径/日期范围）的 pandas+openpyxl 脚本，可复制/下载直接运行 →「批量执行」对 3 个文件套用同一脚本（含失败分支与执行日志）。讲 RPA 落地的『Excel 重复工作自动化』主题的强素材。",
