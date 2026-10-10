@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 流程安全网关 · 执行前影响预览 → 备份 → 拦截 → 审计 → 回滚</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+  --codebg:#0d1117; --codeline:#21262d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1320px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.25;min-width:430px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.15;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.scripts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.script{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer;color:var(--fg)}
+.script:hover{border-color:var(--pri)}
+.script.sel{border-color:var(--pri);box-shadow:0 0 0 1px rgba(108,123,255,.45)}
+textarea.code{width:100%;background:var(--codebg);border:1px solid var(--line);border-radius:10px;color:#a8c0e8;padding:10px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;min-height:170px;resize:vertical;line-height:1.7}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.impacts{display:flex;flex-direction:column;gap:7px}
+.imp{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:8px 11px;background:var(--card2);border:1px solid var(--line);border-radius:9px}
+.imp .kind{width:64px;font-size:11px;border-radius:6px;padding:2px 6px;text-align:center;flex-shrink:0}
+.imp .kind.read{background:rgba(57,208,255,.15);color:var(--cy)}
+.imp .kind.write{background:rgba(108,123,255,.18);color:#aab6ff}
+.imp .kind.del{background:rgba(255,107,129,.18);color:var(--bad)}
+.imp .kind.api{background:rgba(47,217,138,.15);color:var(--ok)}
+.imp .kind.mail{background:rgba(255,179,92,.18);color:var(--warn)}
+.imp .lv{margin-left:auto;font-size:11px;border-radius:6px;padding:2px 7px;flex-shrink:0}
+.imp .lv.low{background:rgba(47,217,138,.15);color:var(--ok)}
+.imp .lv.mid{background:rgba(255,179,92,.18);color:var(--warn)}
+.imp .lv.high{background:rgba(255,107,129,.2);color:var(--bad)}
+.backups{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.bak{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card2);border:1px dashed var(--line);border-radius:8px}
+.bak .ok{color:var(--ok)}
+.overlay{position:fixed;inset:0;background:rgba(10,12,24,.72);display:none;align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.card{background:var(--card);border:1px solid var(--pri);border-radius:16px;padding:22px;max-width:480px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.card h4{font-size:15px;color:var(--warn);margin-bottom:10px}
+.card .det{font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:16px}
+.card .det b{color:var(--fg)}
+.card .row{display:flex;gap:10px;justify-content:flex-end}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:170px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .cy{color:var(--cy)} .audit .bad{color:var(--bad)}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+@media(max-width:900px){ .col,.side{min-width:0;max-width:100%} .main{flex-direction:column} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RPA 流程安全网关
+    <span class="sub">像 Termaxa 那样演示「自动化执行前的安全闭环」：粘贴/选择脚本 → 静态分析影响范围（读/写/删/API/邮件 + 风险分级）→ 自动备份将被改数据 → 高风险操作人工确认 → 执行留不可篡改审计日志 → 一键回滚 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 自动化脚本 <small>选择示例或自由粘贴，点「静态分析」</small></h3>
+        <div class="scripts" id="scripts"></div>
+        <textarea class="code" id="codeInp" spellcheck="false"></textarea>
+        <div class="actions">
+          <button class="btn" id="btnAnalyze" onclick="analyze()">🔍 静态分析影响范围</button>
+          <button class="btn ghost" onclick="resetAll()">重置</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>② 影响范围预览 <small>脚本将执行的操作清单 + 风险分级</small></h3>
+        <div class="impacts" id="impacts"><span style="font-size:12px;color:var(--muted)">分析后在此展示影响范围报告</span></div>
+      </div>
+      <div class="panel">
+        <h3>③ 自动备份 <small>将被修改/删除的数据先做快照，可一键回滚</small></h3>
+        <div class="backups" id="backups"><span style="font-size:12px;color:var(--muted)">分析后自动生成备份清单</span></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>④ 执行 <small>风险放行后分步执行 + 审计日志（不可篡改）</small></h3>
+        <div class="actions" style="margin-top:0">
+          <button class="btn" id="btnExec" onclick="execScript()" disabled>▶ 执行流程</button>
+          <button class="btn ghost" id="btnRollback" onclick="rollback()" disabled>↩ 一键回滚</button>
+        </div>
+        <div class="audit" id="audit"></div>
+        <div class="legend">
+          <span><i style="background:var(--ok)"></i>低风险</span>
+          <span><i style="background:var(--warn)"></i>中风险</span>
+          <span><i style="background:var(--bad)"></i>高风险（需人工确认）</span>
+          <span><i style="background:var(--cy)"></i>审计日志</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>⑤ 说明 <small>这个工具解决什么</small></h3>
+        <div class="legend" style="margin:0;line-height:1.9;font-size:12px;color:var(--muted)">
+          · RPA 脚本跑错了影响面很大（误删/覆盖/改错库），跑完才发现代价高<br>
+          · 本工具执行前先静态分析脚本「要动哪些文件/接口」，按风险分级<br>
+          · 将被改的数据自动备份 → 高风险操作人工确认 → 全程不可篡改审计<br>
+          · 出问题一键回滚到执行前状态，让自动化「敢跑、能查、可退」
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="card">
+    <h4>⚠ 检测到高风险操作，需人工确认</h4>
+    <div class="det" id="apDet">…</div>
+    <div class="row">
+      <button class="btn ghost" onclick="approve(false)">拒绝执行</button>
+      <button class="btn" onclick="approve(true)">批准执行</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ── 示例自动化脚本 ── */
+const SCRIPTS = [
+  { id:"s1", name:"月度订单汇总.py", text:
+`import pandas as pd
+
+# 读取本月订单明细
+df = pd.read_excel("data/订单明细.xlsx")
+
+# 按区域汇总金额
+grouped = df.groupby("区域")["金额"].sum().reset_index()
+
+# 写入汇总结果
+grouped.to_excel("output/月度汇总.xlsx", index=False)
+
+# 清理上月的临时缓存文件
+import os
+for f in os.listdir("cache/"):
+    if f.endswith(".tmp"):
+        os.remove("cache/" + f)` },
+  { id:"s2", name:"客户数据迁移.py", text:
+`import shutil, requests, smtplib
+
+# 读取客户库快照
+shutil.copy("data/客户库.xlsx", "backup/客户库_迁移前.xlsx")
+
+# 写入新客户库
+import pandas as pd
+df = pd.read_excel("data/客户库.xlsx")
+df.to_excel("newdb/客户库_v2.xlsx", index=False)
+
+# 调用 CRM API 同步客户
+requests.post("https://crm.example.com/sync", json={"db":"newdb"})
+
+# 发送迁移完成通知邮件
+smtplib.SMTP("smtp.example.com").sendmail("rpa@example.com",
+    ["ops@example.com"], "客户数据迁移完成")
+
+# 删除旧客户库
+os.remove("data/客户库.xlsx")` }
+];
+let impacts = [], backups = [], pendingApproval = null, execState = "idle";
+const $ = id => document.getElementById(id);
+const A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function renderScripts(){
+  $("scripts").innerHTML = SCRIPTS.map(s =>
+    `<button class="script" data-id="${s.id}" onclick="pickScript('${s.id}')">${s.name}</button>`).join("");
+}
+function pickScript(id){
+  SCRIPTS.forEach(s => $("scripts").querySelector(`.script[data-id="${s.id}"]`).classList.toggle("sel", s.id === id));
+  $("codeInp").value = SCRIPTS.find(s => s.id === id).text;
+  log(`已选择脚本「${SCRIPTS.find(s=>s.id===id).name}」`, "w");
+}
+
+/* ── 静态分析：危险模式匹配 → 影响清单 + 风险分级 ── */
+function analyze(){
+  const code = $("codeInp").value;
+  if(!code.trim()){ log("请先输入脚本内容", "w"); return; }
+  impacts = []; backups = [];
+  const RULES = [
+    { re:/read_excel\(|read_csv\(|open\([^)]*["']r/, kind:"读取", desc:"读取文件数据", lv:"low" },
+    { re:/to_excel\(|to_csv\(|open\([^)]*["']w/, kind:"写入", desc:"写入/覆盖文件", lv:"mid" },
+    { re:/os\.remove\(|os\.unlink\(|shutil\.rmtree\(|rm\s+-rf/, kind:"删除", desc:"删除文件/目录（不可逆）", lv:"high" },
+    { re:/requests\.(get|post|put|delete)\(/, kind:"API", desc:"调用外部 API", lv:"mid" },
+    { re:/smtplib|sendmail\(/, kind:"邮件", desc:"发送邮件", lv:"mid" }
+  ];
+  const files = new Set();
+  const reFile = /["']([\w\u4e00-\u9fa5./\\-]+\.(xlsx|csv|json|tmp|txt))["']/g;
+  let m;
+  while((m = reFile.exec(code))) files.add(m[1]);
+  for(const r of RULES){
+    const cnt = (code.match(r.re) || []).length;
+    if(cnt > 0){
+      impacts.push({ kind:r.kind, desc:r.desc, n:cnt, lv:r.lv });
+      // 删除类 → 备份受影响文件
+      if(r.kind === "删除"){
+        for(const f of files){ backups.push({ f, act:"删除前快照" }); }
+      }
+    }
+  }
+  for(const f of files){
+    if(!backups.some(b => b.f === f)) backups.push({ f, act:"执行前快照" });
+  }
+  if(!impacts.length){ impacts.push({ kind:"读取", desc:"未发现高风险操作", n:0, lv:"low" }); }
+  renderImpacts(); renderBackups();
+  $("btnExec").disabled = false;
+  const highN = impacts.filter(i => i.lv === "high").length;
+  log(`静态分析完成：${impacts.length} 类操作，高风险 ${highN} 项，已生成 ${backups.length} 个备份快照`, "p");
+}
+function renderImpacts(){
+  $("impacts").innerHTML = impacts.map(i => `
+    <div class="imp">
+      <span class="kind ${i.kind==="读取"?"read":i.kind==="写入"?"write":i.kind==="删除"?"del":i.kind==="API"?"api":"mail"}">${i.kind}</span>
+      <span>${i.desc}${i.n ? `（${i.n} 处）` : ""}</span>
+      <span class="lv ${i.lv}">${i.lv==="low"?"低风险":i.lv==="mid"?"中风险":"高风险"}</span>
+    </div>`).join("");
+}
+function renderBackups(){
+  $("backups").innerHTML = backups.length ? backups.map(b => `
+    <div class="bak"><span class="ok">✔</span><span>${b.f}</span><span style="margin-left:auto">${b.act}</span></div>`).join("")
+    : `<span style="font-size:12px;color:var(--muted)">无需要备份的文件</span>`;
+}
+
+/* ── 执行：高风险拦截 → 分步执行 → 审计 ── */
+async function execScript(){
+  if(execState === "run") return;
+  const high = impacts.filter(i => i.lv === "high");
+  if(high.length && !window.highApproved){
+    pendingApproval = high;
+    const h = high[0];
+    $("apDet").innerHTML = `操作：<b>${h.desc}</b><br>影响文件：<b>${backups.filter(b=>b.act==="删除前快照").map(b=>b.f).join("、") || "多个文件"}</b><br>已自动备份以上文件，批准后执行可一键回滚。`;
+    $("overlay").classList.add("show");
+    log(`🔴 高风险操作「${h.desc}」触发人工确认`, "w");
+    return;
+  }
+  execState = "run";
+  $("btnExec").disabled = true;
+  log("▶ 流程开始执行…", "p");
+  await sleep(600);
+  for(const i of impacts){
+    await sleep(500);
+    log(`  ✓ ${i.desc}${i.n ? `（${i.n} 处）` : ""} 完成`, "ok");
+  }
+  execState = "done";
+  $("btnRollback").disabled = false;
+  log("✅ 流程执行完成；审计日志已写入（不可篡改：哈希锁定 H-7F3A）", "ok");
+}
+async function approve(ok){
+  $("overlay").classList.remove("show");
+  if(ok){
+    window.highApproved = true;
+    log("🟢 高风险操作已人工批准，继续执行", "cy");
+    await sleep(300);
+    execScript();
+  }else{
+    log("⛔ 高风险操作被拒绝，流程未执行任何变更；可调整脚本后重新分析", "bad");
+    $("btnExec").disabled = true;
+  }
+}
+
+/* ── 回滚 ── */
+async function rollback(){
+  if(execState !== "done") return;
+  $("btnRollback").disabled = true;
+  log("↩ 正在从备份快照回滚…", "w");
+  await sleep(800);
+  for(const b of backups){ log(`  ✓ 已恢复 ${b.f}（快照还原）`, "ok"); }
+  log("✅ 回滚完成：所有受影响文件已恢复到执行前状态；审计日志追加回滚记录 H-R9B2", "ok");
+  execState = "rolledback";
+}
+function resetAll(){
+  impacts = []; backups = []; pendingApproval = null; execState = "idle";
+  window.highApproved = false;
+  $("codeInp").value = ""; renderImpacts(); renderBackups(); A.innerHTML = "";
+  $("btnExec").disabled = true; $("btnRollback").disabled = true;
+  SCRIPTS.forEach(s => $("scripts").querySelector(`.script[data-id="${s.id}"]`).classList.remove("sel"));
+  log("已重置", "w");
+}
+
+renderScripts();
+pickScript("s1");
+log("就绪：选择示例脚本（或粘贴自己的）→「静态分析影响范围」→ 高风险人工确认 →「执行流程」→ 可「一键回滚」", "w");
+</script>
+</body>
+</html>
