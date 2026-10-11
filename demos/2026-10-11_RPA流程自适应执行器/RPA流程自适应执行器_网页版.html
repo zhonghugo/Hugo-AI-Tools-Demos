@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RPA流程自适应执行器 · 网页版</title>
+<style>
+:root{--primary:#1d4ed8;--primary-l:#eff6ff;--ok:#059669;--ok-l:#ecfdf5;--warn:#b45309;--warn-l:#fffbeb;--bad:#dc2626;--bad-l:#fef2f2;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+header{text-align:center;margin-bottom:18px}
+.badge{display:inline-block;background:var(--primary-l);color:var(--primary);font-size:12px;padding:3px 12px;border-radius:99px;margin-bottom:8px}
+h1{font-size:26px}
+.sub{color:var(--muted);font-size:14px;margin-top:6px}
+.stats{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:14px}
+.stats div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 16px;text-align:center;min-width:104px}
+.stats b{font-size:20px;color:var(--primary);display:block}
+.stats span{font-size:12px;color:var(--muted)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.panel h2{font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;flex:none}
+label{font-size:13px;color:var(--muted);display:block;margin:8px 0 4px}
+select,textarea,input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff}
+textarea{resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>div{flex:1;min-width:200px}
+button{border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-p{background:var(--primary);color:#fff}
+.btn-g{background:var(--ok);color:#fff}
+.btn-w{background:var(--warn);color:#fff}
+.btn-o{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f1f5f9;text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px 9px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;white-space:nowrap}
+.tag-model{background:var(--warn-l);color:var(--warn)}
+.tag-free{background:var(--ok-l);color:var(--ok)}
+.tag-ok{background:var(--ok-l);color:var(--ok)}
+.tag-bad{background:var(--bad-l);color:var(--bad)}
+.tag-fix{background:var(--primary-l);color:var(--primary)}
+.tag-run{background:#f1f5f9;color:var(--muted)}
+code{background:#f1f5f9;border-radius:4px;padding:1px 6px;font-size:12px;font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+.log{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px;font-size:12px;font-family:ui-monospace,Menlo,monospace;max-height:260px;overflow-y:auto;line-height:1.8;min-height:80px}
+.log .t{color:#64748b}
+.log .g{color:#4ade80}
+.log .y{color:#fbbf24}
+.log .r{color:#f87171}
+.log .b{color:#60a5fa}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.card-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:10px}
+.act-card{border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;background:var(--bg)}
+.act-card b{display:block;font-size:13px}
+.act-card .sel{color:var(--primary);font-size:11px;word-break:break-all}
+.act-card .meta{color:var(--muted);font-size:11px;margin-top:4px}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:18px 0}
+.flow-banner{background:linear-gradient(90deg,var(--primary-l),#fff);border:1px dashed var(--primary);border-radius:10px;padding:10px 14px;font-size:13px;margin-top:12px}
+.flow-banner b{color:var(--primary)}
+footer{margin-top:26px;font-size:12px;color:var(--muted);text-align:center;line-height:1.8}
+@media(max-width:560px){h1{font-size:21px}.stats div{min-width:84px;padding:6px 10px}.panel{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">流程自动化 / RPA + AI 落地</span>
+    <h1>RPA 流程自适应执行器</h1>
+    <p class="sub">灵感来自 tester-army/e2e（GitHub 7.2k stars）：首次用 AI 探索并<b>录制</b>业务流程，之后<b>零模型调用重放</b>；页面改版自动检测，交回 AI 重新探索并更新录制。AI 的灵活性 × 脚本的低成本。</p>
+    <div class="stats">
+      <div><b id="stExplore">0</b><span>AI 探索次数</span></div>
+      <div><b id="stModel">0</b><span>模型调用次数</span></div>
+      <div><b id="stReplay">0</b><span>零模型重放次数</span></div>
+      <div><b id="stSave">¥0.0</b><span>重放节省成本</span></div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2><span class="step-num">1</span> 流程配置（业务表单）</h2>
+    <div class="row">
+      <div>
+        <label for="flow">选择业务流程</label>
+        <select id="flow">
+          <option value="qcc">企查查 · 导出行业企业名单存 Excel</option>
+          <option value="erp">ERP 后台 · 导出本月订单明细</option>
+          <option value="invoice">税务平台 · 批量发票验真</option>
+          <option value="custom">自定义（在下方描述）</option>
+        </select>
+      </div>
+      <div>
+        <label for="sched">重放调度方式</label>
+        <select id="sched">
+          <option value="daily">每日 08:00 定时重放</option>
+          <option value="hourly">每小时重放</option>
+          <option value="manual">手动触发重放</option>
+        </select>
+      </div>
+    </div>
+    <label for="nl">自然语言流程描述</label>
+    <textarea id="nl" rows="2">每天从企查查导出「深圳 软件开发」行业企业名单，提取企业名称/法人/注册资本，存入 Excel 并按注册资本排序。</textarea>
+    <label for="scenario">页面变化模拟（测试自适应能力）</label>
+    <select id="scenario">
+      <option value="none">不注入变化（正常重放）</option>
+      <option value="btn">改版①：搜索按钮 id 变化（search-btn → query-btn）</option>
+      <option value="table">改版②：结果表格结构变化（table.result → div.list）</option>
+    </select>
+    <div class="btns">
+      <button class="btn-p" id="btnExplore">① AI 探索执行（首次）</button>
+      <button class="btn-g" id="btnReplay" disabled>② 零模型重放</button>
+      <button class="btn-o" id="btnReset">重置</button>
+    </div>
+    <p class="hint">提示：先执行「① AI 探索」生成录制缓存，再点「② 零模型重放」观察成本对比；选择一种「页面变化模拟」后再重放，可看到自动检测失败 → AI 重新探索 → 更新录制 → 重放恢复的完整自适应闭环。</p>
+  </div>
+
+  <div class="panel">
+    <h2><span class="step-num">2</span> 录制的动作序列 <span id="cacheTag" class="tag tag-run" style="display:none">replay cache 已就绪</span></h2>
+    <div class="tbl-wrap">
+      <table id="actTable">
+        <thead><tr><th>#</th><th>操作</th><th>目标定位器</th><th>说明</th><th>录制方式</th></tr></thead>
+        <tbody id="actBody"><tr><td colspan="5" class="empty">尚未录制——先执行「① AI 探索执行」</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="step-num">3</span> 执行日志</h2>
+    <div class="log" id="log"><span class="t">[就绪] 配置流程后点击「① AI 探索执行」。本页面为模拟演示，所有页面与耗时均为预设示例数据。</span></div>
+  </div>
+
+  <div class="flow-banner">
+    <b>这套机制为什么省钱：</b>传统「每次都让 AI 现场操作网页」每次执行都要调用大模型（慢、贵、不稳定）；
+    纯脚本 RPA 虽然重放零成本，但页面一改版就崩，维护选择器是长期负担。
+    e2e 的 replay cache 模式 = <b>首次 AI 探索录制 → 之后零模型重放 → 变化时才交回 AI 重新探索</b>，把「贵但聪明」和「便宜但脆」的两条路拼成了一条又省钱又稳的路。
+  </div>
+
+  <footer>
+    数据说明：本工具为模拟演示器，页面操作、耗时与成本均为预设示例数据，用于讲解「AI 探索录制 + 零模型重放 + 变化自愈」机制。<br>
+    Demo 合集：https://github.com/zhonghugo/Hugo-AI-Tools-Demos · 2026-10-11
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- 预设示例数据（固化进 JS） ---------- */
+var FLOWS = {
+  qcc: {
+    name: "企查查 · 导出行业企业名单",
+    steps: [
+      {act:"打开页面", sel:"https://www.qcc.com/search", note:"进入企业搜索页"},
+      {act:"输入关键词", sel:"input#searchkey", note:"深圳 软件开发"},
+      {act:"点击搜索", sel:"button.search-btn", note:"触发检索"},
+      {act:"等待结果", sel:"table.result", note:"等待列表渲染（≤3s）"},
+      {act:"提取数据", sel:"table.result tr", note:"企业名称/法人/注册资本 ×20"},
+      {act:"写入Excel", sel:"本地文件 qcc_名单_2026-10-11.xlsx", note:"追加并按注册资本排序"}
+    ],
+    changed: {
+      btn:  {idx:2, oldSel:"button.search-btn", newSel:"button#query-btn", reason:"搜索按钮 id 变化"},
+      table:{idx:3, oldSel:"table.result", newSel:"div.list > div.item", reason:"结果表格改为 div 列表，连带第4步提取目标"}
+    }
+  },
+  erp: {
+    name: "ERP 后台 · 导出本月订单明细",
+    steps: [
+      {act:"打开页面", sel:"https://erp.demo.com/order", note:"进入订单管理页"},
+      {act:"选择日期", sel:"input#date-range", note:"2026-10-01 ~ 2026-10-11"},
+      {act:"点击查询", sel:"button.btn-query", note:"加载本月订单"},
+      {act:"点击导出", sel:"button.export-excel", note:"导出 xlsx"},
+      {act:"保存文件", sel:"下载目录 /订单明细_10月.xlsx", note:"校验行数>0"}
+    ],
+    changed: {
+      btn:  {idx:2, oldSel:"button.btn-query", newSel:"button#do-search", reason:"查询按钮 id 变化"},
+      table:{idx:3, oldSel:"button.export-excel", newSel:"a.export-link", reason:"导出按钮改为链接元素"}
+    }
+  },
+  invoice: {
+    name: "税务平台 · 批量发票验真",
+    steps: [
+      {act:"打开页面", sel:"https://inv-veri.tax.cn", note:"进入发票查验页"},
+      {act:"上传清单", sel:"input#file-upload", note:"待验发票清单.csv（30行）"},
+      {act:"循环验真", sel:"form#verify-panel", note:"逐张提交发票代码+号码"},
+      {act:"提取结果", sel:"div.verify-result", note:"真伪/开票方 ×30"},
+      {act:"写入Excel", sel:"本地文件 发票验真结果.xlsx", note:"异常行标红待人工复核"}
+    ],
+    changed: {
+      btn:  {idx:2, oldSel:"form#verify-panel", newSel:"form#verify-v2-panel", reason:"验真表单容器 id 变化"},
+      table:{idx:3, oldSel:"div.verify-result", newSel:"table.result-tbl", reason:"结果区从 div 改为表格"}
+    }
+  }
+};
+var STEP_MS_EXPLORE = [1200, 900, 800, 1500, 2400, 900];   // AI 探索各步模拟耗时（含模型思考）
+var STEP_MS_REPLAY  = [80, 60, 50, 120, 180, 60];          // 重放各步模拟耗时（无模型）
+var MODEL_COST_PER_CALL = 0.35;  // 演示用单次模型调用估算成本（元）
+var DELAY = 380;                 // 每条日志间隔
+
+/* ---------- 状态 ---------- */
+var state = { recorded:null, changedAt:null, explore:0, model:0, replay:0, saved:0, running:false };
+
+/* ---------- 工具 ---------- */
+function $(id){ return document.getElementById(id); }
+function now(){ var d=new Date(); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+":"+("0"+d.getSeconds()).slice(-2); }
+function log(html){
+  var el=$("log"), line=document.createElement("div");
+  line.innerHTML='<span class="t">['+now()+']</span> '+html;
+  el.appendChild(line); el.scrollTop=el.scrollHeight;
+}
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function fmtMS(ms){ return ms>=1000 ? (ms/1000).toFixed(1)+"s" : ms+"ms"; }
+function updateStats(){
+  $("stExplore").textContent=state.explore;
+  $("stModel").textContent=state.model;
+  $("stReplay").textContent=state.replay;
+  $("stSave").textContent="¥"+state.saved.toFixed(1);
+}
+function renderActs(){
+  var tb=$("actBody");
+  if(!state.recorded){ tb.innerHTML='<tr><td colspan="5" class="empty">尚未录制——先执行「① AI 探索执行」</td></tr>'; return; }
+  var html="";
+  state.recorded.forEach(function(s,i){
+    var tag = s.fixed ? '<span class="tag tag-fix">AI 重新探索更新</span>'
+             : (state.changedAt!==null && i===state.changedAt ? '<span class="tag tag-bad">上次在此失败</span>'
+             : '<span class="tag tag-model">AI 探索录制</span>');
+    html+="<tr><td>"+(i+1)+"</td><td><b>"+esc(s.act)+"</b></td><td><code>"+esc(s.sel)+"</code></td><td>"+esc(s.note)+"</td><td>"+tag+"</td></tr>";
+  });
+  tb.innerHTML=html;
+}
+
+/* ---------- ① AI 探索执行 ---------- */
+async function explore(silentResume){
+  var flowKey=$("flow").value, flow=FLOWS[flowKey==="custom"?"qcc":flowKey];
+  if(state.running) return;
+  state.running=true; $("btnExplore").disabled=true; $("btnReplay").disabled=true; $("btnReset").disabled=true;
+  var nl = $("nl").value.trim() || flow.name;
+  if(!silentResume){
+    state.recorded=null; state.changedAt=null;
+    log('<span class="b">── ① AI 探索模式启动 ──</span>');
+    log('自然语言目标：<span class="b">'+esc(nl.slice(0,60))+(nl.length>60?"…":"")+'</span>');
+    log('<span class="y">🤖 调用大模型解析目标 → 生成浏览器操作计划（'+flow.steps.length+' 步）</span>');
+    await sleep(DELAY);
+  } else {
+    log('<span class="b">── 🤖 交回 AI 重新探索（页面已改版）──</span>');
+  }
+  state.explore++;
+  var acts=[];
+  for(var i=0;i<flow.steps.length;i++){
+    var s=flow.steps[i];
+    var ms = STEP_MS_EXPLORE[i % STEP_MS_EXPLORE.length];
+    state.model++;
+    var sel = s.sel;
+    if(silentResume && flow.changed[$("scenario").value]){
+      var ch=flow.changed[$("scenario").value];
+      var ci=ch.idx;
+      if(i===ci){ sel=ch.newSel; }
+    }
+    var item={act:s.act, sel:sel, note:s.note, fixed: !!(silentResume && flow.changed[$("scenario").value] && flow.changed[$("scenario").value].idx===i)};
+    acts.push(item);
+    log('<span class="g">✓ 步骤'+(i+1)+'</span> '+esc(s.act)+' → <code>'+esc(sel)+'</code>（模型思考+执行 '+fmtMS(ms)+'，🤖×1）');
+    renderActs0(acts);
+    await sleep(DELAY);
+  }
+  state.recorded=acts;
+  if(silentResume){
+    var ch=flow.changed[$("scenario").value];
+    log('<span class="g">🤖 重新探索完成：定位器已更新（'+esc(ch.reason)+'），重写 replay cache</span>');
+  } else {
+    log('<span class="g">── 录制完成：'+acts.length+' 个动作已写入 replay cache，后续重放无需再调模型 ──</span>');
+  }
+  log('<span class="t">调度：'+$("sched").options[$("sched").selectedIndex].text+'（演示环境为手动触发）</span>');
+  renderActs();
+  $("cacheTag").style.display="inline-block";
+  $("cacheTag").className="tag tag-ok";
+  $("cacheTag").textContent="replay cache 已就绪（v"+state.explore+"）";
+  $("btnReplay").disabled=false; $("btnExplore").disabled=false; $("btnReset").disabled=false;
+  state.running=false;
+  updateStats();
+}
+function renderActs0(acts){
+  var tb=$("actBody"), html="";
+  acts.forEach(function(s,i){
+    html+="<tr><td>"+(i+1)+"</td><td><b>"+esc(s.act)+"</b></td><td><code>"+esc(s.sel)+"</code></td><td>"+esc(s.note)+"</td><td><span class='tag tag-run'>录制中…</span></td></tr>";
+  });
+  tb.innerHTML=html;
+}
+
+/* ---------- ② 零模型重放 ---------- */
+async function replay(){
+  if(state.running || !state.recorded) return;
+  var flowKey=$("flow").value, flow=FLOWS[flowKey==="custom"?"qcc":flowKey];
+  var scv=$("scenario").value, changed=scv!=="none" ? flow.changed[scv] : null;
+  state.running=true; $("btnExplore").disabled=true; $("btnReplay").disabled=true; $("btnReset").disabled=true;
+  $("cacheTag").className="tag tag-run"; $("cacheTag").textContent="重放中…";
+  log('<span class="b">── ② 零模型重放开始（⚡ 模型调用 = 0）──</span>');
+  await sleep(DELAY);
+  var failAt=-1;
+  for(var i=0;i<state.recorded.length;i++){
+    var s=state.recorded[i];
+    var ms = STEP_MS_REPLAY[i % STEP_MS_REPLAY.length];
+    if(changed && i===changed.idx && state.changedAt!==i){
+      log('<span class="r">✗ 步骤'+(i+1)+' '+esc(s.act)+' 失败：定位器 <code>'+esc(s.sel)+'</code> 未命中（'+esc(changed.reason)+'）</span>');
+      failAt=i; break;
+    }
+    log('<span class="g">✓ 步骤'+(i+1)+'</span> '+esc(s.act)+' → <code>'+esc(s.sel)+'</code>（'+ms+'ms，<span class="y">⚡0 模型调用</span>）');
+    await sleep(240);
+  }
+  if(failAt>=0){
+    state.changedAt=failAt;
+    renderActs();
+    $("cacheTag").className="tag tag-bad"; $("cacheTag").textContent="重放失败 · 检测到页面变化";
+    log('<span class="y">🔍 自动检测：连续 2 次定位失败 → 判定页面改版，按策略交回 AI 重新探索（而非盲目重试）</span>');
+    await sleep(DELAY*2);
+    $("cacheTag").className="tag tag-model"; $("cacheTag").textContent="AI 重新探索中…";
+    state.running=false;
+    await explore(true);
+    log('<span class="g">── 自愈完成：再次自动重放验证 ──</span>');
+    await sleep(400);
+    await verifyReplay();
+  } else {
+    state.replay++;
+    var est = flow.steps.length * MODEL_COST_PER_CALL;
+    state.saved += est;
+    log('<span class="g">── 重放成功：'+state.recorded.length+' 步全部命中，全程 0 次模型调用，估算节省 ¥'+est.toFixed(2)+' ──</span>');
+    log('<span class="t">重放总耗时 '+ (state.recorded.length*0.12).toFixed(1) +'s（探索模式约需 '+ (state.recorded.length*1.3).toFixed(1) +'s）</span>');
+    $("cacheTag").className="tag tag-ok"; $("cacheTag").textContent="replay cache 已就绪（v"+state.explore+"）";
+    state.running=false;
+    $("btnExplore").disabled=false; $("btnReplay").disabled=false; $("btnReset").disabled=false;
+    updateStats();
+  }
+}
+async function verifyReplay(){
+  if(!state.recorded) return;
+  var flowKey=$("flow").value, flow=FLOWS[flowKey==="custom"?"qcc":flowKey];
+  var scv=$("scenario").value, changed=scv!=="none" ? flow.changed[scv] : null;
+  for(var i=0;i<state.recorded.length;i++){
+    var s=state.recorded[i];
+    var ms = STEP_MS_REPLAY[i % STEP_MS_REPLAY.length];
+    if(changed && i===changed.idx){
+      log('<span class="r">✗ 步骤'+(i+1)+' 仍失败？</span> 使用更新后定位器 <code>'+esc(s.sel)+'</code> 重试…');
+      await sleep(300);
+      log('<span class="g">✓ 步骤'+(i+1)+'</span> 新定位器命中（'+ms+'ms，⚡0 模型调用）——更新生效');
+    } else {
+      log('<span class="g">✓ 步骤'+(i+1)+'</span> '+esc(s.act)+'（'+ms+'ms，⚡0 模型调用）');
+    }
+    await sleep(200);
+  }
+  state.replay++;
+  var est = state.recorded.length * MODEL_COST_PER_CALL;
+  state.saved += est;
+  log('<span class="g">── 验证重放成功：改版后的流程已重新缓存，继续零成本运行 ──</span>');
+  $("cacheTag").className="tag tag-ok"; $("cacheTag").textContent="replay cache 已就绪（v"+state.explore+"）";
+  state.changedAt=null;
+  renderActs();
+  state.running=false;
+  $("btnExplore").disabled=false; $("btnReplay").disabled=false; $("btnReset").disabled=false;
+  updateStats();
+}
+
+/* ---------- 事件 ---------- */
+$("flow").addEventListener("change",function(){
+  var k=$("flow").value;
+  if(k!=="custom") $("nl").value = {qcc:"每天从企查查导出「深圳 软件开发」行业企业名单，提取企业名称/法人/注册资本，存入 Excel 并按注册资本排序。",erp:"登录 ERP 后台，导出 2026 年 10 月 1 日至今天的订单明细 Excel，校验行数并归档。",invoice:"上传待验发票清单，逐张在税务平台验真，结果写入 Excel 并标红异常行。"}[k];
+});
+$("btnExplore").addEventListener("click",function(){ explore(false); });
+$("btnReplay").addEventListener("click", replay);
+$("btnReset").addEventListener("click",function(){
+  state={recorded:null,changedAt:null,explore:0,model:0,replay:0,saved:0,running:false};
+  $("log").innerHTML='<span class="t">[就绪] 配置流程后点击「① AI 探索执行」。本页面为模拟演示，所有页面与耗时均为预设示例数据。</span>';
+  $("cacheTag").style.display="none";
+  $("btnReplay").disabled=true; $("btnExplore").disabled=false;
+  renderActs(); updateStats();
+});
+updateStats();
+</script>
+</body>
+</html>
