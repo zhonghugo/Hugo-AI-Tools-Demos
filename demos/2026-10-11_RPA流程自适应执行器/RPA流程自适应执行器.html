@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 流程自适应执行器 · 自然语言→Agent探索录制→零模型重放→变化自适应</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+  --codebg:#0d1117;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1320px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.25;min-width:430px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.15;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.tasks{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.task{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer;color:var(--fg)}
+.task:hover{border-color:var(--pri)}
+.task.sel{border-color:var(--pri);box-shadow:0 0 0 1px rgba(108,123,255,.45)}
+textarea.inp{width:100%;background:var(--codebg);border:1px solid var(--line);border-radius:10px;color:#a8c0e8;padding:10px;font-size:12.5px;font-family:inherit;min-height:84px;resize:vertical;line-height:1.8}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.steps{display:flex;flex-direction:column;gap:6px;max-height:230px;overflow:auto}
+.step{display:flex;align-items:center;gap:9px;font-size:12px;padding:7px 10px;background:var(--card2);border:1px solid var(--line);border-radius:8px}
+.step .no{width:22px;height:22px;border-radius:50%;background:rgba(108,123,255,.2);color:#aab6ff;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.step .op{width:52px;font-size:11px;border-radius:6px;padding:2px 5px;text-align:center;flex-shrink:0}
+.step .op.click{background:rgba(57,208,255,.15);color:var(--cy)}
+.step .op.type{background:rgba(108,123,255,.18);color:#aab6ff}
+.step .op.wait{background:rgba(255,179,92,.18);color:var(--warn)}
+.step .op.get{background:rgba(47,217,138,.15);color:var(--ok)}
+.step .st{margin-left:auto;font-size:11px;border-radius:6px;padding:2px 7px;flex-shrink:0}
+.step .st.pend{background:rgba(143,151,196,.15);color:var(--muted)}
+.step .st.run{background:rgba(57,208,255,.2);color:var(--cy)}
+.step .st.ok{background:rgba(47,217,138,.18);color:var(--ok)}
+.step .st.fix{background:rgba(255,107,129,.18);color:var(--bad)}
+.step .st.upd{background:rgba(255,179,92,.2);color:var(--warn)}
+.dataT{width:100%;border-collapse:collapse;font-size:12px}
+.dataT th{background:var(--card2);color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.dataT td{padding:6px 8px;border-bottom:1px solid rgba(42,49,88,.5)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;font-size:12px}
+.stat{flex:1;min-width:90px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 11px;text-align:center}
+.stat b{display:block;font-size:18px;color:var(--fg)}
+.stat span{color:var(--muted);font-size:11px}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
+.toggle input{accent-color:var(--pri)}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:180px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .cy{color:var(--cy)} .audit .bad{color:var(--bad)}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+@media(max-width:900px){ .col,.side{min-width:0;max-width:100%} .main{flex-direction:column} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RPA 流程自适应执行器
+    <span class="sub">像 tester-army/e2e 那样演示「AI Agent 驱动网页自动化的弹性闭环」：自然语言描述流程 → AI 首次探索并录制动作（点击/输入/等待/提取）→ 之后定时重放（零模型调用）→ 页面变化自动检测 → 交回 Agent 重新探索并更新录制 → 执行报告 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 业务流程描述 <small>选择示例或自由输入，点「AI 探索并录制」</small></h3>
+        <div class="tasks" id="tasks"></div>
+        <textarea class="inp" id="taskInp" spellcheck="false"></textarea>
+        <div class="actions">
+          <button class="btn" id="btnRecord" onclick="recordFlow()">🤖 AI 探索并录制</button>
+          <button class="btn ghost" id="btnReplay" onclick="replay()" disabled>▶ 重放一次（零模型）</button>
+          <button class="btn ghost" onclick="resetAll()">重置</button>
+        </div>
+        <label class="toggle" style="margin-top:10px"><input type="checkbox" id="chkChange" checked>重放时模拟页面变化（演示自适应）</label>
+      </div>
+      <div class="panel">
+        <h3>② 动作序列 <small>录制的浏览器动作 → 重放可零模型调用</small></h3>
+        <div class="steps" id="steps"><span style="font-size:12px;color:var(--muted)">首次探索录制后在此展示动作序列</span></div>
+      </div>
+      <div class="panel">
+        <h3>③ 提取的数据 <small>重放时自动写入的示例结果</small></h3>
+        <div style="max-height:200px;overflow:auto"><table class="dataT" id="dataT"><thead><tr><th>序号</th><th>企业/商品</th><th>关键指标</th><th>抓取时间</th></tr></thead><tbody id="dataBody"><tr><td colspan="4" style="color:var(--muted);font-size:12px;padding:8px">暂无数据，录制后执行重放生成</td></tr></tbody></table></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>④ 执行报告 <small>录制/重放/自适应统计</small></h3>
+        <div class="stats">
+          <div class="stat"><b id="sSteps">0</b><span>录制动作</span></div>
+          <div class="stat"><b id="sReplay">0</b><span>重放次数</span></div>
+          <div class="stat"><b id="sData">0</b><span>数据行</span></div>
+          <div class="stat"><b id="sFix">0</b><span>变化自适应</span></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--cy)"></i>点击</span>
+          <span><i style="background:#aab6ff"></i>输入</span>
+          <span><i style="background:var(--warn)"></i>等待</span>
+          <span><i style="background:var(--ok)"></i>提取</span>
+          <span><i style="background:var(--bad)"></i>变化重探</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>⑤ 执行日志 <small>探索 → 录制 → 重放 → 自适应全链路</small></h3>
+        <div class="audit" id="audit"></div>
+      </div>
+      <div class="panel">
+        <h3>⑥ 说明 <small>这个工具解决什么</small></h3>
+        <div class="legend" style="margin:0;line-height:1.9;font-size:12px;color:var(--muted)">
+          · 网页自动化最怕「页面改版」——选择器失效、元素消失，脚本一夜全废<br>
+          · 本工具：首次让 AI Agent 探索并录制动作（含语义步骤），之后重放零模型调用、省成本<br>
+          · 重放中检测到页面变化 → 自动交回 Agent 重新探索并更新录制，流程自我修复<br>
+          · 执行全链路留日志，每次数据提取可追溯，适合批量采集/定时报表类 RPA
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ── 示例业务流程 ── */
+const TASKS = [
+  { id:"t1", name:"企查查企业名单采集", text:"每天从企查查导出「餐饮行业」企业名单，存入 Excel，保留企业名称和注册资本" },
+  { id:"t2", name:"竞品价格监控", text:"每天抓取 3 家竞品的商品价格，生成价格对比表，价格变化超 5% 时标红" }
+];
+/* 每个示例任务对应的录制动作与示例数据 */
+const FLOWS = {
+  t1: {
+    steps: [
+      { op:"click", t:"打开企查查搜索页 qcc.com", ver:"页面标题含「企查查」" },
+      { op:"type", t:"搜索框输入「餐饮行业」", ver:"输入值已就位" },
+      { op:"click", t:"点击搜索按钮", ver:"结果列表加载" },
+      { op:"wait", t:"等待结果渲染（2s）", ver:"列表项 ≥ 10" },
+      { op:"get", t:"提取前 5 条：企业名称/注册资本", ver:"5 行数据入库" },
+      { op:"click", t:"导出到 Excel（data/企业名单.xlsx）", ver:"文件已写入" }
+    ],
+    data: [
+      ["味千餐饮管理有限公司","5000万"], ["老乡鸡餐饮股份有限公司","8000万"], ["蜜雪冰城股份有限公司","3.6亿"],
+      ["西贝餐饮管理有限公司","1.2亿"], ["海底捞国际控股有限公司","10.5亿"]
+    ]
+  },
+  t2: {
+    steps: [
+      { op:"click", t:"打开比价页 price.example.com", ver:"页面标题正常" },
+      { op:"type", t:"搜索框输入「空气炸锅」", ver:"输入值已就位" },
+      { op:"click", t:"点击搜索", ver:"商品列表加载" },
+      { op:"get", t:"提取 3 家竞品价格", ver:"3 行数据入库" },
+      { op:"wait", t:"等待价格渲染（1s）", ver:"价格列非空" },
+      { op:"click", t:"生成对比表（对比/价格对比.xlsx）", ver:"文件已写入" }
+    ],
+    data: [
+      ["品牌A 空气炸锅","399元"], ["品牌B 空气炸锅","459元"], ["品牌C 空气炸锅","329元"]
+    ]
+  }
+};
+let steps = [], data = [], recorded = false;
+const $ = id => document.getElementById(id);
+const A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function renderTasks(){
+  $("tasks").innerHTML = TASKS.map(t =>
+    `<button class="task" data-id="${t.id}" onclick="pickTask('${t.id}')">${t.name}</button>`).join("");
+}
+function pickTask(id){
+  TASKS.forEach(t => $("tasks").querySelector(`.task[data-id="${t.id}"]`).classList.toggle("sel", t.id === id));
+  $("taskInp").value = TASKS.find(t => t.id === id).text;
+  window.curFlow = FLOWS[id];
+  log(`已选择任务「${TASKS.find(t=>t.id===id).name}」`, "w");
+}
+
+/* ── 首次探索 + 录制 ── */
+async function recordFlow(){
+  if(!window.curFlow){ log("请先选择示例任务或输入流程描述", "w"); return; }
+  if(recorded){ log("已录制过，可直接重放；如要重新探索请先重置", "w"); return; }
+  $("btnRecord").disabled = true;
+  steps = window.curFlow.steps.map(s => ({ ...s, st:"pend" }));
+  data = [];
+  log("🤖 AI Agent 开始首次探索目标页面…", "p");
+  await sleep(600);
+  for(let i = 0; i < steps.length; i++){
+    steps[i].st = "run"; renderSteps();
+    log(`  ${steps[i].op.toUpperCase()}：${steps[i].t}（校验：${steps[i].ver}）`, "cy");
+    await sleep(650);
+    steps[i].st = "ok"; renderSteps();
+    if(steps[i].op === "get"){
+      data = window.curFlow.data.map((r, idx) => [idx + 1, r[0], r[1], nowStr()]);
+      renderData();
+      log(`  提取 ${data.length} 行数据 → 已入内存`, "ok");
+    }
+  }
+  recorded = true;
+  $("btnReplay").disabled = false;
+  $("sSteps").textContent = steps.length;
+  $("sData").textContent = data.length;
+  log(`✅ 探索完成，已录制 ${steps.length} 个动作；后续重放零模型调用`, "ok");
+}
+function renderSteps(){
+  $("steps").innerHTML = steps.length ? steps.map((s, i) => `
+    <div class="step">
+      <span class="no">${i+1}</span>
+      <span class="op ${s.op}">${s.op==="click"?"点击":s.op==="type"?"输入":s.op==="wait"?"等待":"提取"}</span>
+      <span>${s.t}</span>
+      <span class="st ${s.st}">${s.st==="pend"?"待执行":s.st==="run"?"执行中…":s.st==="ok"?"✓ 完成":s.st==="fix"?"✗ 变化":s.st==="upd"?"↻ 已更新":""}</span>
+    </div>`).join("") : `<span style="font-size:12px;color:var(--muted)">首次探索录制后在此展示动作序列</span>`;
+}
+function renderData(){
+  $("dataBody").innerHTML = data.length ? data.map(r =>
+    `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")
+    : `<tr><td colspan="4" style="color:var(--muted);font-size:12px;padding:8px">暂无数据</td></tr>`;
+}
+function nowStr(){
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+}
+
+/* ── 重放（零模型调用）+ 变化自适应 ── */
+async function replay(){
+  if(!recorded || $("btnReplay").disabled) return;
+  $("btnReplay").disabled = true;
+  const doChange = $("chkChange").checked;
+  log("▶ 开始重放（零模型调用，纯动作回放）…", "p");
+  let changeOnce = true, added = 0;
+  for(let i = 0; i < steps.length + added; i++){
+    const s = steps[i];
+    if(!s) break;
+    s.st = "run"; renderSteps();
+    await sleep(220);
+    // 变化检测：模拟第 3 步元素缺失
+    if(doChange && changeOnce && s.op === "wait"){
+      s.st = "fix";
+      log(`✗ 重放中断：步骤 ${i+1} 检测到页面变化（目标元素缺失/布局改版）`, "bad");
+      await sleep(700);
+      changeOnce = false;
+      log("↻ 交回 AI Agent 重新探索，正在更新录制…", "w");
+      await sleep(800);
+      const fix = { op:"wait", t:"Agent 重定位：等待页面新布局渲染（2s）", ver:"新选择器命中", st:"upd" };
+      steps.splice(i + 1, 0, fix); added++; i++;
+      renderSteps();
+      log(`  已更新录制：插入新步骤「${fix.t}」，后续重放使用新选择器`, "w");
+      await sleep(400);
+      s.st = "ok"; renderSteps();
+      continue;
+    }
+    s.st = "ok"; renderSteps();
+    if(s.op === "get"){
+      data = window.curFlow.data.map((r, idx) => [idx + 1, r[0], r[1], nowStr()]);
+      renderData();
+      log(`  提取 ${data.length} 行数据 → 写入目标文件`, "ok");
+    }
+  }
+  const fixN = steps.filter(s => s.st === "upd").length;
+  log(`✅ 重放完成（动作 ${steps.length} 步，自适应修复 ${fixN} 次）；执行报告已更新`, "ok");
+  $("btnReplay").disabled = false;
+  refreshStats(fixN);
+}
+function refreshStats(fixN){
+  $("sSteps").textContent = steps.length;
+  $("sReplay").textContent = Number($("sReplay").textContent) + 1;
+  $("sData").textContent = data.length;
+  $("sFix").textContent = Number($("sFix").textContent) + (fixN || 0);
+}function resetAll(){
+  steps = []; data = []; recorded = false;
+  $("taskInp").value = ""; renderSteps(); renderData(); A.innerHTML = "";
+  $("btnRecord").disabled = false; $("btnReplay").disabled = true;
+  $("sSteps").textContent = "0"; $("sReplay").textContent = "0"; $("sData").textContent = "0"; $("sFix").textContent = "0";
+  TASKS.forEach(t => $("tasks").querySelector(`.task[data-id="${t.id}"]`).classList.remove("sel"));
+  delete window.curFlow;
+  log("已重置", "w");
+}
+
+renderTasks();
+pickTask("t1");
+log("就绪：选择示例流程（或输入自己的）→「AI 探索并录制」→「重放一次（零模型）」→ 勾选页面变化开关可演示自适应", "w");
+</script>
+</body>
+</html>
