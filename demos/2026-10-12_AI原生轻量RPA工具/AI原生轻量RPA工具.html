@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 原生轻量 RPA 工具 · 自然语言→步骤编排→定时触发→记忆→人工确认→执行报告</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+  --codebg:#0d1117;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1320px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.25;min-width:430px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.15;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.tasks{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.task{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:12px;cursor:pointer;color:var(--fg)}
+.task:hover{border-color:var(--pri)}
+.task.sel{border-color:var(--pri);box-shadow:0 0 0 1px rgba(108,123,255,.45)}
+textarea.inp{width:100%;background:var(--codebg);border:1px solid var(--line);border-radius:10px;color:#a8c0e8;padding:10px;font-size:12.5px;font-family:inherit;min-height:78px;resize:vertical;line-height:1.8}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:10px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.sched{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.sched input{background:var(--codebg);border:1px solid var(--line);border-radius:8px;color:#a8c0e8;padding:7px 10px;font-size:12px;font-family:ui-monospace,Menlo,monospace;width:150px}
+.cronHint{font-size:11px;color:var(--cy)}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--muted);cursor:pointer}
+.tab.sel{color:var(--fg);border-color:var(--pri)}
+.steps{display:flex;flex-direction:column;gap:6px;max-height:236px;overflow:auto}
+.step{display:flex;align-items:center;gap:9px;font-size:12px;padding:7px 10px;background:var(--card2);border:1px solid var(--line);border-radius:8px}
+.step .no{width:22px;height:22px;border-radius:50%;background:rgba(108,123,255,.2);color:#aab6ff;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.step .op{font-size:11px;border-radius:6px;padding:2px 6px;text-align:center;flex-shrink:0}
+.step .op.action{background:rgba(57,208,255,.15);color:var(--cy)}
+.step .op.cond{background:rgba(255,179,92,.18);color:var(--warn)}
+.step .op.alert{background:rgba(255,107,129,.18);color:var(--bad)}
+.step .st{margin-left:auto;font-size:11px;border-radius:6px;padding:2px 7px;flex-shrink:0}
+.step .st.pend{background:rgba(143,151,196,.15);color:var(--muted)}
+.step .st.run{background:rgba(57,208,255,.2);color:var(--cy)}
+.step .st.ok{background:rgba(47,217,138,.18);color:var(--ok)}
+.step .st.halt{background:rgba(255,107,129,.2);color:var(--bad)}
+.step .st.skip{background:rgba(143,151,196,.2);color:var(--muted)}
+.memory{background:var(--codebg);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8fd3a8;height:130px;overflow-y:auto;line-height:1.8;white-space:pre-wrap}
+.stats{display:flex;gap:10px;flex-wrap:wrap;font-size:12px}
+.stat{flex:1;min-width:90px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 11px;text-align:center}
+.stat b{display:block;font-size:18px;color:var(--fg)}
+.stat span{color:var(--muted);font-size:11px}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:190px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .cy{color:var(--cy)} .audit .bad{color:var(--bad)}
+#overlay{display:none;position:fixed;inset:0;background:rgba(8,10,24,.82);z-index:50;align-items:center;justify-content:center}
+#overlay.show{display:flex}
+.apCard{background:var(--card);border:1px solid var(--bad);border-radius:14px;padding:22px;width:min(430px,92vw)}
+.apCard h4{color:var(--bad);font-size:15px;margin-bottom:10px}
+.apCard .apDet{font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:14px}
+.apBtns{display:flex;gap:10px}
+@media(max-width:900px){ .col,.side{min-width:0;max-width:100%} .main{flex-direction:column} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI 原生轻量 RPA 工具
+    <span class="sub">像 Perplexity Computer Automations 那样演示「AI 原生工作流自动化」：自然语言描述任务 → AI 自动拆解为执行步骤 → cron 定时 / Webhook 事件触发 → JSON 记忆上下文 → 删除/发送/支付等重大操作暂停人工确认 → 执行报告 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 任务描述 <small>选择示例或自由输入，点「AI 解析并拆解」</small></h3>
+        <div class="tasks" id="tasks"></div>
+        <textarea class="inp" id="taskInp" spellcheck="false"></textarea>
+        <div class="actions">
+          <button class="btn" id="btnParse" onclick="parseTask()">🤖 AI 解析并拆解</button>
+          <button class="btn ghost" id="btnRun" onclick="runFlow()" disabled>▶ 执行一次</button>
+          <button class="btn ghost" onclick="resetAll()">重置</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>② 步骤编排 <small>AI 拆解的执行步骤（含人工确认节点）</small></h3>
+        <div class="steps" id="steps"><span style="font-size:12px;color:var(--muted)">解析任务后在此展示步骤编排</span></div>
+      </div>
+      <div class="panel">
+        <h3>③ 调度与触发 + 记忆 <small>cron 定时 / Webhook 事件，执行历史存 JSON Memory</small></h3>
+        <div class="sched">
+          <input id="cron" value="0 9 * * *" oninput="translateCron()" spellcheck="false">
+          <span class="cronHint" id="cronHint">每天早上 09:00</span>
+          <span style="color:var(--muted);font-size:12px">触发方式：</span>
+          <div style="display:inline-flex;gap:6px">
+            <span class="tab sel" id="tabCron" onclick="pickTrig('cron')">定时 cron</span>
+            <span class="tab" id="tabHook" onclick="pickTrig('hook')">Webhook 事件</span>
+          </div>
+        </div>
+        <div class="memory" id="memory">// Memory（JSON）：执行历史与上下文，尚无记录</div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>④ 执行报告 <small>步骤 / 确认 / 触发统计</small></h3>
+        <div class="stats">
+          <div class="stat"><b id="sSteps">0</b><span>总步骤</span></div>
+          <div class="stat"><b id="sOk">0</b><span>成功步骤</span></div>
+          <div class="stat"><b id="sAlert">0</b><span>人工确认</span></div>
+          <div class="stat"><b id="sRun">0</b><span>执行次数</span></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--cy)"></i>动作</span>
+          <span><i style="background:var(--warn)"></i>条件判断</span>
+          <span><i style="background:var(--bad)"></i>重大操作·人工确认</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>⑤ 执行日志 <small>解析 → 调度 → 执行 → 确认 → 报告全链路</small></h3>
+        <div class="audit" id="audit"></div>
+      </div>
+      <div class="panel">
+        <h3>⑥ 说明 <small>这个工具解决什么</small></h3>
+        <div class="legend" style="margin:0;line-height:1.9;font-size:12px;color:var(--muted)">
+          · 传统 RPA 要手搭流程、改一行配置就要停摆；AI 原生做法：用一句话描述任务，AI 拆步骤<br>
+          · 支持 cron 定时与 Webhook 事件触发，执行历史与上下文落 JSON（Memory），可跨次复用<br>
+          · 删除/发送/支付等重大操作自动插入「人工确认」节点——AI 只管建议，人掌握最终决策权<br>
+          · 每次执行生成报告，适合企查查采集、日报生成、订单汇总等定时型 RPA 场景
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="overlay"><div class="apCard">
+  <h4>⚠ 重大操作 · 需人工确认</h4>
+  <div class="apDet" id="apDet"></div>
+  <div class="apBtns">
+    <button class="btn" style="flex:1" onclick="approveOp()">批准执行</button>
+    <button class="btn ghost" style="flex:1" onclick="rejectOp()">拒绝（跳过）</button>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+/* ── 示例任务 ── */
+const TASKS = [
+  { id:"t1", name:"企查查采集+清洗+通知", text:"每天早上9点从企查查搜索深圳餐饮企业，导出名单清洗后存入Excel，有重复或异常时发飞书通知我" },
+  { id:"t2", name:"销售日报自动发送", text:"每天下班前自动汇总当天销售订单，生成日报发邮件给运营，金额异常时暂停人工确认" }
+];
+/* 每个任务的 AI 拆解步骤 */
+const FLOWS = {
+  t1: [
+    { op:"action", t:"搜索：企查查搜索「深圳餐饮企业」", ver:"结果列表加载", alert:false },
+    { op:"action", t:"导出：导出企业名单 Excel", ver:"文件已生成", alert:false },
+    { op:"action", t:"清洗：去重 / 格式化（发现重复 3 行）", ver:"数据已标准化", alert:false },
+    { op:"cond", t:"条件检查：重复或异常数据检测", ver:"存在重复/异常 → 进入确认", alert:false },
+    { op:"alert", t:"重大操作·发送：发飞书通知（重复/异常摘要）", ver:"需人工确认", alert:true },
+    { op:"action", t:"存储：存入 Excel（data/深圳餐饮企业名单.xlsx）", ver:"文件已写入", alert:false }
+  ],
+  t2: [
+    { op:"action", t:"汇总：汇总当日销售订单", ver:"订单明细已加载", alert:false },
+    { op:"action", t:"生成：生成日报（含区域/金额汇总）", ver:"日报已生成", alert:false },
+    { op:"cond", t:"条件检查：金额异常检测（单笔 &gt;5万 标红）", ver:"存在异常 1 笔", alert:false },
+    { op:"alert", t:"重大操作·发送：发邮件给运营（含异常明细）", ver:"需人工确认", alert:true },
+    { op:"action", t:"归档：日报归档至 reports/ 目录", ver:"文件已归档", alert:false }
+  ]
+};
+/* cron 常见表达式翻译 */
+const CRON_MAP = {
+  "0 9 * * *":"每天早上 09:00", "0 18 * * *":"每天下午 18:00", "0 18 * * 1-5":"工作日 18:00",
+  "0 9 * * 1-5":"工作日 09:00", "*/30 * * * *":"每 30 分钟", "0 0 * * *":"每天 00:00",
+  "0 12 * * 1":"每周一 12:00", "*/5 * * * *":"每 5 分钟"
+};
+let steps = [], memory = [], parsed = false, trig = "cron", halted = false;
+const $ = id => document.getElementById(id);
+const A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function renderTasks(){
+  $("tasks").innerHTML = TASKS.map(t =>
+    `<button class="task" data-id="${t.id}" onclick="pickTask('${t.id}')">${t.name}</button>`).join("");
+}
+function pickTask(id){
+  TASKS.forEach(t => $("tasks").querySelector(`.task[data-id="${t.id}"]`).classList.toggle("sel", t.id === id));
+  $("taskInp").value = TASKS.find(t => t.id === id).text;
+  window.curFlow = FLOWS[id];
+  log(`已选择任务「${TASKS.find(t=>t.id===id).name}」`, "w");
+}
+function translateCron(){
+  const v = $("cron").value.trim();
+  $("cronHint").textContent = CRON_MAP[v] || "自定义表达式（cron 5 段）";
+}
+function pickTrig(t){
+  trig = t;
+  $("tabCron").classList.toggle("sel", t === "cron");
+  $("tabHook").classList.toggle("sel", t === "hook");
+  log(`触发方式：${t === "cron" ? "定时 cron（" + $("cron").value + "）" : "Webhook 事件（收到 POST 时触发）"}`, "p");
+}
+
+/* ── AI 解析并拆解 ── */
+async function parseTask(){
+  if(!window.curFlow){ log("请先选择示例任务或输入流程描述", "w"); return; }
+  if(parsed){ log("已拆解过，可直接执行；重新拆解请先重置", "w"); return; }
+  $("btnParse").disabled = true;
+  steps = window.curFlow.map(s => ({ ...s, st:"pend" }));
+  log("🤖 AI 正在理解任务并拆解执行步骤…", "p");
+  await sleep(700);
+  for(let i = 0; i < steps.length; i++){
+    steps[i].st = "run"; renderSteps();
+    log(`  步骤 ${i+1}：${steps[i].op === "alert" ? "【重大操作】" : ""}${steps[i].t}`, steps[i].op === "alert" ? "bad" : steps[i].op === "cond" ? "w" : "cy");
+    await sleep(420);
+    steps[i].st = "ok"; renderSteps();
+  }
+  parsed = true;
+  $("btnRun").disabled = false;
+  const alerts = steps.filter(s => s.alert).length;
+  log(`✅ 拆解完成：共 ${steps.length} 步，其中 ${alerts} 个重大操作节点已标记「人工确认」`, "ok");
+}
+function renderSteps(){
+  $("steps").innerHTML = steps.length ? steps.map((s, i) => `
+    <div class="step">
+      <span class="no">${i+1}</span>
+      <span class="op ${s.op}">${s.op === "action" ? "动作" : s.op === "cond" ? "条件" : "重大·确认"}</span>
+      <span>${s.t}</span>
+      <span class="st ${s.st}">${s.st === "pend" ? "待执行" : s.st === "run" ? "执行中…" : s.st === "ok" ? "✓ 完成" : s.st === "halt" ? "⏸ 待确认" : "↷ 已跳过"}</span>
+    </div>`).join("") : `<span style="font-size:12px;color:var(--muted)">解析任务后在此展示步骤编排</span>`;
+}
+
+/* ── 执行一次（含人工确认节点） ── */
+async function runFlow(){
+  if(!parsed || $("btnRun").disabled) return;
+  $("btnRun").disabled = true;
+  log(`▶ 开始执行（触发：${trig === "cron" ? "cron " + $("cron").value : "Webhook 事件"}）…`, "p");
+  let haltedIdx = -1;
+  for(let i = 0; i < steps.length; i++){
+    if(steps[i].st === "skip") continue;
+    const s = steps[i];
+    if(s.alert && s.st !== "skip"){
+      // 重大操作 → 暂停人工确认
+      s.st = "halt"; haltedIdx = i; renderSteps();
+      $("apDet").innerHTML = `步骤 ${i+1}「${s.t}」<br><br>这是<b>重大操作</b>（发送/删除/支付类），AI 已暂停执行等待你确认。<br>批准后继续执行；拒绝将跳过该步骤并记录上下文。`;
+      $("overlay").classList.add("show");
+      log(`⏸ 暂停：重大操作「${s.t}」等待人工确认`, "bad");
+      return; // 等待审批回调
+    }
+    s.st = "run"; renderSteps();
+    await sleep(360);
+    s.st = "ok"; renderSteps();
+    log(`  ✓ ${s.t}`, "ok");
+  }
+  finishRun();
+}
+function approveOp(){
+  $("overlay").classList.remove("show");
+  const idx = steps.findIndex(s => s.st === "halt");
+  if(idx >= 0){
+    steps[idx].st = "ok"; renderSteps();
+    log(`✅ 人工批准，执行「${steps[idx].t}」`, "ok");
+  }
+  log("继续执行…", "ok");
+  resumeRun();
+}
+function rejectOp(){
+  $("overlay").classList.remove("show");
+  // 拒绝 → 跳过该步骤（标记 skip），记录上下文
+  const idx = steps.findIndex(s => s.st === "halt");
+  if(idx >= 0){ steps[idx].st = "skip"; renderSteps(); log(`↷ 已拒绝并跳过步骤 ${idx+1}（记入上下文：用户拒绝重大操作）`, "w"); }
+  resumeRun();
+}
+async function resumeRun(){
+  for(let i = 0; i < steps.length; i++){
+    if(steps[i].st !== "pend" && steps[i].st !== "ok" && steps[i].st !== "skip") continue;
+    if(steps[i].st === "skip") continue;
+    const s = steps[i];
+    s.st = "run"; renderSteps();
+    await sleep(360);
+    s.st = "ok"; renderSteps();
+    log(`  ✓ ${s.t}`, "ok");
+  }
+  finishRun();
+}
+function finishRun(){
+  const okN = steps.filter(s => s.st === "ok").length;
+  const alertN = steps.filter(s => s.alert).length;
+  const skipped = steps.filter(s => s.st === "skip").length;
+  // 写 Memory（JSON）
+  const rec = { id: memory.length + 1, time: nowStr(), task: $("taskInp").value.slice(0, 26) + "…",
+    steps: steps.length, ok: okN, skipped, context: trig === "cron" ? `cron:${$("cron").value}` : "webhook" };
+  memory.push(rec);
+  $("memory").textContent = "// Memory（JSON）：执行历史与上下文\n" + memory.map(m => JSON.stringify(m)).join("\n");
+  $("sSteps").textContent = steps.length;
+  $("sOk").textContent = okN;
+  $("sAlert").textContent = alertN;
+  $("sRun").textContent = memory.length;
+  log(`✅ 执行完成：${okN}/${steps.length} 步成功${skipped ? "，跳过 " + skipped + " 步" : ""}；Memory 已更新，执行报告已生成`, "ok");
+  $("btnRun").disabled = false;
+}
+function nowStr(){
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+}
+function resetAll(){
+  steps = []; memory = []; parsed = false; halted = false;
+  $("taskInp").value = ""; renderSteps(); A.innerHTML = ""; $("overlay").classList.remove("show");
+  $("btnParse").disabled = false; $("btnRun").disabled = true;
+  $("sSteps").textContent = "0"; $("sOk").textContent = "0"; $("sAlert").textContent = "0"; $("sRun").textContent = "0";
+  $("memory").textContent = "// Memory（JSON）：执行历史与上下文，尚无记录";
+  TASKS.forEach(t => $("tasks").querySelector(`.task[data-id="${t.id}"]`).classList.remove("sel"));
+  delete window.curFlow;
+  log("已重置", "w");
+}
+
+renderTasks();
+pickTask("t1");
+translateCron();
+log("就绪：选择示例任务（或输入自己的）→「AI 解析并拆解」→ 配置 cron/触发方式 →「执行一次」→ 重大操作弹人工确认", "w");
+</script>
+</body>
+</html>
