@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聊天驱动的 RPA 助手 · 像 OpenClaw 那样：飞书/微信/命令行发指令→解析工作流→cron 调度→执行→聊天回结果</title>
+<style>
+:root{
+  --bg:#0e1120; --card:#161a30; --card2:#1d2342; --line:#2a3158;
+  --fg:#e8ecff; --muted:#8f97c4; --pri:#6c7bff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+  --codebg:#0d1117;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1320px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.main{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.col{flex:1.3;min-width:450px;display:flex;flex-direction:column;gap:14px}
+.side{flex:1.1;min-width:400px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.chans{display:flex;gap:6px;margin-bottom:10px}
+.chan{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--muted);cursor:pointer}
+.chan.sel{color:var(--fg);border-color:var(--pri)}
+.chat{background:var(--codebg);border:1px solid var(--line);border-radius:12px;padding:14px;height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:86%;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.75}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;border-bottom-right-radius:3px}
+.msg.ai{align-self:flex-start;background:var(--card2);border:1px solid var(--line);color:var(--fg);border-bottom-left-radius:3px}
+.msg.ai .t{color:var(--cy)}
+.msg.ai .ok{color:var(--ok)}
+.msg.ai .w{color:var(--warn)}
+.sendBar{display:flex;gap:8px;margin-top:10px}
+.sendBar input{flex:1;background:var(--codebg);border:1px solid var(--line);border-radius:9px;color:#a8c0e8;padding:9px 12px;font-size:12.5px;font-family:inherit}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:9px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.skills{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.skill{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;cursor:pointer}
+.skill:hover{border-color:var(--pri)}
+.skill b{font-size:12px;display:block;margin-bottom:3px}
+.skill span{font-size:10.5px;color:var(--muted);line-height:1.6;display:block}
+.steps{display:flex;flex-direction:column;gap:6px;max-height:210px;overflow:auto}
+.step{display:flex;align-items:center;gap:9px;font-size:12px;padding:7px 10px;background:var(--card2);border:1px solid var(--line);border-radius:8px}
+.step .no{width:22px;height:22px;border-radius:50%;background:rgba(108,123,255,.2);color:#aab6ff;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.step .op{font-size:11px;border-radius:6px;padding:2px 6px;text-align:center;flex-shrink:0}
+.step .op.action{background:rgba(57,208,255,.15);color:var(--cy)}
+.step .op.cond{background:rgba(255,179,92,.18);color:var(--warn)}
+.step .op.alert{background:rgba(255,107,129,.18);color:var(--bad)}
+.step .st{margin-left:auto;font-size:11px;border-radius:6px;padding:2px 7px;flex-shrink:0}
+.step .st.pend{background:rgba(143,151,196,.15);color:var(--muted)}
+.step .st.run{background:rgba(57,208,255,.2);color:var(--cy)}
+.step .st.ok{background:rgba(47,217,138,.18);color:var(--ok)}
+.step .st.halt{background:rgba(255,107,129,.2);color:var(--bad)}
+.step .st.skip{background:rgba(143,151,196,.2);color:var(--muted)}
+.sched{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.sched input{background:var(--codebg);border:1px solid var(--line);border-radius:8px;color:#a8c0e8;padding:7px 10px;font-size:12px;font-family:ui-monospace,Menlo,monospace;width:150px}
+.cronHint{font-size:11px;color:var(--cy)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;font-size:12px}
+.stat{flex:1;min-width:88px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 11px;text-align:center}
+.stat b{display:block;font-size:18px;color:var(--fg)}
+.stat span{color:var(--muted);font-size:11px}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:150px;overflow-y:auto;line-height:1.9}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .cy{color:var(--cy)} .audit .bad{color:var(--bad)}
+#overlay{display:none;position:fixed;inset:0;background:rgba(8,10,24,.82);z-index:50;align-items:center;justify-content:center}
+#overlay.show{display:flex}
+.apCard{background:var(--card);border:1px solid var(--bad);border-radius:14px;padding:22px;width:min(430px,92vw)}
+.apCard h4{color:var(--bad);font-size:15px;margin-bottom:10px}
+.apCard .apDet{font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:14px}
+.apBtns{display:flex;gap:10px}
+@media(max-width:900px){ .col,.side{min-width:0;max-width:100%} .main{flex-direction:column} .skills{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>聊天驱动的 RPA 助手
+    <span class="sub">像 OpenClaw 那样演示「本地运行的 AI 自动化框架」：飞书 / 微信 / 命令行发一句自然语言指令 → AI 路由到技能并解析为工作流 → cron 定时 / Webhook 触发 → 浏览器自动化 + 重大操作人工确认 → 执行结果通过聊天回给你 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel">
+        <h3>① 消息通道 <small>选择入口，发指令或点技能卡</small></h3>
+        <div class="chans">
+          <span class="chan sel" id="chFeishu" onclick="pickChan('feishu')">飞书</span>
+          <span class="chan" id="chWechat" onclick="pickChan('wechat')">微信</span>
+          <span class="chan" id="chCli" onclick="pickChan('cli')">命令行</span>
+        </div>
+        <div class="skills">
+          <div class="skill" onclick="sendSkill('s1')"><b>企查查企业采集</b><span>每天定时搜索餐饮企业→清洗→存 Excel，异常发通知</span></div>
+          <div class="skill" onclick="sendSkill('s2')"><b>销售日报生成</b><span>汇总当日订单→生成日报→发邮件给运营</span></div>
+          <div class="skill" onclick="sendSkill('s3')"><b>竞品价格监控</b><span>定时抓 3 家竞品价格→生成对比表→变化超 5% 标红</span></div>
+          <div class="skill" onclick="sendSkill('s4')"><b>邮件待办提取</b><span>读邮箱+报表→提取待办/截止日→创建任务→通知</span></div>
+        </div>
+        <div class="chat" id="chat"></div>
+        <div class="sendBar">
+          <input id="msgInp" placeholder="输入指令，如：每天9点从企查查导出深圳餐饮企业名单，清洗后存Excel，有异常发通知" onkeydown="if(event.key==='Enter')sendMsg()">
+          <button class="btn" onclick="sendMsg()">发送</button>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>② AI 解析的工作流 <small>指令 → 技能路由 → 步骤编排</small></h3>
+        <div class="steps" id="steps"><span style="font-size:12px;color:var(--muted)">发指令后在此展示解析出的步骤</span></div>
+      </div>
+      <div class="panel">
+        <h3>③ 调度配置 <small>cron 定时 / Webhook 事件</small></h3>
+        <div class="sched">
+          <input id="cron" value="0 9 * * *" oninput="translateCron()" spellcheck="false">
+          <span class="cronHint" id="cronHint">每天早上 09:00</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="sSteps">0</b><span>总步骤</span></div>
+          <div class="stat"><b id="sOk">0</b><span>成功步骤</span></div>
+          <div class="stat"><b id="sAlert">0</b><span>人工确认</span></div>
+          <div class="stat"><b id="sRun">0</b><span>执行次数</span></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--cy)"></i>动作</span>
+          <span><i style="background:var(--warn)"></i>条件判断</span>
+          <span><i style="background:var(--bad)"></i>重大操作·人工确认</span>
+          <button class="btn" style="margin-left:auto;padding:6px 12px;font-size:12px" id="btnRun" onclick="runFlow()" disabled>▶ 执行</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>④ 执行日志 <small>解析 → 调度 → 执行 → 确认全链路</small></h3>
+        <div class="audit" id="audit"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="overlay"><div class="apCard">
+  <h4>⚠ 重大操作 · 需人工确认</h4>
+  <div class="apDet" id="apDet"></div>
+  <div class="apBtns">
+    <button class="btn" style="flex:1" onclick="approveOp()">批准执行</button>
+    <button class="btn ghost" style="flex:1" onclick="rejectOp()">拒绝（跳过）</button>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+/* ── 技能市场：指令路由表 ── */
+const SKILLS = {
+  s1:{ name:"企查查企业采集", chan:"feishu",
+    text:"每天9点从企查查导出深圳餐饮企业名单，清洗后存Excel，有异常发通知",
+    cron:"0 9 * * *",
+    steps:[
+      { op:"action", t:"浏览器自动化：企查查搜索「深圳餐饮企业」", ver:"结果列表加载", alert:false },
+      { op:"action", t:"导出：导出企业名单 Excel", ver:"文件已生成", alert:false },
+      { op:"action", t:"清洗：去重 / 格式化（发现重复 3 行）", ver:"数据已标准化", alert:false },
+      { op:"cond", t:"条件检查：重复或异常数据检测", ver:"存在重复/异常", alert:false },
+      { op:"alert", t:"重大操作·发送：发飞书通知（异常摘要）", ver:"需人工确认", alert:true },
+      { op:"action", t:"存储：存入 Excel（data/深圳餐饮企业名单.xlsx）", ver:"文件已写入", alert:false }
+    ]},
+  s2:{ name:"销售日报生成", chan:"wechat",
+    text:"每天下班前汇总当天销售订单，生成日报发邮件给运营，金额异常时暂停确认",
+    cron:"0 18 * * 1-5",
+    steps:[
+      { op:"action", t:"汇总：汇总当日销售订单", ver:"订单明细已加载", alert:false },
+      { op:"action", t:"生成：生成日报（区域/金额汇总）", ver:"日报已生成", alert:false },
+      { op:"cond", t:"条件检查：金额异常检测（单笔 &gt;5万 标红）", ver:"存在异常 1 笔", alert:false },
+      { op:"alert", t:"重大操作·发送：发邮件给运营（含异常明细）", ver:"需人工确认", alert:true },
+      { op:"action", t:"归档：日报归档至 reports/ 目录", ver:"文件已归档", alert:false }
+    ]},
+  s3:{ name:"竞品价格监控", chan:"cli",
+    text:"每天定时抓取 3 家竞品价格，生成对比表，价格变化超 5% 时标红",
+    cron:"0 8 * * *",
+    steps:[
+      { op:"action", t:"浏览器自动化：打开比价页，搜索「空气炸锅」", ver:"商品列表加载", alert:false },
+      { op:"action", t:"提取：抓取 3 家竞品价格", ver:"3 行数据入库", alert:false },
+      { op:"cond", t:"条件检查：价格变化 &gt;5% 检测", ver:"1 家价格变化超阈值", alert:false },
+      { op:"action", t:"生成：价格对比表（对比/价格对比.xlsx）", ver:"文件已写入", alert:false },
+      { op:"alert", t:"重大操作·发送：发通知（价格异动提醒）", ver:"需人工确认", alert:true }
+    ]},
+  s4:{ name:"邮件待办提取", chan:"feishu",
+    text:"读取邮箱和报表，提取待办事项和截止日期，创建飞书任务并通知负责人",
+    cron:"0 9 * * 1",
+    steps:[
+      { op:"action", t:"读取：IMAP 读取邮箱（今日 12 封）", ver:"邮件已拉取", alert:false },
+      { op:"action", t:"解析：AI 提取待办事项/截止日期/负责人", ver:"提取 4 个待办", alert:false },
+      { op:"action", t:"创建：创建飞书任务（4 个，含截止日）", ver:"任务已创建", alert:false },
+      { op:"alert", t:"重大操作·发送：通知各负责人", ver:"需人工确认", alert:true }
+    ]}
+};
+const CRON_MAP = {
+  "0 9 * * *":"每天早上 09:00", "0 18 * * 1-5":"工作日 18:00", "0 9 * * 1":"每周一 09:00",
+  "0 8 * * *":"每天早上 08:00", "*/30 * * * *":"每 30 分钟"
+};
+let steps = [], parsed = false, channel = "feishu";
+const $ = id => document.getElementById(id);
+const CHAT = $("chat"), A = $("audit");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function pickChan(c){
+  channel = c;
+  ["feishu","wechat","cli"].forEach(x => $(c === x ? "ch" + x[0].toUpperCase() + x.slice(1) : "ch" + x[0].toUpperCase() + x.slice(1)).classList.toggle("sel", x === c));
+  chatAi(`已切换到<b>${c === "feishu" ? "飞书" : c === "wechat" ? "微信" : "命令行"}</b>通道，发送指令即可驱动 RPA。`, "w");
+}
+function chatUser(t){ CHAT.innerHTML += `<div class="msg user">${escapeHtml(t)}</div>`; CHAT.scrollTop = CHAT.scrollHeight; }
+function chatAi(t, cls){ CHAT.innerHTML += `<div class="msg ai">${t}</div>`; CHAT.scrollTop = CHAT.scrollHeight; }
+function escapeHtml(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function sendSkill(id){
+  const sk = SKILLS[id];
+  $("msgInp").value = sk.text;
+  sendMsg();
+}
+async function sendMsg(){
+  const txt = $("msgInp").value.trim();
+  if(!txt){ return; }
+  chatUser(txt);
+  $("msgInp").value = "";
+  const skill = routeSkill(txt);
+  await sleep(400);
+  chatAi(`已收到指令，正在匹配技能…<br><span class="t">▸ 路由结果：技能「${skill.name}」（${skill.chan === "feishu" ? "飞书" : skill.chan === "wechat" ? "微信" : "命令行"}通道）</span>`);
+  parseFlow(skill, txt);
+}
+function routeSkill(txt){
+  if(/企查查|企业名单/.test(txt)) return SKILLS.s1;
+  if(/日报|汇总|订单/.test(txt)) return SKILLS.s2;
+  if(/竞品|价格|监控/.test(txt)) return SKILLS.s3;
+  if(/邮件|待办/.test(txt)) return SKILLS.s4;
+  return SKILLS.s1;
+}
+
+async function parseFlow(skill, txt){
+  if(parsed){ chatAi("已有编排中的工作流，先执行或重置再发新指令。", "w"); return; }
+  steps = skill.steps.map(s => ({ ...s, st:"pend" }));
+  $("cron").value = skill.cron; translateCron();
+  log(`🤖 AI 解析指令 → 路由技能「${skill.name}」并拆解步骤…`, "p");
+  for(let i = 0; i < steps.length; i++){
+    steps[i].st = "run"; renderSteps();
+    log(`  步骤 ${i+1}：${steps[i].op === "alert" ? "【重大操作】" : ""}${steps[i].t}`, steps[i].op === "alert" ? "bad" : steps[i].op === "cond" ? "w" : "cy");
+    await sleep(380);
+    steps[i].st = "ok"; renderSteps();
+  }
+  parsed = true;
+  $("btnRun").disabled = false;
+  const alerts = steps.filter(s => s.alert).length;
+  chatAi(`✅ 工作流已编排：<b>${steps.length}</b> 步，含 <span class="bad">${alerts} 个重大操作</span>（执行时需人工确认），调度 <span class="t">${$("cron").value}</span>。点「执行」跑一次。`, "ok");
+  log(`✅ 拆解完成：${steps.length} 步，${alerts} 个重大操作节点`, "ok");
+}
+function renderSteps(){
+  $("steps").innerHTML = steps.length ? steps.map((s, i) => `
+    <div class="step">
+      <span class="no">${i+1}</span>
+      <span class="op ${s.op}">${s.op === "action" ? "动作" : s.op === "cond" ? "条件" : "重大·确认"}</span>
+      <span>${s.t}</span>
+      <span class="st ${s.st}">${s.st === "pend" ? "待执行" : s.st === "run" ? "执行中…" : s.st === "ok" ? "✓ 完成" : s.st === "halt" ? "⏸ 待确认" : "↷ 已跳过"}</span>
+    </div>`).join("") : `<span style="font-size:12px;color:var(--muted)">发指令后在此展示解析出的步骤</span>`;
+}
+function translateCron(){
+  const v = $("cron").value.trim();
+  $("cronHint").textContent = CRON_MAP[v] || "自定义表达式（cron 5 段）";
+}
+
+async function runFlow(){
+  if(!parsed || $("btnRun").disabled) return;
+  $("btnRun").disabled = true;
+  log(`▶ 开始执行（cron ${$("cron").value} 触发的本次运行）…`, "p");
+  for(let i = 0; i < steps.length; i++){
+    if(steps[i].st === "skip") continue;
+    const s = steps[i];
+    if(s.alert && s.st !== "skip"){
+      s.st = "halt"; renderSteps();
+      $("apDet").innerHTML = `步骤 ${i+1}「${s.t}」<br><br>这是<b>重大操作</b>（发送/删除/支付类），AI 已暂停等待你确认。`;
+      $("overlay").classList.add("show");
+      log(`⏸ 暂停：重大操作「${s.t}」等待人工确认`, "bad");
+      return;
+    }
+    s.st = "run"; renderSteps();
+    await sleep(340);
+    s.st = "ok"; renderSteps();
+    log(`  ✓ ${s.t}`, "ok");
+  }
+  finishRun();
+}
+function approveOp(){
+  $("overlay").classList.remove("show");
+  const idx = steps.findIndex(s => s.st === "halt");
+  if(idx >= 0){ steps[idx].st = "ok"; renderSteps(); log(`✅ 人工批准，执行「${steps[idx].t}」`, "ok"); }
+  resumeRun();
+}
+function rejectOp(){
+  $("overlay").classList.remove("show");
+  const idx = steps.findIndex(s => s.st === "halt");
+  if(idx >= 0){ steps[idx].st = "skip"; renderSteps(); log(`↷ 已拒绝并跳过步骤 ${idx+1}`, "w"); }
+  resumeRun();
+}
+async function resumeRun(){
+  for(let i = 0; i < steps.length; i++){
+    if(steps[i].st !== "pend") continue;
+    const s = steps[i];
+    s.st = "run"; renderSteps();
+    await sleep(340);
+    s.st = "ok"; renderSteps();
+    log(`  ✓ ${s.t}`, "ok");
+  }
+  finishRun();
+}
+function finishRun(){
+  const okN = steps.filter(s => s.st === "ok").length;
+  const alertN = steps.filter(s => s.alert).length;
+  const skipped = steps.filter(s => s.st === "skip").length;
+  $("sSteps").textContent = steps.length;
+  $("sOk").textContent = okN;
+  $("sAlert").textContent = alertN;
+  $("sRun").textContent = Number($("sRun").textContent) + 1;
+  chatAi(`✅ <span class="ok">执行完成：${okN}/${steps.length} 步成功</span>${skipped ? "（跳过 " + skipped + " 步）" : ""}，调度 <span class="t">${$("cron").value}</span>，结果已通过当前通道返回。`, "ok");
+  log(`✅ 执行完成：${okN}/${steps.length} 步成功${skipped ? "，跳过 " + skipped + " 步" : ""}；执行报告已更新`, "ok");
+  $("btnRun").disabled = false;
+}
+function resetAll(){
+  steps = []; parsed = false;
+  renderSteps(); A.innerHTML = "";
+  $("btnRun").disabled = true;
+  $("sSteps").textContent = "0"; $("sOk").textContent = "0"; $("sAlert").textContent = "0"; $("sRun").textContent = "0";
+  chatAi("已重置。发送新指令即可。", "w");
+  log("已重置", "w");
+}
+
+chatAi('你好，我是<b>聊天驱动的 RPA 助手</b>（OpenClaw 轻量版）。<br>点下方技能卡，或直接输入指令，例如：<span class="t">每天9点从企查查导出深圳餐饮企业名单，清洗后存Excel，有异常发通知</span>', "p");
+translateCron();
+</script>
+</body>
+</html>
