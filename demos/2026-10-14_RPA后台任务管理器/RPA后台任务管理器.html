@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 后台任务管理器 · 像 Pizza Bot 那样：提交任务→Worker 分工→后台执行→收件箱审批→断点续跑</title>
+<style>
+:root{
+  --bg:#0f1222; --card:#171b31; --card2:#1e2443; --line:#2b325a;
+  --fg:#e9edff; --muted:#939bc7; --pri:#6d7cff; --pri2:#8b6cff;
+  --ok:#2fd98a; --warn:#ffb35c; --bad:#ff6b81; --cy:#39d0ff;
+  --codebg:#0d1117;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;padding:22px}
+.wrap{max-width:1280px;margin:0 auto}
+h1{font-size:22px;letter-spacing:.5px}
+h1 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:6px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px}
+.panel h3{font-size:14px;margin-bottom:12px;color:#cdd4ff}
+.panel h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.top{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.top input{flex:1;min-width:280px;background:var(--codebg);border:1px solid var(--line);border-radius:9px;color:#a8c0e8;padding:10px 12px;font-size:12.5px;font-family:inherit}
+.btn{background:linear-gradient(135deg,var(--pri),var(--pri2));border:none;border-radius:9px;color:#fff;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card2);border:1px solid var(--line);color:var(--fg)}
+.btn.sm{padding:5px 11px;font-size:12px;border-radius:8px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.tpls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tpl{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12px;color:var(--muted);cursor:pointer}
+.tpl:hover{border-color:var(--pri);color:var(--fg)}
+.sched{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.sched input{background:var(--codebg);border:1px solid var(--line);border-radius:8px;color:#a8c0e8;padding:7px 10px;font-size:12px;font-family:ui-monospace,Menlo,monospace;width:150px}
+.cronHint{font-size:11px;color:var(--cy)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-top:6px}
+.stat{flex:1;min-width:90px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 11px;text-align:center}
+.stat b{display:block;font-size:18px;color:var(--fg)}
+.stat span{color:var(--muted);font-size:11px}
+.inbox{display:flex;flex-direction:column;gap:10px}
+.task{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.task:hover{border-color:var(--pri)}
+.task.open{border-color:var(--pri)}
+.tHead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tHead b{font-size:13.5px}
+.tag{font-size:10.5px;border-radius:6px;padding:2px 7px;font-weight:600}
+.tag.queue{background:rgba(143,151,196,.18);color:var(--muted)}
+.tag.run{background:rgba(57,208,255,.18);color:var(--cy)}
+.tag.wait{background:rgba(255,179,92,.18);color:var(--warn)}
+.tag.done{background:rgba(47,217,138,.18);color:var(--ok)}
+.tag.fail{background:rgba(255,107,129,.18);color:var(--bad)}
+.tMeta{font-size:11px;color:var(--muted);margin-top:5px;display:flex;gap:14px;flex-wrap:wrap}
+.tBody{display:none;margin-top:11px;border-top:1px dashed var(--line);padding-top:10px}
+.task.open .tBody{display:block}
+.sub{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 4px;border-radius:8px}
+.sub .no{width:20px;height:20px;border-radius:50%;background:rgba(108,123,255,.2);color:#aab6ff;display:flex;align-items:center;justify-content:center;font-size:10.5px;flex-shrink:0}
+.sub .wk{font-size:10.5px;border-radius:6px;padding:2px 6px;background:rgba(139,108,255,.16);color:#b49aff;flex-shrink:0}
+.sub .op{font-size:10.5px;border-radius:6px;padding:2px 6px;flex-shrink:0}
+.sub .op.action{background:rgba(57,208,255,.14);color:var(--cy)}
+.sub .op.cond{background:rgba(255,179,92,.16);color:var(--warn)}
+.sub .op.alert{background:rgba(255,107,129,.16);color:var(--bad)}
+.sub .st{margin-left:auto;font-size:11px;border-radius:6px;padding:2px 7px;flex-shrink:0}
+.sub .st.pend{background:rgba(143,151,196,.14);color:var(--muted)}
+.sub .st.run{background:rgba(57,208,255,.18);color:var(--cy)}
+.sub .st.ok{background:rgba(47,217,138,.16);color:var(--ok)}
+.sub .st.halt{background:rgba(255,107,129,.18);color:var(--bad)}
+.sub .st.skip{background:rgba(143,151,196,.18);color:var(--muted)}
+.bar{height:4px;background:var(--line);border-radius:3px;margin-top:9px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pri),var(--ok));border-radius:3px;transition:width .3s}
+.res{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.8}
+.res b{color:var(--fg)}
+.audit{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);background:#141830;border:1px solid var(--line);border-radius:10px;padding:12px;height:170px;overflow-y:auto;line-height:1.9;margin-top:16px}
+.audit .ok{color:var(--ok)} .audit .w{color:var(--warn)} .audit .p{color:var(--pri)} .audit .cy{color:var(--cy)} .audit .bad{color:var(--bad)}
+#overlay{display:none;position:fixed;inset:0;background:rgba(8,10,24,.82);z-index:50;align-items:center;justify-content:center}
+#overlay.show{display:flex}
+.apCard{background:var(--card);border:1px solid var(--bad);border-radius:14px;padding:22px;width:min(430px,92vw)}
+.apCard h4{color:var(--bad);font-size:15px;margin-bottom:10px}
+.apCard .apDet{font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:14px}
+.apBtns{display:flex;gap:10px}
+@media(max-width:900px){ .top input{min-width:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RPA 后台任务管理器
+    <span class="sub">像 Pizza Bot（AWS 开源 AI Agent 收件箱）那样演示：提交自动化任务 → 后台队列执行 → 拆子步骤委派专门 Worker（采集/清洗/报告）→ cron / Webhook 触发 → 需人工审批自动暂停 → 收件箱查看与审批 → 断点续跑 / 失败重试 · 单文件 HTML，本地运行</span>
+  </h1>
+
+  <div class="panel">
+    <h3>提交新任务 <small>输入指令，或点示例模板；调度用 cron 定时 / Webhook 事件</small></h3>
+    <div class="top">
+      <input id="taskInp" placeholder="如：每月1号生成上月销售报表并邮件给团队；每天凌晨采集竞品价格数据" onkeydown="if(event.key==='Enter')submitTask()">
+      <button class="btn" onclick="submitTask()">提交任务</button>
+    </div>
+    <div class="tpls">
+      <span class="tpl" onclick="useTpl(0)">📊 月报生成：每月1号生成上月销售报表并邮件给团队</span>
+      <span class="tpl" onclick="useTpl(1)">🛒 竞品采集：每天凌晨采集竞品价格数据，变化超5%发通知</span>
+      <span class="tpl" onclick="useTpl(2)">🧾 发票核验：每月末批量核验发票真伪，异常项人工复核</span>
+    </div>
+    <div class="sched">
+      <input id="cron" value="0 1 * * *" oninput="translateCron()" spellcheck="false">
+      <span class="cronHint" id="cronHint">每天凌晨 01:00</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>任务收件箱 <small>所有任务状态一览，点卡片展开详情 / 审批 / 重试</small></h3>
+    <div class="stats">
+      <div class="stat"><b id="sTotal">0</b><span>任务总数</span></div>
+      <div class="stat"><b id="sRun">0</b><span>执行中</span></div>
+      <div class="stat"><b id="sWait">0</b><span>待审批</span></div>
+      <div class="stat"><b id="sDone">0</b><span>已完成</span></div>
+      <div class="stat"><b id="sFail">0</b><span>失败待重试</span></div>
+    </div>
+    <div class="inbox" id="inbox" style="margin-top:12px"></div>
+  </div>
+
+  <div class="panel">
+    <h3>调度中心日志 <small>提交 → Worker 分工 → 审批 → 续跑 / 重试全链路</small></h3>
+    <div class="audit" id="audit"></div>
+  </div>
+</div>
+
+<div id="overlay"><div class="apCard">
+  <h4>⚠ 任务暂停 · 需人工审批</h4>
+  <div class="apDet" id="apDet"></div>
+  <div class="apBtns">
+    <button class="btn" style="flex:1" onclick="approveTask()">批准，继续执行</button>
+    <button class="btn ghost" style="flex:1" onclick="rejectTask()">拒绝（跳过该步骤）</button>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+/* ── Worker 池：每个步骤委派给专门 Worker ── */
+const WORKERS = {
+  collect:"采集 Worker", clean:"清洗 Worker", report:"报告 Worker", verify:"核验 Worker", notify:"通知 Worker"
+};
+/* ── 任务模板：步骤 = 动作/条件/审批 + Worker ── */
+const TPL = [
+  { name:"每月销售报表生成", cron:"0 9 1 * *", cronTxt:"每月 1 号 09:00",
+    steps:[
+      { op:"action", wk:"collect", t:"汇总上月销售订单（CRM→明细表）" },
+      { op:"action", wk:"clean", t:"清洗：去重 / 补全区域与金额字段" },
+      { op:"action", wk:"report", t:"生成上月销售报表（区域/金额汇总 + 环比）" },
+      { op:"cond", wk:"report", t:"数据校验：总额与明细一致检查" },
+      { op:"alert", wk:"notify", t:"审批：确认报表无误后邮件给团队" },
+      { op:"action", wk:"report", t:"归档：报表存入 reports/ 并更新台账" }
+    ]},
+  { name:"竞品价格采集", cron:"0 1 * * *", cronTxt:"每天凌晨 01:00",
+    steps:[
+      { op:"action", wk:"collect", t:"浏览器自动化：采集 3 家竞品价格" },
+      { op:"action", wk:"clean", t:"清洗：价格格式标准化 / 单位统一" },
+      { op:"cond", wk:"collect", t:"变化检测：与上次价格对比，&gt;5% 标记" },
+      { op:"action", wk:"report", t:"生成价格对比表（对比/竞品价格.xlsx）" },
+      { op:"alert", wk:"notify", t:"审批：价格异动提醒发送" },
+      { op:"action", wk:"report", t:"更新价格趋势看板" }
+    ]},
+  { name:"发票批量核验", cron:"0 18 28 * *", cronTxt:"每月 28 号 18:00",
+    steps:[
+      { op:"action", wk:"collect", t:"读取发票台账（本月 128 张）" },
+      { op:"action", wk:"verify", t:"批量核验发票真伪（税局接口）" },
+      { op:"cond", wk:"verify", t:"异常检测：3 张查验异常，标红" },
+      { op:"alert", wk:"notify", t:"审批：异常发票人工复核清单" },
+      { op:"action", wk:"report", t:"生成核验报告并归档" }
+    ]}
+];
+const CRON_MAP = {
+  "0 9 1 * *":"每月 1 号 09:00", "0 1 * * *":"每天凌晨 01:00", "0 18 28 * *":"每月 28 号 18:00",
+  "*/10 * * * *":"每 10 分钟", "0 8 * * 1-5":"工作日 08:00"
+};
+let tasks = [], seq = 0, pendingApprove = null;
+const $ = id => document.getElementById(id);
+const A = $("audit"), INBOX = $("inbox");
+function log(msg, cls){ A.innerHTML += `<div class="${cls||''}">· ${msg}</div>`; A.scrollTop = A.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function escapeHtml(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+const ST_TXT = { queue:"排队中", run:"执行中", wait:"待审批", done:"已完成", fail:"失败" };
+const ST_TAG = { queue:"queue", run:"run", wait:"wait", done:"done", fail:"fail" };
+
+function useTpl(i){
+  const t = TPL[i];
+  $("taskInp").value = t.name + "（" + t.steps.map(s => s.t).join("；") + "）";
+  $("cron").value = t.cron; translateCron();
+}
+function translateCron(){
+  const v = $("cron").value.trim();
+  $("cronHint").textContent = CRON_MAP[v] || "自定义表达式（cron 5 段）";
+}
+
+function submitTask(){
+  const txt = $("taskInp").value.trim();
+  if(!txt) return;
+  const tpl = pickTpl(txt);
+  const task = {
+    id: ++seq, name: tpl.name, cron: $("cron").value.trim(),
+    steps: tpl.steps.map(s => ({ ...s, st:"pend" })), st:"queue",
+    res:"", failIdx:-1
+  };
+  tasks.push(task);
+  $("taskInp").value = "";
+  renderInbox();
+  log(`📥 任务 #${task.id}「${task.name}」已入队，调度 ${task.cron}`, "p");
+  runTask(task);
+}
+function pickTpl(txt){
+  if(/发票|核验|税/.test(txt)) return TPL[2];
+  if(/竞品|价格|采集/.test(txt)) return TPL[1];
+  return TPL[0];
+}
+
+async function runTask(t){
+  t.st = "run"; renderInbox();
+  log(`▶ 任务 #${t.id} 开始执行：拆解 ${t.steps.length} 步，委派 Worker…`, "cy");
+  for(let i = 0; i < t.steps.length; i++){
+    if(t.steps[i].st === "skip" || t.steps[i].st === "ok") continue;
+    const s = t.steps[i];
+    if(s.op === "alert" && s.st !== "skip"){
+      t.st = "wait"; s.st = "halt"; renderInbox();
+      pendingApprove = { t, idx: i };
+      $("apDet").innerHTML = `任务 #${t.id}「${t.name}」<br>步骤 ${i+1}「${s.t}」<br><br>该步骤委派给 <b>${WORKERS[s.wk]}</b>，属<b>人工审批节点</b>（发送/删除/支付类），已自动暂停等待审批。`;
+      $("overlay").classList.add("show");
+      log(`⏸ 任务 #${t.id} 暂停：审批节点「${s.t}」（${WORKERS[s.wk]}）`, "bad");
+      return;
+    }
+    s.st = "run"; renderInbox();
+    log(`  [${WORKERS[s.wk]}] ${s.t}`, "cy");
+    await sleep(320);
+    s.st = "ok"; renderInbox();
+  }
+  finishTask(t);
+}
+function approveTask(){
+  $("overlay").classList.remove("show");
+  if(!pendingApprove) return;
+  const { t, idx } = pendingApprove; pendingApprove = null;
+  t.steps[idx].st = "ok"; t.st = "run"; renderInbox();
+  log(`✅ 人工批准，任务 #${t.id} 继续执行「${t.steps[idx].t}」`, "ok");
+  resumeTask(t);
+}
+function rejectTask(){
+  $("overlay").classList.remove("show");
+  if(!pendingApprove) return;
+  const { t, idx } = pendingApprove; pendingApprove = null;
+  t.steps[idx].st = "skip"; t.st = "run"; renderInbox();
+  log(`↷ 已拒绝并跳过步骤 ${idx+1}，任务 #${t.id} 继续`, "w");
+  resumeTask(t);
+}
+async function resumeTask(t){
+  for(let i = 0; i < t.steps.length; i++){
+    if(t.steps[i].st !== "pend") continue;
+    const s = t.steps[i];
+    s.st = "run"; renderInbox();
+    log(`  [${WORKERS[s.wk]}] ${s.t}`, "cy");
+    await sleep(320);
+    s.st = "ok"; renderInbox();
+  }
+  finishTask(t);
+}
+function finishTask(t){
+  const skipped = t.steps.filter(s => s.st === "skip").length;
+  t.st = "done"; t.res = `全部 ${t.steps.length} 步完成（跳过 ${skipped} 步），结果已返回收件箱。`;
+  renderInbox();
+  log(`✅ 任务 #${t.id} 完成：${t.steps.filter(s => s.st === "ok").length}/${t.steps.length} 步成功${skipped ? "，跳过 " + skipped + " 步" : ""}`, "ok");
+}
+function retryTask(t){
+  if(t.st !== "fail") return;
+  t.st = "run"; t.res = "";
+  for(const s of t.steps){ if(s.st !== "ok") s.st = "pend"; }
+  renderInbox();
+  log(`🔄 任务 #${t.id} 重试：从失败检查点断点续跑…`, "w");
+  runTask(t);
+}
+
+function renderInbox(){
+  INBOX.innerHTML = tasks.map(t => {
+    const done = t.steps.filter(s => s.st === "ok").length;
+    const pct = Math.round(done / t.steps.length * 100);
+    return `<div class="task ${t.st === "wait" ? "open" : ""}" id="t${t.id}" onclick="toggleTask(${t.id})">
+      <div class="tHead">
+        <b>#${t.id} ${escapeHtml(t.name)}</b>
+        <span class="tag ${ST_TAG[t.st]}">${ST_TXT[t.st]}</span>
+        ${t.st === "fail" ? `<button class="btn sm ghost" onclick="event.stopPropagation();retryTask(tasks[${tasks.indexOf(t)}])">↻ 重试</button>` : ""}
+      </div>
+      <div class="tMeta"><span>调度：${t.cron}</span><span>进度：${done}/${t.steps.length} 步（${pct}%）</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      ${t.st === "wait" || t.st === "done" || t.st === "fail" ? `<div class="tBody">
+        ${t.steps.map((s, i) => `<div class="sub">
+          <span class="no">${i+1}</span>
+          <span class="wk">${WORKERS[s.wk]}</span>
+          <span class="op ${s.op}">${s.op === "action" ? "动作" : s.op === "cond" ? "条件" : "审批"}</span>
+          <span>${s.t}</span>
+          <span class="st ${s.st}">${s.st === "ok" ? "✓ 完成" : s.st === "halt" ? "⏸ 待审批" : s.st === "skip" ? "↷ 已跳过" : s.st === "fail" ? "✕ 失败" : "·"}</span>
+        </div>`).join("")}
+        ${t.res ? `<div class="res">${escapeHtml(t.res)}</div>` : ""}
+      </div>` : ""}
+    </div>`;
+  }).join("") || `<span style="font-size:12px;color:var(--muted)">收件箱为空，提交一个新任务看看。</span>`;
+  $("sTotal").textContent = tasks.length;
+  $("sRun").textContent = tasks.filter(t => t.st === "run" || t.st === "queue").length;
+  $("sWait").textContent = tasks.filter(t => t.st === "wait").length;
+  $("sDone").textContent = tasks.filter(t => t.st === "done").length;
+  $("sFail").textContent = tasks.filter(t => t.st === "fail").length;
+}
+function toggleTask(id){
+  const el = document.getElementById("t" + id);
+  if(el) el.classList.toggle("open");
+}
+
+/* ── 初始收件箱：预置 3 个任务展示全貌 ── */
+function seed(){
+  const a = { id:++seq, name:"月度销售报表", cron:"0 9 1 * *", st:"done", res:"全部 6 步完成，报表已发送团队并归档。",
+    steps: TPL[0].steps.map(s => ({ ...s, st: "ok" })) };
+  tasks.push(a);
+  renderInbox();
+  log("📥 收件箱已加载任务 #1 月度销售报表（已完成）", "p");
+  // 任务 #2 竞品价格采集：真实入队执行，跑到人工审批节点自动暂停（演示审批流）
+  const b = { id:++seq, name:"竞品价格采集", cron:"0 1 * * *", st:"queue",
+    steps: TPL[1].steps.map(s => ({ ...s, st: "pend" })) };
+  tasks.push(b);
+  renderInbox();
+  runTask(b);
+  const c = { id:++seq, name:"发票批量核验", cron:"0 18 28 * *", st:"fail", res:"步骤 3「异常检测」失败：税局接口超时，可断点重试。",
+    steps: TPL[2].steps.map((s,i) => ({ ...s, st: i < 2 ? "ok" : (i === 2 ? "fail" : "pend") })) };
+  tasks.push(c);
+  renderInbox();
+  log("📥 已加载：1 完成 / 1 待审批 / 1 失败待重试", "p");
+}
+seed();
+translateCron();
+</script>
+</body>
+</html>
