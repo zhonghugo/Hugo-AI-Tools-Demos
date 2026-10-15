@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 长任务无损记忆执行器</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; background:#0d1117; color:#e6edf3; min-height:100vh; }
+  .wrap { max-width:1180px; margin:0 auto; padding:20px 16px 60px; }
+  /* 顶部标题 */
+  .head { border-bottom:1px solid #21262d; padding-bottom:14px; margin-bottom:16px; }
+  .head h1 { font-size:22px; color:#58a6ff; letter-spacing:.5px; }
+  .head p { font-size:13px; color:#8b949e; margin-top:6px; line-height:1.7; }
+  .head p b { color:#d29922; }
+  /* 控制区 */
+  .ctrl { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:#161b22; border:1px solid #21262d; border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+  .btn { border:none; border-radius:8px; padding:9px 18px; font-size:14px; cursor:pointer; font-weight:600; transition:.15s; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-run { background:#238636; color:#fff; }
+  .btn-run:hover:not(:disabled) { background:#2ea043; }
+  .btn-warn { background:#b62324; color:#fff; }
+  .btn-warn:hover:not(:disabled) { background:#da3633; }
+  .btn-restore { background:#1f6feb; color:#fff; }
+  .btn-restore:hover:not(:disabled) { background:#388bfd; }
+  .st { font-size:13px; margin-left:auto; display:flex; gap:10px; align-items:center; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+  .badge.idle { background:#30363d; color:#8b949e; }
+  .badge.run { background:#1f6feb; color:#fff; }
+  .badge.halt { background:#d29922; color:#0d1117; }
+  .badge.done { background:#238636; color:#fff; }
+  /* 中断横幅 */
+  .banner { display:none; background:#3d1d1d; border:1px solid #da3633; color:#f0b4b4; border-radius:8px; padding:10px 14px; font-size:13px; margin-bottom:14px; }
+  .banner.show { display:block; }
+  .banner b { color:#ff7b72; }
+  /* 恢复卡 */
+  .recover { display:none; background:#10213d; border:1px solid #1f6feb; border-radius:8px; padding:12px 14px; margin-bottom:14px; font-size:13px; line-height:1.8; color:#c9d1d9; }
+  .recover.show { display:block; }
+  .recover b { color:#58a6ff; }
+  .recover .kv { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; background:#0d1117; border-radius:6px; padding:8px 10px; margin-top:6px; color:#7ee787; white-space:pre-wrap; word-break:break-all; }
+  /* 主布局：步骤执行区 + 记忆时间线 */
+  .main { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  .panel { background:#161b22; border:1px solid #21262d; border-radius:10px; padding:14px; }
+  .panel h2 { font-size:14px; color:#58a6ff; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+  .panel h2 .sub { font-size:11px; color:#8b949e; font-weight:400; }
+  /* 步骤列表 */
+  .steps { display:flex; flex-direction:column; gap:8px; }
+  .step { border:1px solid #21262d; border-radius:8px; padding:9px 12px; background:#0d1117; transition:.2s; }
+  .step .top { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .step .no { width:22px; height:22px; border-radius:50%; background:#21262d; color:#8b949e; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex:none; }
+  .step .name { font-weight:600; }
+  .step .op { font-size:11px; color:#8b949e; background:#21262d; padding:1px 7px; border-radius:10px; }
+  .step .stt { margin-left:auto; font-size:12px; color:#8b949e; }
+  .step .desc { font-size:12px; color:#8b949e; margin-top:4px; }
+  .step.doing { border-color:#58a6ff; box-shadow:0 0 0 1px #58a6ff; }
+  .step.doing .no { background:#1f6feb; color:#fff; }
+  .step.ok { border-color:#2ea04340; }
+  .step.ok .no { background:#238636; color:#fff; }
+  .step.halt { border-color:#d29922; }
+  .step.halt .no { background:#d29922; color:#0d1117; }
+  /* 动态决策卡 */
+  .decide { display:none; background:#1c2333; border:1px solid #3d444d; border-radius:8px; padding:10px 12px; margin-top:10px; font-size:12px; line-height:1.7; }
+  .decide.show { display:block; }
+  .decide .t { color:#d29922; font-weight:700; }
+  .decide .q { color:#c9d1d9; margin-top:2px; }
+  .decide .ref { color:#7ee787; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; }
+  /* 记忆时间线 */
+  .mem { max-height:430px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+  .mem-empty { color:#484f58; font-size:12px; text-align:center; padding:30px 0; }
+  .mem-item { border:1px solid #21262d; border-radius:7px; padding:8px 10px; background:#0d1117; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; cursor:pointer; }
+  .mem-item:hover { border-color:#58a6ff; }
+  .mem-item .h { display:flex; gap:8px; color:#7ee787; }
+  .mem-item .h .idx { color:#58a6ff; }
+  .mem-item .h .name { color:#e6edf3; }
+  .mem-item .sum { color:#8b949e; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mem-item .full { display:none; color:#c9d1d9; margin-top:6px; padding-top:6px; border-top:1px dashed #30363d; white-space:pre-wrap; word-break:break-all; line-height:1.6; }
+  .mem-item.open .full { display:block; }
+  .mem-item .h .tag { margin-left:auto; color:#d29922; font-size:10px; }
+  /* 对比区 */
+  .cmp { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+  .cmp-card { border-radius:10px; padding:14px; font-size:12px; line-height:1.8; }
+  .cmp-card.bad { background:#1a1c22; border:1px solid #b6232450; }
+  .cmp-card.good { background:#10231a; border:1px solid #23863650; }
+  .cmp-card h3 { font-size:13px; margin-bottom:8px; }
+  .cmp-card.bad h3 { color:#ff7b72; }
+  .cmp-card.good h3 { color:#3fb950; }
+  .cmp-card .row { display:flex; gap:8px; }
+  .cmp-card .x { color:#f85149; font-weight:700; }
+  .cmp-card .v { color:#3fb950; font-weight:700; }
+  .cmp-card code { font-family:ui-monospace,Menlo,Consolas,monospace; background:#0d1117; padding:1px 6px; border-radius:4px; font-size:11px; }
+  /* 统计 */
+  .stats { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .stat { flex:1; min-width:110px; background:#161b22; border:1px solid #21262d; border-radius:8px; padding:10px 12px; text-align:center; }
+  .stat .n { font-size:20px; font-weight:700; color:#58a6ff; }
+  .stat .l { font-size:11px; color:#8b949e; margin-top:2px; }
+  /* 日志 */
+  .log { margin-top:14px; background:#0d1117; border:1px solid #21262d; border-radius:8px; padding:12px; max-height:150px; overflow-y:auto; }
+  .log h2 { font-size:13px; color:#58a6ff; margin-bottom:8px; }
+  .log div { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; color:#8b949e; line-height:1.7; }
+  .log .ok { color:#7ee787; }
+  .log .warn { color:#d29922; }
+  .log .err { color:#f85149; }
+  @media (max-width:860px){
+    .main { grid-template-columns:1fr; }
+    .cmp { grid-template-columns:1fr; }
+    .st { margin-left:0; width:100%; margin-top:6px; flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>RPA 长任务无损记忆执行器</h1>
+    <p>参考 Reflex Agent（APUS 开源）的「<b>Continuum 记忆引擎 + 模型驱动 Harness</b>」：为财务月结这类长流程实现<b>无损记忆</b>——每步执行后把完整中间结果写入 JSONL 记忆时间线（不做摘要压缩），LLM 依据上一步结果+记忆动态决策下一步；中断后从记忆恢复续跑，中间结果随时可查。· 单文件 HTML，本地运行</p>
+  </div>
+
+  <!-- 控制区 -->
+  <div class="ctrl">
+    <button class="btn btn-run" id="btnRun">▶ 开始执行</button>
+    <button class="btn btn-warn" id="btnHalt" disabled>⚠ 模拟中断</button>
+    <button class="btn btn-restore" id="btnResume" disabled>↻ 断点恢复</button>
+    <div class="st">
+      <span class="badge idle" id="badge">待命</span>
+      <span class="badge idle" id="stepBadge">步骤 0/8</span>
+    </div>
+  </div>
+
+  <div class="banner" id="banner">⚠ <b>任务中断</b>：执行进程异常终止（模拟浏览器崩溃 / 会话超时）。传统方案需从头重跑 8 步；本执行器已把 3 步的完整中间结果写入记忆时间线，点击「断点恢复」可从第 4 步续跑。</div>
+
+  <div class="recover" id="recover">
+    <b>↻ 已从记忆时间线恢复</b> —— 不重跑已完成步骤，直接引用记忆中的完整中间结果继续。
+    <div class="kv" id="recoverKv"></div>
+  </div>
+
+  <div class="main">
+    <!-- 左：步骤执行区 -->
+    <div class="panel">
+      <h2>任务：财务月结自动化 <span class="sub">模型驱动 Harness · 每步依据记忆动态决策</span></h2>
+      <div class="steps" id="steps"></div>
+      <div class="decide" id="decide">
+        <div class="t">🧠 LLM 动态决策</div>
+        <div class="q" id="decideQ"></div>
+        <div class="ref" id="decideRef"></div>
+      </div>
+    </div>
+    <!-- 右：记忆时间线 -->
+    <div class="panel">
+      <h2>记忆时间线（JSONL 无损） <span class="sub">点条目查看完整中间结果</span></h2>
+      <div class="mem" id="mem"></div>
+    </div>
+  </div>
+
+  <!-- 对比区 -->
+  <div class="cmp">
+    <div class="cmp-card bad">
+      <h3>❌ 传统方案：摘要压缩（丢细节）</h3>
+      <div class="row"><span>第 3 步对账后摘要：</span><span>「发现 2 笔差异，已处理」</span></div>
+      <div class="row"><span>第 7 步生成报表：</span><span>回查时摘要丢失供应商明细 → 无法定位差异金额 <span class="x">¥12,480</span> 归属 → 报表少记一笔应付</span></div>
+      <div class="row"><span>恢复成本：</span><span>从头重跑，且仍缺关键数据</span></div>
+    </div>
+    <div class="cmp-card good">
+      <h3>✅ 无损记忆：完整中间结果（本 demo）</h3>
+      <div class="row"><span>第 3 步对账后记忆：</span><span>完整 JSONL 保留「华东物流 ¥12,480 · 采购单 PO-2026-0912 · 状态:未匹配」</span></div>
+      <div class="row"><span>第 7 步生成报表：</span><span>语义检索引入记忆 → 调整分录含该笔 <span class="v">✓</span> 报表准确</span></div>
+      <div class="row"><span>恢复成本：</span><span>从记忆断点续跑，0 步重算</span></div>
+    </div>
+  </div>
+
+  <!-- 统计 -->
+  <div class="stats">
+    <div class="stat"><div class="n" id="sSteps">0</div><div class="l">完成步骤</div></div>
+    <div class="stat"><div class="n" id="sMem">0</div><div class="l">记忆条目（JSONL）</div></div>
+    <div class="stat"><div class="n" id="sResume">0</div><div class="l">断点恢复次数</div></div>
+    <div class="stat"><div class="n" id="sData">0</div><div class="l">完整中间结果保留</div></div>
+  </div>
+
+  <!-- 日志 -->
+  <div class="log">
+    <h2>执行日志</h2>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+/* ============ 数据定义：财务月结 8 步长任务 ============ */
+// 每步包含：名称 / 操作类型 / 说明 / 动态决策理由模板 / 完整中间结果（无损记忆的核心）
+const TASK = [
+  { name:"采集三张表", op:"采集", desc:"拉取本月采购 / 销售 / 费用明细表",
+    q:"上一步为开始节点，无历史记忆。决策：并行采集 3 张源表，建立任务基线。",
+    data:"📄 采购表 128 行 · 销售表 96 行 · 费用表 42 行\n来源：ERP / 数据仓库 快照 2026-09-30" },
+  { name:"数据清洗", op:"清洗", desc:"去重 7 行、统一日期格式、修正空值",
+    q:"记忆显示 3 张表共 266 行。决策：先按 单据号+金额 去重，再校验日期格式，避免对账口径混乱。",
+    data:"🧹 去重 7 行（重复单据 PO-09xx×4 / SO-09xx×3）\n日期格式统一为 yyyy-MM-dd · 空值 5 格已置 0 标注" },
+  { name:"采购付款对账", op:"对账", desc:"采购单与付款记录逐笔匹配，标出差异",
+    q:"清洗后采购 121 行 / 付款 98 笔。决策：按 供应商+PO 号 逐笔匹配，未匹配项单独标记待人工确认。",
+    data:"🔍 匹配 119 笔 ✓ · 差异 2 笔\n① 华东物流 ¥12,480 · PO-2026-0912 · 状态:未匹配\n② 广州恒达 ¥3,600 · PO-2026-0845 · 付款日期异常" },
+  { name:"生成调整分录", op:"计算", desc:"针对差异项生成 2 笔调整分录",
+    q:"记忆引用第 3 步差异明细。决策：对 ① 生成应付调整分录；对 ② 生成账期重分类分录。",
+    data:"📝 调整分录 2 笔\nDR 应付账款 12,480 / CR 应付暂估 12,480（华东物流）\nDR 预付账款 3,600 / CR 应付账款 3,600（广州恒达）" },
+  { name:"折旧摊销计提", op:"计算", desc:"固定资产折旧 + 无形资产摊销",
+    q:"记忆无折旧参数。决策：读取默认计提参数（折旧率 2% / 摊销期 10 年）执行计提。",
+    data:"🧮 折旧 ¥8,642.00（原值 432,100 × 2%）\n摊销 ¥2,150.00（原值 215,000 ÷ 10 年 ÷ 12）" },
+  { name:"利润表汇总", op:"汇总", desc:"收入 / 成本 / 费用汇总生成利润表",
+    q:"记忆含调整分录与计提数。决策：收入 96 行汇总，扣减成本费用后生成利润表。",
+    data:"📊 营收 ¥1,284,560 · 成本 ¥786,320 · 费用 ¥128,450\n毛利 ¥498,240 · 净利 ¥318,748（含调整-16,080）" },
+  { name:"资产负债表汇总", op:"汇总", desc:"资产 / 负债 / 权益三块汇总",
+    q:"利润表净利已出。决策：净利结转权益，资产=负债+权益校验平衡。",
+    data:"📑 资产 ¥2,460,820 = 负债 ¥1,088,352 + 权益 ¥1,372,468\n平衡校验 ✓ 差额 0.00" },
+  { name:"归档并通知", op:"通知", desc:"月结档案归档，发送完成通知",
+    q:"全部报表校验通过。决策：归档 4 份报表至月结档案，通知财务团队。",
+    data:"🗂 归档：利润表 / 资产负债表 / 调整明细 / 对账报告\n通知：财务月结群 · 附 2 笔待办差异复核" }
+];
+
+/* ============ 状态 ============ */
+let cur = -1;          // 当前执行到第几步（索引）
+let doneCount = 0;     // 已完成步数
+let running = false;
+let halted = false;
+let resumed = false;   // 是否发生过断点恢复
+let resumeTimes = 0;
+let memory = [];       // 无损记忆时间线（JSONL）
+const $ = id => document.getElementById(id);
+
+/* ============ 渲染 ============ */
+function renderSteps(){
+  const box = $("steps"); box.innerHTML = "";
+  TASK.forEach((s,i)=>{
+    const d = document.createElement("div");
+    d.className = "step"; d.id = "st" + i;
+    let stt = "", stclass = "";
+    if(i < doneCount){ stt = "✓ 完成"; stclass = "ok"; }
+    else if(i === cur && running){ stt = "执行中…"; stclass = "doing"; }
+    else if(i === cur && halted){ stt = "⏸ 中断点"; stclass = "halt"; }
+    else if(i === cur && resumed){ stt = "↻ 恢复续跑"; stclass = "doing"; }
+    else if(i < cur){ stt = "↻ 从记忆跳过"; stclass = "ok"; }
+    d.className = "step " + stclass;
+    d.innerHTML = `<div class="top"><span class="no">${i+1}</span><span class="name">${s.name}</span><span class="op">${s.op}</span><span class="stt">${stt}</span></div><div class="desc">${s.desc}</div>`;
+    box.appendChild(d);
+  });
+  $("stepBadge").textContent = "步骤 " + doneCount + "/" + TASK.length;
+  $("sSteps").textContent = doneCount;
+}
+function renderMemory(){
+  const box = $("mem");
+  if(!memory.length){ box.innerHTML = `<div class="mem-empty">记忆时间线为空 —— 开始执行后，每步的完整中间结果将写入这里（JSONL 无损，不做摘要压缩）</div>`; return; }
+  box.innerHTML = "";
+  memory.forEach((m,i)=>{
+    const d = document.createElement("div");
+    d.className = "mem-item"; d.id = "mem" + i;
+    d.innerHTML = `<div class="h"><span class="idx">#${i+1}</span><span class="name">${m.name}</span><span class="tag">无损</span></div>
+      <div class="sum">${m.sum}</div><div class="full">${m.data}</div>`;
+    d.onclick = () => d.classList.toggle("open");
+    box.appendChild(d);
+  });
+  $("sMem").textContent = memory.length;
+  $("sData").textContent = memory.filter(m=>m.data).length;
+}
+function log(msg, cls){
+  const d = document.createElement("div");
+  d.className = cls || ""; d.textContent = msg;
+  $("log").appendChild(d); $("log").scrollTop = $("log").scrollHeight;
+}
+function setBadge(txt, cls){
+  const b = $("badge"); b.textContent = txt;
+  b.className = "badge " + (cls || "idle");
+}
+function setRunning(v){
+  running = v;
+  $("btnRun").disabled = v;
+  $("btnHalt").disabled = !v || halted;
+  $("btnResume").disabled = !halted;
+}
+function decide(i){
+  // 模型驱动 Harness：显示 LLM 依据「上一步结果 + 记忆」的决策理由
+  const s = TASK[i];
+  $("decideQ").textContent = s.q;
+  const refs = memory.length
+    ? "引用记忆：" + memory.slice(-2).map(m=>"#" + (memory.indexOf(m)+1) + " " + m.name).join(" / ")
+    : "引用记忆：无（任务起始）";
+  $("decideRef").textContent = refs;
+  $("decide").classList.add("show");
+}
+
+/* ============ 核心：无损记忆执行器 ============ */
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function runFrom(startIdx, resumedFlag){
+  /* startIdx: 从该步骤开始执行；resumedFlag: 是否为断点恢复 */
+  setRunning(true);
+  if(resumedFlag) resumeTimes++;
+  for(let i = startIdx; i < TASK.length; i++){
+    if(halted && !resumedFlag && i >= haltedAt) break; // 未恢复前停在中断点
+    cur = i; running = true; halted = false;
+    renderSteps();
+    decide(i);
+    log(`▶ 步骤 ${i+1} ${TASK[i].name} — 委派 Worker 执行`, "warn");
+    await sleep(360);
+    // 写入无损记忆：完整中间结果，不做摘要压缩
+    memory.push({ name:TASK[i].name, sum:TASK[i].desc + " · 结果已落盘", data:TASK[i].data });
+    doneCount = i + 1;
+    renderSteps(); renderMemory();
+    log(`✓ 步骤 ${i+1} ${TASK[i].name} 完成 → 中间结果写入记忆 #${memory.length}`, "ok");
+    await sleep(120);
+    // 模拟中断点：执行到第 4 步（生成调整分录）完成后触发中断（仅首次，未恢复过）
+    if(!resumedFlag && !halted && i === 3 && resumeTimes === 0){
+      haltTask(i);
+      return;
+    }
+  }
+  // 全部完成
+  running = false; cur = -1;
+  setBadge("✓ 全部完成", "done");
+  $("btnRun").disabled = true; $("btnHalt").disabled = true; $("btnResume").disabled = true;
+  renderSteps(); renderMemory();
+  $("sSteps").textContent = doneCount;
+  $("sResume").textContent = resumeTimes;
+  log("✅ 财务月结自动化全部 8 步完成 · 记忆时间线 " + memory.length + " 条无损记录", "ok");
+}
+
+let haltedAt = -1;
+function haltTask(i){
+  halted = true; haltedAt = i + 1; cur = i + 1; // 中断点 = 下一步（未执行）
+  running = false;
+  renderSteps();
+  setBadge("⏸ 已中断", "halt");
+  $("banner").classList.add("show");
+  $("btnHalt").disabled = true;
+  $("btnResume").disabled = false;
+  log("⚠ 模拟中断：执行进程异常终止（浏览器崩溃 / 会话超时）", "err");
+}
+
+/* ============ 交互 ============ */
+$("btnRun").onclick = () => {
+  $("banner").classList.remove("show");
+  $("recover").classList.remove("show");
+  setBadge("▶ 执行中", "run");
+  log("▶ 任务启动：财务月结自动化（8 步长任务）", "warn");
+  runFrom(0, false);
+};
+$("btnHalt").onclick = () => { if(running) haltTask(cur); };
+$("btnResume").onclick = () => {
+  $("banner").classList.remove("show");
+  // 恢复卡：引用记忆中最近两条完整中间结果，证明从记忆恢复而非重跑
+  const last = memory[memory.length - 1];
+  const prev = memory[memory.length - 2];
+  $("recoverKv").textContent =
+    "上次完成：" + doneCount + "/8 步\n恢复点：第 " + (doneCount + 1) + " 步 " + TASK[doneCount].name +
+    "\n引用记忆 #" + (memory.length - 1) + "（" + prev.name + "）→ " + prev.data.split("\n")[1] +
+    "\n引用记忆 #" + memory.length + "（" + last.name + "）→ " + last.data.split("\n")[1] +
+    "\n断点续跑：跳过已完成 " + doneCount + " 步，0 步重算";
+  $("recover").classList.add("show");
+  setBadge("↻ 恢复续跑", "run");
+  log("↻ 断点恢复：从记忆时间线读取 " + memory.length + " 条记录，从第 " + (doneCount+1) + " 步续跑", "warn");
+  runFrom(doneCount, true);
+};
+
+/* ============ 初始化 ============ */
+renderSteps(); renderMemory();
+log("⚙ 执行器就绪：无损记忆引擎已挂载（JSONL · 不做摘要压缩）", "");
+log("📌 点击「开始执行」，第 4 步后会自动模拟中断，再点「断点恢复」体验从记忆续跑", "");
+</script>
+</body>
+</html>

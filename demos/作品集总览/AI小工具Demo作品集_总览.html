@@ -66,9 +66,9 @@
 const DEMOS = [
   {
     date:"10-15", name:"RPA长任务无损记忆执行器",
-    desc:"像 Reflex Agent（APUS 开源，Reflex 决策模型 + Continuum 记忆引擎）那样演示「长任务不靠重跑、靠记忆」：业务表单选择任务模板（财务月结/多表核对/发票汇总）并注入中断点 →「开始执行」逐步运行，每步把完整中间结果（含全部字段与明细）以 JSONL 追加进无损记忆 → 第 N 步后被中断，传统方式只能从头重跑，本工具「从记忆断点恢复」直接读取记忆不重跑 → ④ 区检索对比无损 vs 有损：有损摘要只剩一行「存在少量差异」答不出金额，无损记忆直接给出 3 笔差异明细；步骤卡片可展开查看完整 JSON 记忆。讲 RPA 长任务『断点续跑 + 信息无损』主题的强素材。",
+    desc:"参考 Reflex Agent（APUS 开源）的 Continuum 记忆引擎+模型驱动 Harness，演示财务月结这类长流程的『无损记忆』：每步执行后把完整中间结果（数据/判断/参数）写入 JSONL 记忆时间线（不做摘要压缩，点条目可查完整明细），LLM 依据上一步结果+记忆动态决策下一步（显示决策理由与引用记忆）；第 4 步后自动模拟中断，『断点恢复』从记忆续跑（跳过已完成步骤、引用记忆中的差异明细 ¥12,480 继续生成报表）；末尾用『摘要压缩丢细节 vs 无损记忆完整保留』对比卡讲透长任务失忆痛点。讲 RPA 长任务可靠执行『记忆完整性』主题，与 10/12 编排记忆、10/14 断点续跑形成递进。
     src:"10/15 资讯 · Reflex Agent（4星）",
-    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-15_RPA%E9%95%BF%E4%BB%BB%E5%8A%A1%E6%97%A0%E6%8D%9F%E8%AE%B0%E5%BF%86%E6%89%A7%E8%A1%8C%E5%99%A8/RPA%E9%95%BF%E4%BB%BB%E5%8A%A1%E6%97%A0%E6%8D%9F%E8%AE%B0%E5%BF%86%E6%89%A7%E8%A1%8C%E5%99%A8_%E7%BD%91%E9%A1%B5%E7%89%88.html"
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-15_RPA%E9%95%BF%E4%BB%BB%E5%8A%A1%E6%97%A0%E6%8D%9F%E8%AE%B0%E5%BF%86%E6%89%A7%E8%A1%8C%E5%99%A8/RPA%E9%95%BF%E4%BB%BB%E5%8A%A1%E6%97%A0%E6%8D%9F%E8%AE%B0%E5%BF%86%E6%89%A7%E8%A1%8C%E5%99%A8.html"
   },
   {
     date:"10-14", name:"RPA后台任务管理器",
