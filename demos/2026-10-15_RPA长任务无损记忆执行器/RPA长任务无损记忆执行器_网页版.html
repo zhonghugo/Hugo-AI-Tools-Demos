@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RPA长任务无损记忆执行器 · 网页版</title>
+<style>
+:root{--primary:#1d4ed8;--primary-l:#eff6ff;--ok:#059669;--ok-l:#ecfdf5;--warn:#b45309;--warn-l:#fffbeb;--bad:#dc2626;--bad-l:#fef2f2;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+header{text-align:center;margin-bottom:18px}
+.badge{display:inline-block;background:var(--primary-l);color:var(--primary);font-size:12px;padding:3px 12px;border-radius:99px;margin-bottom:8px}
+h1{font-size:26px}
+.sub{color:var(--muted);font-size:14px;margin-top:6px;max-width:820px;margin-left:auto;margin-right:auto}
+.sub b{color:var(--ink)}
+.stats{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:14px}
+.stats div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 16px;text-align:center;min-width:104px}
+.stats b{font-size:20px;color:var(--primary);display:block}
+.stats span{font-size:12px;color:var(--muted)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.panel h2{font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+label{font-size:13px;color:var(--muted);display:block;margin:8px 0 4px}
+select,textarea,input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>div{flex:1;min-width:0}
+.row>div.grow{min-width:200px;flex:2}
+button{border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-p{background:var(--primary);color:#fff}
+.btn-g{background:var(--ok);color:#fff}
+.btn-w{background:var(--warn);color:#fff}
+.btn-o{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f1f5f9;text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px 9px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;white-space:nowrap}
+.tag-ok{background:var(--ok-l);color:var(--ok)}
+.tag-bad{background:var(--bad-l);color:var(--bad)}
+.tag-warn{background:var(--warn-l);color:var(--warn)}
+.tag-mem{background:var(--primary-l);color:var(--primary)}
+.tag-run{background:#f1f5f9;color:var(--muted)}
+code{background:#f1f5f9;border-radius:4px;padding:1px 6px;font-size:12px;font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+pre.json{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px;font-size:12px;font-family:ui-monospace,Menlo,monospace;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin-top:8px;display:none}
+.jsonl{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px;font-size:12px;font-family:ui-monospace,Menlo,monospace;max-height:260px;overflow-y:auto;line-height:1.9;min-height:64px}
+.jsonl .t{color:#64748b}
+.jsonl .k{color:#60a5fa}
+.jsonl .g{color:#4ade80}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.steps{display:grid;gap:8px;margin-top:10px}
+.step{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;background:var(--bg)}
+.step .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step .head b{flex:1;min-width:120px}
+.step .detail{color:var(--muted);font-size:12px;margin-top:4px}
+.step .json-open{margin-top:6px;font-size:12px;color:var(--primary);background:none;padding:0;font-weight:600}
+.step.done{background:var(--ok-l);border-color:#a7f3d0}
+.step.mem{background:var(--primary-l);border-color:#bfdbfe}
+.banner{border-radius:10px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
+.banner.warn{background:var(--warn-l);border:1px dashed var(--warn);color:var(--warn)}
+.banner.okb{background:var(--ok-l);border:1px dashed var(--ok);color:var(--ok)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.membox{border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;max-height:240px;overflow-y:auto}
+.membox h3{font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.membox ul{list-style:none}
+.membox li{padding:5px 6px;border-radius:6px;font-size:12px;margin-bottom:4px;line-height:1.5}
+.membox li.hl{background:var(--warn-l);outline:1px solid var(--warn)}
+.membox li.none{color:var(--muted)}
+footer{margin-top:26px;font-size:12px;color:var(--muted);text-align:center;line-height:1.8}
+@media(max-width:560px){h1{font-size:21px}.stats div{min-width:84px;padding:6px 10px}.panel{padding:12px}.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">流程自动化 / RPA + AI 落地</span>
+    <h1>RPA 长任务无损记忆执行器</h1>
+    <p class="sub">灵感来自 Reflex Agent（APUS 开源，自研 Reflex 决策模型 + Continuum 记忆引擎）：长任务每步把<b>完整中间结果</b>写入记忆（不做摘要压缩），中断后<b>从记忆断点恢复</b>不重跑；传统「有损摘要」丢字段，关键时刻<b>检索不出</b>。左边无损、右边有损，一眼看懂差别。</p>
+    <div class="stats">
+      <div><b id="stStep">0/0</b><span>步骤进度</span></div>
+      <div><b id="stMem">0</b><span>无损记忆条数</span></div>
+      <div><b id="stHit">0</b><span>检索命中（无损）</span></div>
+      <div><b id="stRes">0</b><span>断点恢复次数</span></div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>① 任务配置</h2>
+    <div class="row">
+      <div class="grow">
+        <label>任务模板（示例数据已固化）</label>
+        <select id="tpl">
+          <option value="finance">财务月结流程（6 步 · 对账/计提/分摊/报表）</option>
+          <option value="recon">多表数据核对流程（5 步 · 三表交叉核对）</option>
+          <option value="invoice">供应商发票汇总流程（5 步 · 识别/验重/汇总）</option>
+        </select>
+      </div>
+      <div>
+        <label>中断注入（模拟长任务被打断）</label>
+        <select id="inject">
+          <option value="0">不中断</option>
+          <option value="2" selected>第 2 步后中断</option>
+          <option value="4">第 4 步后中断</option>
+        </select>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="btn-p" id="btnRun">▶ 开始执行</button>
+      <button class="btn-g" id="btnResume" disabled>⏵ 从记忆断点恢复</button>
+      <button class="btn-o" id="btnReset">重置</button>
+    </div>
+    <div id="banner" class="banner"></div>
+  </div>
+
+  <div class="panel">
+    <h2>② 执行步骤</h2>
+    <div class="steps" id="steps"></div>
+    <p class="hint">每步完成后，完整中间结果（含全部字段与明细）写入无损记忆；有损记忆只保留一行摘要。<span class="tag tag-mem">从记忆读取</span> = 中断恢复时无需重跑，直接读取记忆。</p>
+  </div>
+
+  <div class="panel">
+    <h2>③ 无损记忆流（JSONL，每行一条完整记录）</h2>
+    <div class="jsonl" id="jsonl"><span class="t">// 尚无记忆记录 —— 开始执行后，每步的完整中间结果会以 JSONL 逐行追加到这里</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>④ 记忆检索：无损 vs 有损</h2>
+    <div class="row">
+      <div class="grow">
+        <label>输入关键词（试试「差异」「金额」「凭证」）</label>
+        <input id="kw" placeholder="例如：差异">
+      </div>
+      <div style="align-self:flex-end"><button class="btn-p" id="btnSearch">检索记忆</button></div>
+    </div>
+    <div class="cols">
+      <div class="membox">
+        <h3>🧠 无损记忆 <span class="tag tag-ok">完整字段</span></h3>
+        <ul id="lossless"><li class="none">执行后可检索；命中的是带金额/明细的完整记录。</li></ul>
+      </div>
+      <div class="membox">
+        <h3>📉 有损记忆 <span class="tag tag-bad">摘要压缩</span></h3>
+        <ul id="lossy"><li class="none">执行后可检索；命中的只有一行摘要，关键字段已丢失。</li></ul>
+      </div>
+    </div>
+    <p class="hint" id="searchTip">场景示例：老板问「那 3 笔对账差异金额是多少？」——有损记忆只有「存在少量差异」，答不出来；无损记忆直接给出 3 笔明细。</p>
+  </div>
+
+  <footer>数据为固化的演示示例 · 单文件 HTML，双击即可运行 · 灵感来源：Reflex Agent（APUS 开源）Continuum 记忆引擎<br>我是Hugo，你们的AI落地搭子。</footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- 任务模板（示例数据固化进 JS） ---------- */
+const TPL = {
+  finance: { name:"财务月结流程", steps:[
+    {t:"拉取银行流水", d:"3 家银行网银自动导出 10 月流水", payload:{来源:["工商银行","招商银行","建设银行"],期间:"2026-10-01 ~ 2026-10-31",总行数:512,总金额:1284360.75,币种:"CNY"},
+     lossy:"已完成银行流水拉取，数据正常。"},
+    {t:"银企对账", d:"流水 vs 账面逐笔核对", payload:{账面笔数:486,银行笔数:512,已勾对:509,差异笔数:3,差异明细:[{日期:"10-09",金额:-12500.00,对方:"深圳××物流",原因:"在途未达账"},{日期:"10-15",金额:8600.00,对方:"××科技服务费",原因:"银行已收、账面未记"},{日期:"10-18",金额:-320.00,对方:"银行手续费",原因:"账面多计"}]},
+     lossy:"已完成银企对账，存在少量差异，详见原始底稿。"},
+    {t:"计提固定资产折旧", d:"读取资产卡 24 张，按直线法计提本月折旧", payload:{资产卡数:24,本月计提金额:38412.50,方法:"直线法（10 年 / 残值率 5%）",涉及部门:["生产部","行政部","研发部"]},
+     lossy:"折旧计提完成，金额已入账。"},
+    {t:"费用部门分摊", d:"公共费用按人数与面积分摊到 5 个部门", payload:{公共费用总额:96500.00,分摊规则:"人数 60% + 面积 40%",分摊结果:[{部门:"销售部",金额:31200.00},{部门:"生产部",金额:26500.00},{部门:"研发部",金额:19800.00},{部门:"行政部",金额:11200.00},{部门:"财务部",金额:7800.00}]},
+     lossy:"费用分摊完成，各部门金额已生成。"},
+    {t:"汇总生成凭证", d:"汇总各步骤结果生成记账凭证", payload:{凭证张数:12,凭证号区间:"记-202610-0001 ~ 记-202610-0012",借贷合计:1419273.25,平衡校验:"借贷相等 ✔"},
+     lossy:"凭证已生成并过账。"},
+    {t:"出具月结报表", d:"资产负债表 / 利润表勾稽校验并输出", payload:{报表:["资产负债表","利润表","现金流量表"],勾稽差异:0.00,资产总额:8652400.00,本月净利润:152380.60,校验结论:"全部勾稽通过 ✔"},
+     lossy:"月结报表已出具。"}]},
+  recon: { name:"多表数据核对流程", steps:[
+    {t:"采集三源数据", d:"ERP / CRM / 电商后台各导出一份订单表", payload:{ERP行数:1208,CRM行数:1186,电商后台行数:1155,导出时间:"2026-10-15 08:00"},
+     lossy:"三表数据采集完成。"},
+    {t:"统一订单主键", d:"按订单号 + 渠道拼接唯一键并清洗格式", payload:{合并总行数:1240,键冲突:6,格式修正:37,空值行:3},
+     lossy:"主键统一完成，少量冲突已处理。"},
+    {t:"金额交叉核对", d:"三源订单金额逐单比对", payload:{核对单数:1240,一致:1221,金额不一致:11,最大差异单:"SO-20261015-0088（差 430.00 元，疑似退款时点差异）",差异金额合计:2980.50},
+     lossy:"金额核对完成，有少量不一致单据。"},
+    {t:"状态差异定位", d:"已发货/已退款/已关闭状态三源比对", payload:{状态不一致:7,典型差异:[{订单:"SO-20261015-0031",ERP:"已发货",电商:"已关闭",定位:"仓内拦截未回传"},{订单:"SO-20261015-0102",ERP:"已退款",CRM:"进行中",定位:"CRM 回调丢失"}]},
+     lossy:"状态差异已定位，待人工确认。"},
+    {t:"输出核对报告", d:"差异清单 + 责任归属 + 修正建议", payload:{差异总单数:18,建议修正:15,需人工复核:3,报告文件:"recon_report_1015.xlsx",结论:"15 单可自动修正，3 单需业务确认"},
+     lossy:"核对报告已生成。"}]},
+  invoice: { name:"供应商发票汇总流程", steps:[
+    {t:"批量识别发票", d:"OCR 批量识别 36 张 PDF 发票", payload:{发票张数:36,识别成功率:97.2,失败张数:1,失败原因:"第 17 张扫描件模糊，字段置信度低于阈值"},
+     lossy:"发票识别基本完成。"},
+    {t:"查重校验", d:"按发票号 + 税号查重，防重复报销", payload:{查重命中:2,重复发票:["发票No.04412738（10-03 已入账）","发票No.04412905（9-28 已入账）"],处理:"标记退回"},
+     lossy:"查重完成，存在重复发票。"},
+    {t:"三单匹配", d:"发票 × 采购订单 × 收货单三单匹配", payload:{待匹配:33,三单一致:30,不匹配:3,不匹配明细:[{发票:"No.04413102",问题:"金额超 PO 5.8%，超权限"},{发票:"No.04413118",问题:"数量少于收货单"},{发票:"No.04413120",问题:"税率开错 3%→6%"}]},
+     lossy:"三单匹配完成，个别异常待处理。"},
+    {t:"税额验算", d:"价税分离复核 + 进项税汇总", payload:{价税合计:246300.00,不含税金额:219716.98,进项税额:26583.02,验算差异:0.00,可抵扣:"全部认证通过"},
+     lossy:"税额验算通过。"},
+    {t:"汇总入账", d:"按供应商生成应付汇总并入账", payload:{供应商数:9,应付总额:246300.00,凭证张数:9,付款计划:"11-05 统一付款",结论:"汇总入账完成 ✔"},
+     lossy:"汇总入账完成。"}]}
+};
+
+/* ---------- 状态 ---------- */
+var st = { tpl:"finance", steps:[], idx:0, mem:[], lossy:[], running:false, interrupted:false, resumeCount:0, hits:0, timer:null, searched:false };
+var $ = function(id){ return document.getElementById(id); };
+
+function curTpl(){ return TPL[st.tpl]; }
+function curInject(){ return parseInt($("inject").value, 10); }
+
+function renderSteps(){
+  var tp = curTpl();
+  $("steps").innerHTML = tp.steps.map(function(s, i){
+    var tag = '<span class="tag tag-run">待执行</span>';
+    var cls = "step";
+    var done = i < st.idx;
+    var memRead = done && st.mem[i] && st.mem[i].fromMem;
+    if (done) { cls += memRead ? " mem" : " done"; tag = memRead ? '<span class="tag tag-mem">从记忆读取</span>' : '<span class="tag tag-ok">✔ 已完成</span>'; }
+    if (i === st.idx && st.running) { tag = '<span class="tag tag-warn">执行中…</span>'; }
+    if (i === st.idx && st.interrupted) { tag = '<span class="tag tag-bad">中断待恢复</span>'; }
+    var payloadStr = done && st.mem[i] ? JSON.stringify(st.mem[i].payload, null, 2) : "";
+    return '<div class="'+cls+'" id="step'+i+'"><div class="head"><b>'+(i+1)+'. '+s.t+'</b>'+tag+
+      (done ? '<button class="json-open" data-i="'+i+'">查看完整记忆 ▾</button>' : '')+
+      '</div><div class="detail">'+s.d+'</div><pre class="json" id="json'+i+'">'+(payloadStr ? esc(payloadStr) : "")+'</pre></div>';
+  }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll(".json-open"), function(b){
+    b.onclick = function(){
+      var p = $("json"+b.getAttribute("data-i"));
+      var open = p.style.display === "block";
+      p.style.display = open ? "none" : "block";
+      b.textContent = open ? "查看完整记忆 ▾" : "收起完整记忆 ▴";
+    };
+  });
+}
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function updateStats(){
+  $("stStep").textContent = st.idx + "/" + curTpl().steps.length;
+  $("stMem").textContent = st.mem.length;
+  $("stHit").textContent = st.hits;
+  $("stRes").textContent = st.resumeCount;
+}
+function banner(html, cls){
+  var b = $("banner");
+  b.className = "banner " + (cls || "");
+  b.style.display = html ? "block" : "none";
+  b.innerHTML = html || "";
+}
+function appendJsonl(i, payload, fromMem){
+  var box = $("jsonl");
+  if (st.mem.length === 1) box.innerHTML = "";
+  var line = '<span class="t">{"step":'+(i+1)+',</span><span class="k">"task"</span>:"'+curTpl().steps[i].t+
+    '",<span class="g">"payload"</span>:'+JSON.stringify(payload)+(fromMem?',<span class="t">"restore":true</span>':'')+'}';
+  var div = document.createElement("div");
+  div.innerHTML = line;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ---------- 执行引擎（确定性模拟） ---------- */
+function doStep(i, fromMem){
+  var s = curTpl().steps[i];
+  st.mem[i] = { payload: s.payload, fromMem: !!fromMem };
+  st.lossy[i] = s.lossy;
+  appendJsonl(i, s.payload, fromMem);
+  renderSteps();
+  updateStats();
+}
+function runFrom(startIdx, fromMem){
+  var tp = curTpl();
+  var inject = curInject();
+  st.running = true; st.interrupted = false;
+  setButtons();
+  var i = startIdx;
+  var tick = function(){
+    if (i >= tp.steps.length) { finish(); return; }
+    var resumeNow = fromMem && i === startIdx && st.resumeCount > 0 && i > 0;
+    doStep(i, fromMem && i < st.idx ? true : false);
+    if (i < st.idx && fromMem) { /* already counted */ }
+    i++; st.idx = Math.max(st.idx, i);
+    renderSteps(); updateStats();
+    if (inject > 0 && i === inject && i < tp.steps.length && !st.interruptedDone(inject)) {
+      st.interrupted = true; st.running = false;
+      banner("⚠️ 任务在第 " + inject + " 步后被中断（进程被杀 / 网络断开）。<b>传统方式：整个任务从头重跑</b>；本工具：点「从记忆断点恢复」，前 " + inject + " 步直接读记忆，不重跑。", "warn");
+      setButtons();
+      return;
+    }
+    st.timer = setTimeout(tick, 420);
+  };
+  tick();
+}
+st.interruptedDone = function(n){ return st._doneInj === n; };
+function finish(){
+  st.running = false; st._doneInj = null;
+  banner("✅ 任务执行完成：共 " + curTpl().steps.length + " 步、" + st.mem.length + " 条无损记忆" + (st.resumeCount ? "、断点恢复 " + st.resumeCount + " 次（节省重跑 " + st.savedSteps + " 步）" : "") + "。试试第 ④ 区检索「差异」。", "okb");
+  setButtons();
+}
+function setButtons(){
+  $("btnRun").disabled = st.running || st.interrupted;
+  $("btnResume").disabled = !st.interrupted;
+  $("tpl").disabled = st.running || st.interrupted;
+  $("inject").disabled = st.running || st.interrupted;
+}
+
+$("btnRun").onclick = function(){
+  resetState(false);
+  st._doneInj = null;
+  banner("▶ 开始执行「" + curTpl().name + "」，每步完整中间结果写入无损记忆…");
+  $("jsonl").innerHTML = "";
+  runFrom(0, false);
+};
+$("btnResume").onclick = function(){
+  if (!st.interrupted) return;
+  var n = curInject();
+  st.resumeCount++;
+  st.savedSteps = n;
+  st._doneInj = n;           /* 标记该中断点已恢复，避免重复触发 */
+  st.interrupted = false;
+  banner("⏵ 断点恢复：步骤 1~" + n + " 的完整中间结果<b>直接从无损记忆读取</b>（不重跑），从第 " + (n+1) + " 步继续执行…", "okb");
+  /* 已完成步骤标记为“从记忆读取” */
+  for (var i = 0; i < n; i++) { if (st.mem[i]) st.mem[i].fromMem = true; }
+  renderSteps(); updateStats();
+  setButtons();
+  setTimeout(function(){ runFrom(n, true); }, 350);
+};
+$("btnReset").onclick = function(){ resetState(true); };
+$("tpl").onchange = function(){ st.tpl = $("tpl").value; resetState(true); };
+
+function resetState(clear){
+  clearTimeout(st.timer);
+  st.idx = 0; st.mem = []; st.lossy = []; st.running = false; st.interrupted = false;
+  st.resumeCount = 0; st.hits = 0; st.savedSteps = 0; st._doneInj = null;
+  banner("");
+  $("jsonl").innerHTML = '<span class="t">// 尚无记忆记录 —— 开始执行后，每步的完整中间结果会以 JSONL 逐行追加到这里</span>';
+  $("lossless").innerHTML = '<li class="none">执行后可检索；命中的是带金额/明细的完整记录。</li>';
+  $("lossy").innerHTML = '<li class="none">执行后可检索；命中的只有一行摘要，关键字段已丢失。</li>';
+  $("searchTip").style.display = "";
+  renderSteps(); updateStats(); setButtons();
+}
+
+/* ---------- 检索：无损 vs 有损 ---------- */
+$("btnSearch").onclick = function(){
+  var kw = $("kw").value.trim();
+  if (!kw) return;
+  if (!st.mem.length) { banner("还没有记忆可检索：先执行任务（中断恢复更有说服力），再来检索。", "warn"); return; }
+  st.hits = 0;
+  var kwL = kw.toLowerCase();
+  var l1 = "", l2 = "";
+  st.mem.forEach(function(m, i){
+    var full = JSON.stringify(m.payload);
+    var hit = full.toLowerCase().indexOf(kwL) >= 0;
+    var lossyHit = st.lossy[i] && st.lossy[i].toLowerCase().indexOf(kwL) >= 0;
+    if (hit) {
+      st.hits++;
+      var shown = Object.keys(m.payload).map(function(k){
+        return "<b>" + k + "</b>: " + JSON.stringify(m.payload[k]);
+      }).join("<br>");
+      l1 += '<li class="hl">步骤 ' + (i+1) + '「' + curTpl().steps[i].t + '」命中：<br>' + shown + '</li>';
+    }
+    if (lossyHit) l2 += '<li class="hl">步骤 ' + (i+1) + ' 摘要命中：' + st.lossy[i] + '（<b>金额/明细等关键字段已丢失，无法回答</b>）</li>';
+  });
+  $("lossless").innerHTML = l1 || '<li class="none">无损记忆中未命中「' + esc(kw) + '」</li>';
+  $("lossy").innerHTML = l2 || '<li class="none">有损摘要中未命中「' + esc(kw) + '」</li>';
+  $("searchTip").style.display = "none";
+  updateStats();
+};
+$("kw").addEventListener("keydown", function(e){ if (e.key === "Enter") $("btnSearch").click(); });
+
+/* ---------- 初始化 ---------- */
+resetState(true);
+</script>
+</body>
+</html>

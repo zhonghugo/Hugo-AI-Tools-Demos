@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>30</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/14</b><span>持续产出</span></div>
+      <div><b>31</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/15</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-15", name:"RPA长任务无损记忆执行器",
+    desc:"像 Reflex Agent（APUS 开源，Reflex 决策模型 + Continuum 记忆引擎）那样演示「长任务不靠重跑、靠记忆」：业务表单选择任务模板（财务月结/多表核对/发票汇总）并注入中断点 →「开始执行」逐步运行，每步把完整中间结果（含全部字段与明细）以 JSONL 追加进无损记忆 → 第 N 步后被中断，传统方式只能从头重跑，本工具「从记忆断点恢复」直接读取记忆不重跑 → ④ 区检索对比无损 vs 有损：有损摘要只剩一行「存在少量差异」答不出金额，无损记忆直接给出 3 笔差异明细；步骤卡片可展开查看完整 JSON 记忆。讲 RPA 长任务『断点续跑 + 信息无损』主题的强素材。",
+    src:"10/15 资讯 · Reflex Agent（4星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-15_RPA%E9%95%BF%E4%BB%BB%E5%8A%A1%E6%97%A0%E6%8D%9F%E8%AE%B0%E5%BF%86%E6%89%A7%E8%A1%8C%E5%99%A8/RPA%E9%95%BF%E4%BB%BB%E5%8A%A1%E6%97%A0%E6%8D%9F%E8%AE%B0%E5%BF%86%E6%89%A7%E8%A1%8C%E5%99%A8_%E7%BD%91%E9%A1%B5%E7%89%88.html"
+  },
   {
     date:"10-14", name:"RPA后台任务管理器",
     desc:"像 Pizza Bot（AWS 开源 AI Agent 收件箱）那样演示多任务后台管理：提交自动化任务（月报生成/竞品采集/发票核验模板或自由输入）→ 任务入队 → 拆子步骤委派专门 Worker（采集/清洗/报告/核验/通知）→ cron 定时 / Webhook 触发 → 收件箱式界面查看多任务状态（总数/执行中/待审批/已完成/失败）+ 进度条 → 审批节点自动暂停弹卡【批准/拒绝】→ 断点续跑 + 失败重试（从失败检查点续跑，跳过已完成步骤）。讲 RPA 从『单任务执行』升级到『任务后台+人机协同』主题的完整素材。",
