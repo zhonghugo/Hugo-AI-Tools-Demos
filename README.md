@@ -11,7 +11,7 @@
 | 每日资讯快照 | `daily_news_0913.json` ~ `daily_news_1015.json` | 8:30 自动采集（缺 9/22） |
 | 小工具 Demo 作品集 | `demos/作品集总览/AI小工具Demo作品集_总览.html` | 全部 31 个 Demo 的展示入口，点开即用 |
 | Demo 台账 | `demos/作品集总览/AI小工具Demo台账.xlsx` | 日期/工具名/来源/星级/链接/状态一表汇总 |
-| 每个 Demo 源文件 | `demos/2026-09-XX_工具名/` | 含网页版 HTML 与说明 |
+| 每个 Demo 源文件 | `demos/2026-09-XX_工具名/` | 含单文件 HTML 与说明 |
 
 ## Demo 一览（2026-09-14 起，共 31 个）
 
