@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 技能市场</title>
+<style>
+  /* ===== 全局：深色仪表盘风格（与 10/10-10/15 RPA 系列一致） ===== */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#0d1117; color:#e6edf3; font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    min-height:100vh; padding:20px 16px 40px;
+  }
+  .wrap { max-width:1100px; margin:0 auto; }
+
+  /* ===== 顶部 ===== */
+  header h1 { font-size:26px; font-weight:700; letter-spacing:.5px; }
+  header h1 .acc { color:#4da3ff; }
+  .sub { color:#8b949e; font-size:13px; line-height:1.7; margin-top:6px; }
+  .sub b { color:#58a6ff; font-weight:600; }
+  .stats {
+    display:flex; gap:10px; flex-wrap:wrap; margin:16px 0 18px;
+  }
+  .stat {
+    background:#161b22; border:1px solid #30363d; border-radius:10px; padding:10px 16px; flex:1; min-width:120px;
+  }
+  .stat .num { font-size:22px; font-weight:700; color:#4da3ff; }
+  .stat .lbl { font-size:12px; color:#8b949e; margin-top:2px; }
+
+  /* ===== 操作区 ===== */
+  .actions { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .btn {
+    padding:9px 18px; border-radius:8px; border:1px solid #30363d; background:#21262d; color:#e6edf3;
+    font-size:14px; cursor:pointer; transition:.15s;
+  }
+  .btn:hover { background:#30363d; }
+  .btn.primary { background:#1f6feb; border-color:#1f6feb; color:#fff; }
+  .btn.primary:hover { background:#388bfd; }
+  .btn.danger { background:#da3633; border-color:#da3633; color:#fff; }
+  .btn.danger:hover { background:#f85149; }
+
+  /* ===== 技能广场 ===== */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+  .card {
+    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; cursor:pointer;
+    transition:.15s; position:relative;
+  }
+  .card:hover { border-color:#58a6ff; transform:translateY(-2px); }
+  .card .nm { font-size:16px; font-weight:700; margin-bottom:6px; }
+  .card .desc { font-size:13px; color:#8b949e; line-height:1.6; min-height:42px; }
+  .card .meta { display:flex; gap:8px; align-items:center; margin-top:10px; font-size:12px; color:#8b949e; flex-wrap:wrap; }
+  .card .tag { background:#1f6feb22; color:#58a6ff; border:1px solid #1f6feb44; padding:2px 8px; border-radius:20px; }
+  .card .stars { color:#d29922; letter-spacing:1px; }
+  .card .foot { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+  .card .use { font-size:12px; color:#8b949e; }
+  .card .install {
+    padding:6px 14px; border-radius:8px; border:none; background:#238636; color:#fff; font-size:13px; cursor:pointer;
+  }
+  .card .install:hover { background:#2ea043; }
+  .card .install.installed { background:#30363d; color:#8b949e; cursor:default; }
+  .card .badge { position:absolute; top:12px; right:12px; font-size:11px; color:#8b949e; }
+
+  /* ===== 创建技能面板 ===== */
+  .panel {
+    display:none; background:#161b22; border:1px solid #30363d; border-radius:12px; padding:18px; margin-bottom:20px;
+  }
+  .panel.open { display:block; }
+  .panel h3 { font-size:16px; margin-bottom:10px; }
+  .panel textarea {
+    width:100%; min-height:90px; background:#0d1117; border:1px solid #30363d; border-radius:8px; color:#e6edf3;
+    padding:10px; font-size:13px; resize:vertical; font-family:inherit;
+  }
+  .panel .hint { font-size:12px; color:#8b949e; margin-top:6px; }
+  .panel .row { margin-top:12px; display:flex; gap:10px; }
+
+  /* ===== 技能详情/代码 ===== */
+  .codeblock {
+    background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:12px; font-family:Consolas,Menlo,monospace;
+    font-size:12px; color:#7ee787; white-space:pre-wrap; word-break:break-all; line-height:1.6; max-height:260px; overflow:auto;
+  }
+
+  /* ===== 执行日志 ===== */
+  .logbox {
+    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; margin-top:20px;
+  }
+  .logbox h3 { font-size:15px; margin-bottom:10px; }
+  #logs { max-height:280px; overflow:auto; font-size:13px; line-height:1.8; }
+  .log { padding:4px 8px; border-radius:6px; margin-bottom:4px; }
+  .log .t { color:#8b949e; font-size:11px; margin-right:8px; }
+  .log.ok { background:#23863622; color:#3fb950; }
+  .log.err { background:#da363322; color:#f85149; }
+  .log.run { background:#1f6feb22; color:#58a6ff; }
+
+  /* ===== 详情浮层 ===== */
+  .overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; align-items:center; justify-content:center;
+  }
+  .overlay.open { display:flex; }
+  .dialog {
+    background:#161b22; border:1px solid #30363d; border-radius:14px; padding:20px; width:min(680px,92vw); max-height:86vh; overflow:auto;
+  }
+  .dialog h3 { font-size:18px; margin-bottom:6px; }
+  .dialog .close { float:right; background:none; border:none; color:#8b949e; font-size:20px; cursor:pointer; }
+  .dialog .sec { margin-top:14px; }
+  .dialog .sec h4 { font-size:13px; color:#8b949e; margin-bottom:6px; }
+  .steps { list-style:none; }
+  .steps li { padding:6px 0; border-bottom:1px dashed #30363d; font-size:13px; }
+  .steps li .n { color:#4da3ff; font-weight:700; margin-right:6px; }
+  .dialog .kv { display:grid; grid-template-columns:90px 1fr; gap:6px 10px; font-size:13px; }
+  .dialog .kv .k { color:#8b949e; }
+  .dialog .kv .v { color:#e6edf3; }
+
+  @media (max-width:600px){
+    .grid { grid-template-columns:1fr; }
+    body { padding:14px 10px 30px; }
+    header h1 { font-size:21px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><span class="acc">RPA 技能市场</span></h1>
+    <p class="sub">
+      参考 <b>CowAgent</b>（zhayujie/chatgpt-on-wechat，47K★ 开源 Agent Harness）的技能系统：用自然语言描述自动化需求 → 自动生成可复用的
+      <b>RPA 技能</b>；技能模板库一键安装、测试验证、执行日志监控、社区分享评分——把一次性的自动化流程沉淀成随时可复用的技能资产。
+      单文件 HTML，本地运行。
+    </p>
+  </header>
+
+  <!-- 统计条 -->
+  <div class="stats">
+    <div class="stat"><div class="num" id="sTotal">6</div><div class="lbl">技能总数</div></div>
+    <div class="stat"><div class="num" id="sInst">2</div><div class="lbl">已安装</div></div>
+    <div class="stat"><div class="num" id="sRun">12</div><div class="lbl">今日执行</div></div>
+    <div class="stat"><div class="num" id="sOk">100%</div><div class="lbl">成功率</div></div>
+  </div>
+
+  <!-- 操作区 -->
+  <div class="actions">
+    <button class="btn primary" id="btnNew">＋ 自然语言创建技能</button>
+    <button class="btn" id="btnReset">重置演示</button>
+  </div>
+
+  <!-- 创建技能面板 -->
+  <div class="panel" id="panelNew">
+    <h3>用一句话描述你的自动化需求</h3>
+    <textarea id="reqInput" placeholder="例如：每天早上8点采集竞品价格并生成Excel报表；每月末自动对账采购与付款并生成调整分录；客户差评自动转内部工单并邮件通知……"></textarea>
+    <p class="hint">提示：系统会解析出「触发方式 / 执行步骤 / 输出物」，生成一份技能定义并加入技能库。内置示例需求可直接点下方按钮。</p>
+    <div class="row">
+      <button class="btn primary" id="btnGen">生成技能</button>
+      <button class="btn" id="btnSample">用示例需求</button>
+      <button class="btn" id="btnCancelNew">取消</button>
+    </div>
+    <div id="genResult" style="margin-top:14px;display:none;">
+      <h3 style="font-size:14px;">生成的技能定义</h3>
+      <div class="codeblock" id="genCode"></div>
+      <div class="row">
+        <button class="btn primary" id="btnSaveSkill">加入技能库</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 技能广场 -->
+  <div class="grid" id="grid"></div>
+
+  <!-- 执行日志 -->
+  <div class="logbox">
+    <h3>执行日志与监控</h3>
+    <div id="logs"></div>
+  </div>
+
+</div>
+
+<!-- 详情浮层 -->
+<div class="overlay" id="overlay">
+  <div class="dialog" id="dialog"></div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   RPA 技能市场 —— 数据与逻辑（全部本地，无外部依赖）
+   ============================================================ */
+
+// 预置技能模板库（参考 CowAgent 技能系统的常见 RPA 场景）
+const TPL = [
+  {
+    name:"Excel 日报自动化", tag:"Excel自动化", desc:"清洗多来源数据 → 计算指标 → 一键生成日报 Excel，公式保留、可定时执行。",
+    trigger:"每天 08:30 定时", steps:["读取采购/销售/费用明细表","去重并统一日期格式","计算日指标（营收/毛利/环比）","生成日报 Excel 并归档"], dep:"pandas · openpyxl",
+    stars:5, use:328, installed:true, rate:92
+  },
+  {
+    name:"网页数据采集器", tag:"网页采集", desc:"配置网址与字段 → 定时采集 → 自动对比变化 → 变化告警 → 导出 CSV。",
+    trigger:"每小时定时", steps:["加载目标页面","按配置抽取字段（价格/标题/库存）","与上次快照对比差异","差异项写告警队列并导出 CSV"], dep:"requests · BeautifulSoup",
+    stars:5, use:251, installed:true, rate:88
+  },
+  {
+    name:"邮件批处理助手", tag:"邮件处理", desc:"自动读取收件箱 → 按规则分类 → 附件落盘 → 关键邮件转工单并通知。",
+    trigger:"每 10 分钟轮询", steps:["连接邮箱读取未读","按发件人/主题规则分类","附件下载并按日期归档","高优先级邮件生成工单并通知"], dep:"IMAP · SMTP",
+    stars:4, use:176, installed:false, rate:85
+  },
+  {
+    name:"财务月结对账器", tag:"财务/对账", desc:"采购单与付款记录逐笔匹配 → 标出差异 → 生成调整分录草稿 → 归档凭证。",
+    trigger:"每月末 18:00 定时", steps:["拉取本月采购/付款明细","逐笔匹配并标记差异（金额/日期异常）","生成调整分录草稿","归档凭证并通知财务负责人"], dep:"openpyxl · 内网API",
+    stars:5, use:142, installed:false, rate:90
+  },
+  {
+    name:"API 数据同步器", tag:"API集成", desc:"多系统数据定时同步：接口鉴权 → 增量拉取 → 字段映射 → 写入目标库并留审计日志。",
+    trigger:"每天 02:00 定时", steps:["刷新令牌并鉴权","增量拉取源系统数据","按映射规则写入目标系统","记录同步行数与失败项审计日志"], dep:"requests · 数据库驱动",
+    stars:4, use:98, installed:false, rate:84
+  },
+  {
+    name:"文件整理归档器", tag:"文件整理", desc:"扫描指定目录 → 按规则自动重命名/分类/归档 → 生成整理报告。",
+    trigger:"每周五 17:00 定时", steps:["扫描目录下新增文件","按扩展名/日期规则分类重命名","移动至归档目录","生成本周整理报告"], dep:"标准库",
+    stars:3, use:64, installed:false, rate:80
+  }
+];
+
+let skills = JSON.parse(JSON.stringify(TPL));   // 技能库（含用户新建）
+let installedCount = skills.filter(s=>s.installed).length;
+let runCount = 12;   // 今日执行数（模拟基线）
+let okCount = 12;    // 成功数
+let logs = [];       // 执行日志
+
+/* ---------- 工具函数 ---------- */
+const $ = id => document.getElementById(id);
+function nowTime(){ const d=new Date(); return d.toLocaleTimeString("zh-CN",{hour12:false}); }
+function addLog(text, kind){
+  const box=$("logs");
+  const div=document.createElement("div");
+  div.className="log "+kind;
+  div.innerHTML='<span class="t">'+nowTime()+'</span>'+text;
+  box.prepend(div);
+}
+function renderStats(){
+  $("sTotal").textContent=skills.length;
+  $("sInst").textContent=installedCount;
+  $("sRun").textContent=runCount;
+  $("sOk").textContent=(runCount===0?0:Math.round(okCount/runCount*100))+"%";
+}
+function renderGrid(){
+  const g=$("grid"); g.innerHTML="";
+  skills.forEach((s,i)=>{
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=
+      '<div class="badge">'+(s.installed?'已安装':'未安装')+'</div>'+
+      '<div class="nm">'+s.name+'</div>'+
+      '<div class="desc">'+s.desc+'</div>'+
+      '<div class="meta"><span class="tag">'+s.tag+'</span><span class="stars">'+"★".repeat(s.stars)+'</span><span>评分 '+s.rate+'</span></div>'+
+      '<div class="foot"><span class="use">已使用 '+s.use+' 次</span>'+
+      '<button class="install'+(s.installed?' installed':'')+'" data-i="'+i+'">'+(s.installed?'已安装':'一键安装')+'</button></div>';
+    // 点击卡片看详情
+    card.addEventListener("click",()=>showDetail(i));
+    // 安装按钮（阻止冒泡）
+    card.querySelector(".install").addEventListener("click",(e)=>{
+      e.stopPropagation();
+      toggleInstall(i);
+    });
+    g.appendChild(card);
+  });
+}
+function toggleInstall(i){
+  const s=skills[i];
+  if(s.installed){ s.installed=false; installedCount--; addLog("卸载技能「"+s.name+"」","run"); }
+  else{ s.installed=true; installedCount++; addLog("安装技能「"+s.name+"」到本地技能库","ok"); }
+  renderGrid(); renderStats();
+}
+
+/* ---------- 详情 ---------- */
+function showDetail(i){
+  const s=skills[i];
+  const d=$("dialog");
+  d.innerHTML=
+    '<button class="close" id="dlgClose">×</button>'+
+    '<h3>'+s.name+'</h3>'+
+    '<div class="sec"><div class="kv">'+
+      '<span class="k">类型</span><span class="v">'+s.tag+'</span>'+
+      '<span class="k">触发方式</span><span class="v">'+s.trigger+'</span>'+
+      '<span class="k">依赖</span><span class="v">'+s.dep+'</span>'+
+      '<span class="k">评分</span><span class="v">'+s.rate+'（'+"★".repeat(s.stars)+'）</span>'+
+    '</div></div>'+
+    '<div class="sec"><h4>执行步骤</h4><ul class="steps">'+
+      s.steps.map((st,idx)=>'<li><span class="n">'+(idx+1)+'</span>'+st+'</li>').join("")+
+    '</ul></div>'+
+    '<div class="sec"><h4>动作</h4>'+
+      '<button class="btn primary" id="dlgTest">测试运行</button> '+
+      '<button class="btn" id="dlgInstall">'+(s.installed?'已安装':'一键安装')+'</button>'+
+    '</div>';
+  $("overlay").classList.add("open");
+  $("dlgClose").onclick=()=>$("overlay").classList.remove("open");
+  $("dlgTest").onclick=()=>{ runSkill(i); };
+  $("dlgInstall").onclick=()=>{ toggleInstall(i); };
+}
+// 点击遮罩关闭
+$("overlay").addEventListener("click",e=>{ if(e.target.id==="overlay") $("overlay").classList.remove("open"); });
+
+/* ---------- 测试运行：模拟逐步骤执行 ---------- */
+function runSkill(i){
+  const s=skills[i];
+  runCount++; renderStats();
+  addLog("开始执行技能「"+s.name+"」（触发："+s.trigger+"）","run");
+  // 逐步骤执行，每步 350ms 打一条日志
+  s.steps.forEach((st,idx)=>{
+    setTimeout(()=>{ addLog("步骤 "+(idx+1)+"/"+s.steps.length+"："+st+" 完成","ok"); },350*(idx+1));
+  });
+  setTimeout(()=>{
+    okCount++; renderStats();
+    addLog("技能「"+s.name+"」执行成功 · 总耗时 "+(s.steps.length*0.8).toFixed(1)+"s · 结果已写入输出物","ok");
+    // 失败自动重试演示：第 6 个技能（文件整理）演示一次失败→重试
+    if(s.tag==="文件整理" && s._retried===undefined){
+      s._retried=true;
+      setTimeout(()=>{
+        addLog("⚠ 检测到执行失败（目标目录被占用）→ 自动重试中…","err");
+        setTimeout(()=>{ addLog("重试成功：技能「"+s.name+"」完成执行","ok"); },800);
+      },400);
+    }
+  },350*s.steps.length+150);
+}
+
+/* ---------- 自然语言创建技能（关键词解析） ---------- */
+const RULES = [
+  {kw:["对账","月结","差异","调整分录"], tag:"财务/对账", steps:["拉取采购/付款明细","逐笔匹配并标记差异","生成调整分录草稿","归档凭证并通知负责人"], dep:"openpyxl · 内网API", stars:5},
+  {kw:["采集","爬取","竞品","价格"], tag:"网页采集", steps:["加载目标页面","抽取指定字段","与上次快照对比","差异告警并导出 CSV"], dep:"requests · BeautifulSoup", stars:4},
+  {kw:["Excel","报表","日报","汇总"], tag:"Excel自动化", steps:["读取多来源明细","清洗与去重","计算核心指标","生成 Excel 报表并归档"], dep:"pandas · openpyxl", stars:5},
+  {kw:["邮件","工单","通知"], tag:"邮件处理", steps:["读取未读邮件","按规则分类","附件落盘归档","关键邮件转工单并通知"], dep:"IMAP · SMTP", stars:4},
+  {kw:["同步","接口","API"], tag:"API集成", steps:["刷新令牌鉴权","增量拉取源数据","字段映射写入目标","记录审计日志"], dep:"requests · 数据库驱动", stars:4},
+  {kw:["整理","归档","文件"], tag:"文件整理", steps:["扫描新增文件","按规则分类重命名","移动至归档目录","生成整理报告"], dep:"标准库", stars:3}
+];
+function parseReq(text){
+  // 默认触发：含"每天/定时/早上/晚上"等词 → 定时，否则事件/手动
+  let trigger = "手动触发";
+  if(/每天|定时|每[时分天周月]|早上|晚上|月末|月初/.test(text)) trigger = /月末|月初/.test(text) ? "每月定时" : (/早上|8点|早晨/.test(text) ? "每天 08:00 定时" : "每日定时");
+  // 匹配规则库
+  let rule = RULES.find(r=>r.kw.some(k=>text.includes(k))) || RULES[2];
+  return { trigger, rule };
+}
+$("btnSample").onclick=()=>{
+  $("reqInput").value="每天早上8点采集竞品价格并生成Excel报表";
+  $("btnGen").click();
+};
+$("btnGen").onclick=()=>{
+  const text=$("reqInput").value.trim();
+  if(!text){ addLog("请先输入自动化需求描述","err"); return; }
+  const {trigger,rule}=parseReq(text);
+  // 生成技能定义对象
+  const gen={
+    name: text.slice(0,14)+(text.length>14?"…":""),
+    tag: rule.tag, desc: text, trigger, steps: rule.steps.slice(), dep: rule.dep, stars: rule.stars,
+    use:0, installed:false, rate:Math.round(75+Math.random()*20), _generated:true
+  };
+  $("genCode").textContent=JSON.stringify(gen,null,2).replace(/"/g,'"');
+  $("genResult").style.display="block";
+  $("genResult").dataset.json=JSON.stringify(gen);
+  addLog("自然语言需求解析完成 → 生成技能「"+gen.name+"」（"+rule.tag+"）","run");
+};
+$("btnSaveSkill").onclick=()=>{
+  const raw=$("genResult").dataset.json;
+  if(!raw){ addLog("还没有可保存的技能定义","err"); return; }
+  const gen=JSON.parse(raw);
+  // 重名则覆盖提示
+  const dup=skills.findIndex(s=>s.name===gen.name);
+  if(dup>=0){ skills[dup]=gen; addLog("更新已有技能「"+gen.name+"」","ok"); }
+  else{ skills.push(gen); addLog("新技能「"+gen.name+"」已加入技能库","ok"); }
+  $("panelNew").classList.remove("open");
+  $("genResult").style.display="none";
+  $("reqInput").value="";
+  renderGrid(); renderStats();
+};
+$("btnNew").onclick=()=>$("panelNew").classList.add("open");
+$("btnCancelNew").onclick=()=>{ $("panelNew").classList.remove("open"); $("genResult").style.display="none"; };
+$("btnReset").onclick=()=>{
+  skills=JSON.parse(JSON.stringify(TPL));
+  installedCount=skills.filter(s=>s.installed).length;
+  runCount=12; okCount=12; $("logs").innerHTML="";
+  renderGrid(); renderStats(); addLog("演示数据已重置","run");
+};
+
+/* ---------- 初始化 ---------- */
+renderGrid();
+renderStats();
+addLog("技能市场就绪：6 个预置技能模板已加载，支持一键安装 / 测试运行 / 自然语言创建","run");
+</script>
+</body>
+</html>
