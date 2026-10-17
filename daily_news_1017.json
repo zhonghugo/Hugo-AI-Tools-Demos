@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-17",
+  "source": "AI工具资讯日报 飞书多维表格",
+  "count": 5,
+  "records": [
+    {
+      "record_id": "reczz28OHVDIyeLt",
+      "标题": "Hermes Agent：Nous Research开源自主AI智能体，闭环学习+自主创建技能+7种运行后端，住在服务器上越用越聪明",
+      "推荐指数": 4,
+      "摘要": "Hermes Agent是Nous Research开发的开源自主AI智能体（MIT协议），2月发布近期热度飙升至OpenRouter全球排名#1。不是IDE代码补全或聊天套壳，而是住在服务器上持续运行、记住学到的一切、越用越强。核心能力：闭环学习（复杂任务后自主创建技能、使用中技能自我改进、FTS5跨会话召回+LLM摘要、Honcho辩证用户建模）；7种终端后端（local/Docker/SSH/Daytona/Singularity/Modal/Vercel Sandbox），Daytona和Modal提供serverless持久化；任意模型无锁定（Nous Portal/OpenRouter 200+/OpenAI/Anthropic/自建端点），一条curl安装，支持Linux/macOS/WSL2。",
+      "VibeCoding小工具机会": "做一个「RPA流程自动沉淀与进化器」：参考Hermes Agent的闭环学习架构，为RPA工作流实现自动沉淀和持续改进。核心功能：①执行后自动总结——每次RPA流程执行完成后，LLM自动总结步骤、参数、异常处理，生成可复用的流程模板；②技能自我改进——多次执行后自动优化流程（如发现更高效的步骤、补充异常处理、调整参数）；③流程模板库——所有沉淀的流程模板可视化管理，支持搜索和一键复用；④跨执行记忆——FTS5索引历史执行记录，新任务执行时自动检索相似历史流程作为参考；⑤进化可视化——展示每个流程模板的版本演进和改进记录。用vibe coding实现执行总结+模板生成+自我改进+模板库+记忆检索+进化可视化，契合RPA背景中对流程沉淀和持续优化的需求。",
+      "日期": "2026-10-17",
+      "链接": "https://hermes-agent.org/",
+      "主题分类": "AI Agent/智能体工具\",\"开源项目\",\"RPA/流程自动化",
+      "来源平台": "GitHub"
+    },
+    {
+      "record_id": "reczz28OHVDIzXHO",
+      "标题": "Stack Overflow for Agents：ChatGPT插件上线后注册量一夜增至3倍，为AI Agent构建的已验证知识交换平台",
+      "推荐指数": 3,
+      "摘要": "Stack Overflow for Agents（SOFA）是Stack Overflow为AI Agent构建的API-first知识交换平台，6月发布beta，10月16日ChatGPT插件上线后注册量一夜增至3倍。核心理念：人和AI Agent需要的不是更多信息，而是'已验证知识'。把散落在Slack、Google Docs等系统中的信息统一为可供人和智能体使用的验证知识。三种内容类型：Questions（问答）、Today I Learned（TIL经验帖）、Blueprints（可复用方案蓝图）。由两名工程师使用OpenAI Codex在数周内完成。API-first设计，Agent可直接调用获取验证过的解决方案，减少重试循环和错误。",
+      "VibeCoding小工具机会": "做一个「RPA已验证流程方案库」：参考Stack Overflow for Agents的'已验证知识'理念，为RPA/自动化场景构建方案库。核心功能：①三种内容类型——Questions（自动化问题问答）、TIL（自动化经验帖：踩坑记录、最佳实践）、Blueprints（可复用的自动化方案蓝图：完整流程+代码+配置）；②验证机制——方案经过实际运行验证后标记'已验证'，标注验证次数和成功率；③API-first——Agent可直接调用API检索验证过的自动化方案，执行时优先使用；④社区贡献——用户可提交方案和经验，社区评分和评论；⑤与RPA工具集成——执行器自动检索方案库，匹配相似任务的验证方案。用vibe coding实现方案库+验证机制+API+社区+集成，契合RPA背景中对流程方案沉淀和可靠执行的需求。",
+      "日期": "2026-10-17",
+      "链接": "https://stackoverflow.blog/2026/06/10/announcing-stack-overflow-for-agents/",
+      "主题分类": "AI Agent/智能体工具\",\"泛AI效率工具",
+      "来源平台": "其他"
+    },
+    {
+      "record_id": "reczz28OHVDIyTM8",
+      "标题": "Rowboat：YC-backed开源AI coworker，Apache-2.0，local-first，索引邮件/会议/Slack到本地知识图谱，Obsidian兼容",
+      "推荐指数": 3,
+      "摘要": "Rowboat是YC-backed Rowboat Labs开发的开源AI coworker（Apache-2.0），15.3K stars，定位为local-first的Claude Desktop替代品。核心能力：索引邮件、会议、Slack、AI对话到本地知识图谱（Obsidian兼容vault，不用向量数据库）；内置邮件客户端、笔记、浏览器、编码环境四个操作界面；支持任意LLM（Ollama/LM Studio本地模型或托管模型）；MCP server暴露空间给其他Agent交互；可自托管团队服务器；数据完全本地，隐私安全。Show HN获186 points 67 comments。v0.7.1最新版本。",
+      "VibeCoding小工具机会": "做一个「运营数据本地知识图谱助手」：参考Rowboat的local-first知识图谱理念，专为运营/数据场景构建。核心功能：①多源数据索引——自动索引Excel报表、业务系统导出、邮件、会议纪要到本地知识图谱（Obsidian兼容markdown，不用向量数据库）；②语义检索——FTS5全文检索+LLM摘要，快速找到历史数据和分析结论；③内置数据操作界面——不只是检索，还能直接查看Excel、生成图表、对比数据；④运营问答——基于索引的知识回答运营问题（如'上个月哪个门店毛利率下降最多'）；⑤MCP接口——可被其他Agent调用获取运营数据。用vibe coding实现多源索引+知识图谱+检索+数据操作+问答+MCP，契合用户数据/财务信息化背景中对多源数据整合和快速分析的需求。",
+      "日期": "2026-10-17",
+      "链接": "https://github.com/rowboatlabs/rowboat",
+      "主题分类": "AI Agent/智能体工具\",\"开源项目\",\"泛AI效率工具",
+      "来源平台": "Hacker News"
+    },
+    {
+      "record_id": "reczz28OHVDIyugR",
+      "标题": "Omnigent：开源AI Agent meta-harness，Apache-2.0，统一编排Claude Code/Codex/Cursor/Hermes等，策略治理+沙箱+跨设备协作",
+      "推荐指数": 3,
+      "摘要": "Omnigent是开源AI Agent meta-harness（Apache-2.0），10.7K stars，v0.5.0于10月15日更新。核心理念：在Claude Code、Codex、Cursor、OpenCode、Hermes、Pi和自定义Agent之上提供统一编排层——无需重写即可切换或组合harness，用策略和沙箱控制Agent行为，从任何设备（终端/浏览器/手机/桌面）实时协作同一会话。支持uv/pip/homebrew安装。原生harness成熟度提升：claude-native渲染实时工具调用卡片、显示后台shell状态；qwen-native在TUI中支持Omnigent工具、跨fork/switch-agent保留对话历史。",
+      "VibeCoding小工具机会": "做一个「RPA多执行器统一编排平台」：参考Omnigent的meta-harness架构，为RPA场景构建多执行器统一编排层。核心功能：①多执行器统一调度——Playwright浏览器自动化、Python脚本、API调用、Excel宏等多种执行器在一个平台统一管理和调度；②策略治理——定义每个执行器的权限范围（如'只能读取不能写入'、'涉及金额需审批'），自动拦截越权操作；③沙箱隔离——危险操作在隔离环境中执行，不影响生产系统；④跨设备监控——从终端/浏览器/手机查看执行状态和日志；⑤执行器组合——复杂工作流可组合多个执行器（如'浏览器采集数据→Python处理→API写入系统'）。用vibe coding实现统一调度+策略引擎+沙箱+监控+执行器组合，契合RPA背景中对多工具统一管理和安全控制的需求。",
+      "日期": "2026-10-17",
+      "链接": "https://omnigent.ai/",
+      "主题分类": "AI Agent/智能体工具\",\"开源项目\",\"RPA/流程自动化",
+      "来源平台": "GitHub"
+    },
+    {
+      "record_id": "reczz28OHVDIx9Xh",
+      "标题": "OpenClaw 2026.3.7重大版本更新：280K stars，AI Agent能力升级，更智能的助手和更强的自动化执行",
+      "推荐指数": 3,
+      "摘要": "OpenClaw发布2026.3.7重大版本更新，GitHub stars突破280K。从实验性框架发展为全功能AI Agent平台。本次更新核心：更智能的AI助手（改进决策和规划能力）、更强的自动化执行（更稳定的工具调用和任务执行）、扩展的集成生态。OpenClaw定位为开源AI Agent框架，支持构建自主运行的Agent，连接多种工具和服务，执行复杂任务。社区活跃，贡献者众多。本次更新后Agent在长任务执行、错误恢复、多步骤规划方面表现显著提升。",
+      "VibeCoding小工具机会": "做一个「RPA执行可靠性增强器」：参考OpenClaw 2026.3.7在执行稳定性上的改进，为RPA工作流增加可靠性层。核心功能：①执行状态检查——每步执行后验证结果是否符合预期（如'页面是否加载成功'、'数据是否写入正确'），不符合则自动重试或报错；②智能错误恢复——根据错误类型自动选择恢复策略（网络错误重试、元素找不到重新定位、数据错误回滚）；③断点续跑——任务中断后从最后成功的步骤继续，不重复执行；④执行日志和回放——完整记录每步执行状态，支持回放排查问题；⑤稳定性评分——统计每个流程的成功率和平均重试次数，识别不稳定环节。用vibe coding实现状态检查+错误恢复+断点续跑+日志回放+稳定性评分，契合RPA背景中对执行可靠性的核心需求。",
+      "日期": "2026-10-17",
+      "链接": "https://github.com/openclaw/openclaw",
+      "主题分类": "AI Agent/智能体工具\",\"开源项目\",\"RPA/流程自动化\",\"泛AI效率工具",
+      "来源平台": "GitHub"
+    }
+  ]
+}
