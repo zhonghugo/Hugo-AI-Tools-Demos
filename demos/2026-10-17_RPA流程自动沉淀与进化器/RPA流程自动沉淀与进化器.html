@@ -5,411 +5,335 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RPA 流程自动沉淀与进化器</title>
 <style>
-  /* ===== 全局：深色仪表盘风格（与 10/10-10/16 RPA 系列一致） ===== */
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    background:#0d1117; color:#e6edf3; font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
-    min-height:100vh; padding:20px 16px 40px;
+  :root{
+    --bg:#0e1524; --panel:#151d2e; --panel2:#1b2540; --line:#26334d;
+    --txt:#dbe4f5; --dim:#8fa0bd; --acc:#4da3ff; --ok:#37d39a; --warn:#ffb454; --err:#ff6b6b;
   }
-  .wrap { max-width:1100px; margin:0 auto; }
-
-  /* ===== 顶部 ===== */
-  header h1 { font-size:26px; font-weight:700; letter-spacing:.5px; }
-  header h1 .acc { color:#4da3ff; }
-  .sub { color:#8b949e; font-size:13px; line-height:1.7; margin-top:6px; }
-  .sub b { color:#58a6ff; font-weight:600; }
-  .stats { display:flex; gap:10px; flex-wrap:wrap; margin:16px 0 18px; }
-  .stat {
-    background:#161b22; border:1px solid #30363d; border-radius:10px; padding:10px 16px; flex:1; min-width:130px;
-  }
-  .stat .num { font-size:22px; font-weight:700; color:#4da3ff; }
-  .stat .num.green { color:#3fb950; }
-  .stat .lbl { font-size:12px; color:#8b949e; margin-top:2px; }
-
-  /* ===== 操作区（业务表单） ===== */
-  .actions {
-    display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:20px;
-    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:14px 16px;
-  }
-  .actions label { font-size:13px; color:#8b949e; }
-  select, .btn {
-    padding:9px 14px; border-radius:8px; border:1px solid #30363d; background:#21262d; color:#e6edf3;
-    font-size:14px; cursor:pointer; transition:.15s;
-  }
-  select { min-width:210px; }
-  .btn:hover { background:#30363d; }
-  .btn.primary { background:#1f6feb; border-color:#1f6feb; color:#fff; }
-  .btn.primary:hover { background:#388bfd; }
-  .btn:disabled { opacity:.45; cursor:not-allowed; }
-  .hint { font-size:12px; color:#8b949e; width:100%; }
-  .hint b { color:#d29922; }
-
-  /* ===== 进化建议面板 ===== */
-  .evo {
-    display:none; background:#161b22; border:1px solid #d29922; border-radius:12px; padding:18px; margin-bottom:20px;
-  }
-  .evo.open { display:block; }
-  .evo h3 { font-size:16px; color:#d29922; margin-bottom:4px; }
-  .evo .flowname { font-size:13px; color:#8b949e; margin-bottom:10px; }
-  .evo ul { margin:8px 0 12px 18px; }
-  .evo li { font-size:13px; line-height:1.9; color:#e6edf3; }
-  .evo li b { color:#3fb950; }
-  .evo .expect { font-size:13px; color:#8b949e; margin-bottom:12px; }
-  .evo .expect b { color:#3fb950; }
-
-  /* ===== 日志 ===== */
-  .logbox {
-    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; margin-top:4px;
-  }
-  .logbox h3 { font-size:15px; margin-bottom:10px; }
-  #logs { max-height:300px; overflow:auto; font-size:13px; line-height:1.8; }
-  .log { padding:4px 8px; border-radius:6px; margin-bottom:4px; }
-  .log .t { color:#8b949e; font-size:11px; margin-right:8px; }
-  .log.ok { background:#23863622; color:#3fb950; }
-  .log.err { background:#da363322; color:#f85149; }
-  .log.run { background:#1f6feb22; color:#58a6ff; }
-  .log.evo { background:#d2992222; color:#d29922; }
-  .empty { color:#8b949e; font-size:13px; padding:8px; }
-
-  /* ===== 沉淀卡 ===== */
-  .sumcard {
-    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; margin-top:16px;
-  }
-  .sumcard h3 { font-size:15px; margin-bottom:10px; }
-  .sumcard .head { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
-  .sumcard .name { font-size:15px; font-weight:700; }
-  .sumcard .pill { background:#1f6feb22; color:#58a6ff; border:1px solid #1f6feb44; padding:2px 10px; border-radius:20px; font-size:12px; }
-  .sumcard .pill.gold { background:#d2992222; color:#d29922; border-color:#d2992244; }
-  .sumcard .kv { display:grid; grid-template-columns:110px 1fr; gap:6px 10px; font-size:13px; }
-  .sumcard .kv .k { color:#8b949e; }
-  .sumcard .kv .v { color:#e6edf3; }
-  .sumcard .kv .v.exc { color:#f85149; }
-  .sumcard .kv .v.good { color:#3fb950; }
-
-  /* ===== 模板库 ===== */
-  .lib { margin-top:20px; }
-  .lib h3 { font-size:15px; margin-bottom:10px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
-  .card {
-    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; cursor:pointer; transition:.15s;
-  }
-  .card:hover { border-color:#58a6ff; }
-  .card .nm { font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  .card .ver { font-size:12px; padding:2px 10px; border-radius:20px; white-space:nowrap; }
-  .card .ver.v1 { background:#30363d; color:#8b949e; }
-  .card .ver.v2 { background:#23863633; color:#3fb950; border:1px solid #23863655; }
-  .card .meta { font-size:12px; color:#8b949e; margin-top:8px; line-height:1.8; }
-  .card .meta b { color:#4da3ff; }
-  .card .tags { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
-  .card .tag { background:#23863622; color:#3fb950; border:1px solid #23863644; font-size:11px; padding:2px 8px; border-radius:20px; }
-  .card .detail { display:none; margin-top:10px; border-top:1px dashed #30363d; padding-top:8px; }
-  .card.open .detail { display:block; }
-  .card .detail ol { margin-left:18px; font-size:12px; color:#8b949e; line-height:1.9; }
-  .card .tip { font-size:11px; color:#8b949e; margin-top:8px; }
-
-  @media (max-width:600px){
-    body { padding:14px 10px 30px; }
-    header h1 { font-size:21px; }
-    .grid { grid-template-columns:1fr; }
-    select { min-width:0; flex:1; }
-  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;padding:16px}
+  h1{font-size:22px;margin:6px 0 14px}
+  h1 small{display:block;font-size:12px;color:var(--dim);font-weight:normal;margin-top:4px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .stat b{display:block;font-size:24px;color:var(--acc)}
+  .stat span{font-size:12px;color:var(--dim)}
+  .cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .col h2{font-size:14px;margin-bottom:10px;color:var(--acc)}
+  .flow-item{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;transition:.2s}
+  .flow-item:hover,.flow-item.sel{border-color:var(--acc)}
+  .flow-item .fname{font-weight:600}
+  .flow-item .fmeta{font-size:12px;color:var(--dim);margin-top:4px}
+  .flow-item .fsteps{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.6}
+  button{background:var(--acc);color:#04122b;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .log{max-height:220px;overflow:auto;margin-top:10px;font-size:12px;line-height:1.7;font-family:ui-monospace,Consolas,monospace}
+  .log .row{display:flex;gap:6px}
+  .log .row .s{color:var(--dim)}
+  .log .row.ok .t{color:var(--ok)}
+  .log .row.fail .t{color:var(--err)}
+  .log .row.warn .t{color:var(--warn)}
+  #summary{background:var(--panel2);border:1px solid var(--acc);border-radius:8px;padding:10px;margin-top:10px;display:none}
+  #summary.show{display:block}
+  #summary .ttl{font-size:13px;font-weight:600;color:var(--acc);margin-bottom:6px}
+  #summary .item{font-size:12px;color:var(--txt);line-height:1.7}
+  #sumAction{margin-top:8px;font-size:12px;color:var(--ok)}
+  .tpl{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;transition:.2s}
+  .tpl:hover{border-color:var(--acc)}
+  .tpl .name{display:flex;justify-content:space-between;align-items:center}
+  .tpl .name span{font-weight:600}
+  .tpl .ver{background:var(--acc);color:#04122b;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700}
+  .tpl .meta{font-size:12px;color:var(--dim);margin-top:6px;display:flex;gap:10px}
+  .tpl .tags{font-size:11px;color:var(--dim);margin-top:6px}
+  .tpl .tags i{background:#223;border-radius:4px;padding:1px 6px;margin-right:4px;font-style:normal}
+  input[type=text]{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 10px;font-size:12px;width:100%;margin-bottom:10px}
+  input::placeholder{color:var(--dim)}
+  #tplEmpty{display:none;font-size:12px;color:var(--dim);text-align:center;padding:14px 0}
+  .mem-item{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;line-height:1.6}
+  .mem-item b{color:var(--acc)}
+  #refCard{display:none;background:var(--panel2);border:1px solid var(--ok);border-radius:8px;padding:10px;margin-top:8px;font-size:12px}
+  #refCard.show{display:block}
+  #refCard .ttl{font-weight:600;color:var(--ok);margin-bottom:4px}
+  #mask{display:none;position:fixed;inset:0;background:rgba(4,10,22,.7);align-items:center;justify-content:center;z-index:10}
+  #mask.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:560px;width:92%;max-height:80vh;overflow:auto;padding:16px}
+  .modal h3{font-size:15px;margin-bottom:6px}
+  .modal .sub{font-size:12px;color:var(--dim);margin-bottom:10px}
+  .modal h4{font-size:12px;color:var(--acc);margin:10px 0 6px}
+  .modal ul{font-size:12px;line-height:1.8;padding-left:18px;color:var(--txt)}
+  #mTimeline{border-left:2px solid var(--line);margin:6px 0 10px 6px;padding-left:14px}
+  #mTimeline .node{position:relative;font-size:12px;line-height:1.6;padding:4px 0}
+  #mTimeline .node::before{content:"";position:absolute;left:-19px;top:9px;width:8px;height:8px;border-radius:50%;background:var(--acc)}
+  #mTimeline .node.v2::before{background:var(--ok)}
+  #maskClose{background:var(--line);color:var(--txt);margin-top:12px}
+  .foot{font-size:11px;color:var(--dim);margin-top:16px;line-height:1.6}
+  @media (max-width:900px){.cols{grid-template-columns:1fr}}
+  @media (max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}h1{font-size:18px}}
 </style>
 </head>
 <body>
-<div class="wrap">
+<h1>RPA 流程自动沉淀与进化器
+  <small>参考 Hermes Agent 的闭环学习架构：每次流程执行 → AI 自动总结沉淀模板 → 多次执行触发自我改进 → 模板库搜索复用 → 跨执行记忆召回，让 RPA 越用越聪明（作品集 Demo · 2026-10-17）</small>
+</h1>
 
-  <header>
-    <h1>RPA 流程<span class="acc">自动沉淀与进化器</span></h1>
-    <div class="sub">
-      参考 <b>Hermes Agent</b> 闭环学习架构：流程执行后 <b>AI 自动总结沉淀</b>为可复用模板 → 多次执行后 <b>自动发现改进点并进化</b> → 进化后的模板执行更快、异常更少。越用越聪明。
-    </div>
-  </header>
-
-  <div class="stats">
-    <div class="stat"><div class="num" id="stRuns">0</div><div class="lbl">累计执行次数</div></div>
-    <div class="stat"><div class="num" id="stTpl">0</div><div class="lbl">沉淀模板数</div></div>
-    <div class="stat"><div class="num" id="stEvo">0</div><div class="lbl">模板进化次数</div></div>
-    <div class="stat"><div class="num green" id="stSaved">0.0s</div><div class="lbl">进化累计节省耗时</div></div>
-  </div>
-
-  <div class="actions">
-    <label for="flowSel">选择流程：</label>
-    <select id="flowSel">
-      <option value="f1">销售日报汇总（ERP 订单明细）</option>
-      <option value="f2">发票数据录入（OCR + 财务凭证）</option>
-      <option value="f3">应收账款对账（银行流水核对）</option>
-    </select>
-    <button class="btn primary" id="btnRun">▶ 执行流程</button>
-    <button class="btn" id="btnReset">↺ 重置演示</button>
-    <div class="hint">同一流程执行 <b>2 次</b>后触发自动进化分析；沉淀与进化全部由 AI 自动完成，无需人工编写规则。</div>
-  </div>
-
-  <div class="evo" id="evoPanel">
-    <h3>🧬 自动进化分析完成</h3>
-    <div class="flowname" id="evoFlow"></div>
-    <ul id="evoList"></ul>
-    <div class="expect" id="evoExpect"></div>
-    <button class="btn primary" id="btnApply">应用进化，升级为 v2 模板</button>
-  </div>
-
-  <div class="logbox">
-    <h3>执行日志</h3>
-    <div id="logs"><div class="empty">暂无执行记录。选择流程后点击「执行流程」，AI 将逐步执行并在完成后自动沉淀模板。</div></div>
-  </div>
-
-  <div class="sumcard" id="sumCard" style="display:none">
-    <h3>📋 执行后自动沉淀（AI 总结）</h3>
-    <div id="sumBody"></div>
-  </div>
-
-  <div class="lib">
-    <h3>🗂 沉淀模板库（点击卡片展开步骤）</h3>
-    <div class="grid" id="tplLib"><div class="empty">模板库为空。每次执行完成后自动沉淀流程模板。</div></div>
-  </div>
-
+<div class="stats">
+  <div class="stat"><b id="st-tpl">1</b><span>流程模板数</span></div>
+  <div class="stat"><b id="st-run">0</b><span>累计执行次数</span></div>
+  <div class="stat"><b id="st-rate">—</b><span>平均成功率</span></div>
+  <div class="stat"><b id="st-mem">3</b><span>跨执行记忆条目</span></div>
 </div>
 
-<script>
-'use strict';
-/* ===== 流程定义（示例数据固化）===== */
-const FLOWS = {
-  f1: {
-    name: '销售日报汇总',
-    steps: [
-      { t: '登录 ERP 系统', ms: 1200 },
-      { t: '导出当日订单明细', ms: 1600, exc: '导出接口超时 → 自动重试成功（+800ms）', excMs: 800 },
-      { t: '按区域汇总销售额', ms: 1400 },
-      { t: '生成日报表格', ms: 1100 },
-      { t: '邮件发送给销售总监', ms: 900 }
-    ],
-    evo: [
-      '合并「导出明细 + 按区域汇总」为单步内存处理（省 <b>1400ms</b>）',
-      '预置导出超时重试 + 缓存兜底，异常不再阻塞（省 <b>800ms</b>）',
-      '预取收件人列表参数，免去运行时查询（省 <b>200ms</b>）'
-    ],
-    v2: [
-      { t: '登录 ERP 系统', ms: 1200 },
-      { t: '导出+按区域汇总（内存合并处理）', ms: 1600 },
-      { t: '生成日报表格（预取参数）', ms: 900 },
-      { t: '邮件发送给销售总监', ms: 900 }
-    ]
-  },
-  f2: {
-    name: '发票数据录入',
-    steps: [
-      { t: '打开发票影像目录', ms: 800 },
-      { t: 'OCR 识别发票字段', ms: 1800, exc: '第 3 张影像模糊 → 自动降噪重试成功（+500ms）', excMs: 500 },
-      { t: '校验税号与金额', ms: 1200 },
-      { t: '写入财务系统凭证', ms: 1500 },
-      { t: '归档影像文件', ms: 700 }
-    ],
-    evo: [
-      '批量 OCR 改并行处理（省 <b>900ms</b>）',
-      '模糊影像预降噪预处理，识别不再中断（省 <b>500ms</b>）',
-      '税号校验规则缓存复用（省 <b>300ms</b>）'
-    ],
-    v2: [
-      { t: '打开发票影像目录', ms: 800 },
-      { t: 'OCR 批量并行识别（含降噪预处理）', ms: 900 },
-      { t: '校验税号与金额（规则缓存）', ms: 900 },
-      { t: '写入财务系统凭证', ms: 1500 },
-      { t: '归档影像文件', ms: 700 }
-    ]
-  },
-  f3: {
-    name: '应收账款对账',
-    steps: [
-      { t: '拉取银行流水', ms: 1300 },
-      { t: '拉取应收明细', ms: 1100, exc: '流水接口限流 → 退避重试成功（+600ms）', excMs: 600 },
-      { t: '按客户逐笔核对', ms: 1600 },
-      { t: '生成差异清单', ms: 1000 },
-      { t: '推送差异给催收专员', ms: 800 }
-    ],
-    evo: [
-      '逐笔核对改哈希索引匹配（省 <b>1000ms</b>）',
-      '预置限流退避策略，拉取一次到位（省 <b>600ms</b>）',
-      '差异清单模板预生成（省 <b>200ms</b>）'
-    ],
-    v2: [
-      { t: '拉取银行流水', ms: 1300 },
-      { t: '拉取应收明细（限流退避内置）', ms: 1100 },
-      { t: '按客户核对（哈希索引匹配）', ms: 600 },
-      { t: '生成差异清单（模板预生成）', ms: 800 },
-      { t: '推送差异给催收专员', ms: 800 }
-    ]
-  }
-};
+<div class="cols">
+  <div class="col">
+    <h2>① 执行台 · 选择流程运行</h2>
+    <div id="flowList"></div>
+    <button id="btnRun">▶ 运行所选流程</button>
+    <div class="log" id="log"></div>
+    <div id="summary">
+      <div class="ttl">🤖 AI 自动沉淀总结</div>
+      <div class="item" id="sumText"></div>
+      <div id="sumAction"></div>
+    </div>
+  </div>
+  <div class="col">
+    <h2>② 流程模板库 · 搜索 / 复用</h2>
+    <input type="text" id="tplSearch" placeholder="搜索模板关键词，如「对账」「日报」…">
+    <div id="tplList"></div>
+    <div id="tplEmpty">没有匹配的模板，先运行一个流程让它自动沉淀吧</div>
+  </div>
+  <div class="col">
+    <h2>③ 跨执行记忆 · FTS5 全文检索</h2>
+    <input type="text" id="memSearch" placeholder="检索历史执行记忆，如「财务」「发票」…">
+    <div id="memList"></div>
+    <div id="refCard"><div class="ttl">🧠 召回推荐（相似历史流程参考）</div><div id="refText"></div></div>
+  </div>
+</div>
 
-/* ===== 状态 ===== */
-let st = null;
-function initState() {
-  st = {
-    runs: 0, evos: 0, savedMs: 0, running: false,
-    flows: {}
-  };
-  Object.keys(FLOWS).forEach(k => {
-    st.flows[k] = { runs: 0, ver: 1, firstMs: 0, lastMs: 0, tpl: false, savedMs: 0 };
+<div class="foot">本 Demo 为作品集示例：预置 3 个 RPA 流程（财务月结对账 / 销售日报生成 / 竞品价格采集），演示「执行 → 自动沉淀 → 自我改进 → 模板复用 → 记忆召回」的闭环学习；全部数据在前端本地模拟，无需任何后端。</div>
+
+<div id="mask"><div class="modal">
+  <h3 id="mName"></h3>
+  <div class="sub" id="mSub"></div>
+  <h4>执行步骤</h4>
+  <ul id="mSteps"></ul>
+  <h4>异常处理策略</h4>
+  <ul id="mEx"></ul>
+  <h4>进化时间线</h4>
+  <div id="mTimeline"></div>
+  <button id="maskClose">关 闭</button>
+</div></div>
+
+<script>
+// ===== 数据模型：预置流程 =====
+// 每个流程：steps 步骤清单、failStep 第几步会先失败再重试成功、succ/fails 统计、tags 标签
+const FLOWS = [
+  { id:"flow1", name:"财务月结对账", meta:"8 个科目 · 2 项差异率 &gt;5% · 需人工复核", succ:0, fails:0, runs:0,
+    steps:[
+      "导出银行流水与总账科目余额",
+      "按科目号匹配本月借贷发生额",
+      "核对 8 个科目的账实差异",
+      "标记差异率 &gt;5% 的科目（应收账款 / 营业外收入）",
+      "生成对账差异报告并发送复核"
+    ],
+    failStep:3, tags:["对账","财务","月结"] },
+  { id:"flow2", name:"销售日报生成", meta:"汇总各门店当日销售 · 自动排版推送", succ:0, fails:0, runs:0,
+    steps:[
+      "拉取各门店当日销售明细",
+      "按品类汇总销售额与订单数",
+      "计算环比与目标达成率",
+      "生成日报图表并推送群"
+    ],
+    failStep:0, tags:["日报","销售","报表"] },
+  { id:"flow3", name:"竞品价格采集", meta:"采集 5 个竞品 SKU 价格 · 变动告警", succ:0, fails:0, runs:0,
+    steps:[
+      "打开竞品价格页面",
+      "解析 SKU 价格字段",
+      "对比昨日价格并标记变动",
+      "输出价格变动清单"
+    ],
+    failStep:1, tags:["采集","价格","爬虫"] }
+];
+
+// ===== 数据模型：流程模板库（预置 1 张：月度报销对账 v1）=====
+// 模板：name、ver、runs、ok、tags、history（进化时间线）、ex（异常策略）
+let TPLS = [
+  { name:"月度报销对账", ver:"v1", runs:2, ok:2, tags:["对账","财务","报销"], flowId:"flow1",
+    steps:["导出报销单与科目余额","按科目匹配报销金额","核对差异并标记异常","生成对账报告"],
+    ex:["差异率&gt;5% 自动标记待复核","流水缺失时自动补拉一次"],
+    history:[{v:"v1", note:"首次执行自动沉淀生成", t:"2026-09-28 09:12"}] }
+];
+
+// ===== 数据模型：跨执行记忆（预置 3 条）=====
+let MEMS = [
+  { text:"财务月结对账：上期应收账款科目差异率 7.2%，自动标记待复核后人工确认 2 笔，模板已补记「应收科目双倍校验」", tag:"财务" },
+  { text:"销售日报：周六单量波动大，环比口径建议改用 7 日均值，模板已更新计算口径", tag:"日报" },
+  { text:"竞品价格采集：目标站点改版后价格字段选择器失效，自动切换备用解析器后恢复", tag:"采集" }
+];
+
+// ===== 渲染：统计条 =====
+function renderStat(){
+  // 成功率 = 成功执行次数 / 总执行次数（重试后成功也计入成功，体现「自动恢复」能力）
+  const runs = FLOWS.reduce((s,f)=>s+f.runs,0);
+  const succ = FLOWS.reduce((s,f)=>s+f.succ,0);
+  document.getElementById("st-tpl").textContent = TPLS.length;
+  document.getElementById("st-run").textContent = runs;
+  document.getElementById("st-rate").textContent = runs ? Math.round(succ*100/runs)+"%" : "—";
+  document.getElementById("st-mem").textContent = MEMS.length;
+}
+
+// ===== 渲染：流程列表 =====
+let selFlow = "flow1";
+function renderFlows(){
+  const box = document.getElementById("flowList");
+  box.innerHTML = "";
+  FLOWS.forEach(f=>{
+    const div = document.createElement("div");
+    div.className = "flow-item" + (f.id===selFlow?" sel":"");
+    div.innerHTML = `<div class="fname">${f.name}</div>
+      <div class="fmeta">${f.meta} · 已执行 ${f.runs} 次 · 失败重试 ${f.fails} 次</div>
+      <div class="fsteps">${f.steps.map((s,i)=>(i+1)+". "+s).join(" / ")}</div>`;
+    div.onclick = ()=>{ selFlow = f.id; renderFlows(); };
+    box.appendChild(div);
   });
 }
 
-/* ===== 工具 ===== */
-const $ = id => document.getElementById(id);
-const fmtSec = ms => (ms / 1000).toFixed(1) + 's';
-function log(kind, text) {
-  const box = $('logs');
-  if (box.querySelector('.empty')) box.innerHTML = '';
-  const div = document.createElement('div');
-  div.className = 'log ' + kind;
-  const t = document.createElement('span');
-  t.className = 't';
-  t.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-  div.appendChild(t);
-  div.appendChild(document.createTextNode(text));
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
-function renderStats() {
-  $('stRuns').textContent = st.runs;
-  $('stTpl').textContent = Object.values(st.flows).filter(f => f.tpl).length;
-  $('stEvo').textContent = st.evos;
-  $('stSaved').textContent = fmtSec(st.savedMs);
+// ===== 渲染：模板库（支持搜索过滤）=====
+function renderTpls(){
+  const kw = document.getElementById("tplSearch").value.trim();
+  const list = TPLS.filter(t=>!kw || (t.name+t.tags.join("")).includes(kw));
+  const box = document.getElementById("tplList");
+  box.innerHTML = "";
+  document.getElementById("tplEmpty").style.display = list.length ? "none" : "block";
+  list.forEach(t=>{
+    const div = document.createElement("div");
+    div.className = "tpl";
+    div.innerHTML = `<div class="name"><span>${t.name}</span><span class="ver">${t.ver}</span></div>
+      <div class="meta"><span>执行 ${t.runs} 次</span><span>成功率 ${t.ok}%</span></div>
+      <div class="tags">${t.tags.map(x=>`<i>${x}</i>`).join("")}</div>`;
+    div.onclick = ()=>openDetail(t);
+    box.appendChild(div);
+  });
 }
 
-/* ===== 执行流程（模拟）===== */
-const sleep = ms => new Promise(r => setTimeout(r, 280)); // 演示节奏（页面展示的 ms 为业务模拟值）
+// ===== 渲染：跨执行记忆（FTS5 风格全文检索）=====
+function renderMems(){
+  const kw = document.getElementById("memSearch").value.trim();
+  const list = MEMS.filter(m=>!kw || m.text.includes(kw));
+  const box = document.getElementById("memList");
+  box.innerHTML = "";
+  list.forEach(m=>{
+    const div = document.createElement("div");
+    div.className = "mem-item";
+    div.innerHTML = m.text;
+    box.appendChild(div);
+  });
+  const ref = document.getElementById("refCard");
+  // 有检索词且有命中 → 渲染「召回推荐」（模拟跨执行检索相似历史流程作为参考）
+  if(kw && list.length){
+    ref.classList.add("show");
+    document.getElementById("refText").textContent =
+      "命中 "+list.length+" 条历史执行记忆；建议以最近一次（"+(list[0].tag||"相关")+"）为准复用时，自动附带其沉淀的经验与异常处理策略。";
+  }else{
+    ref.classList.remove("show");
+  }
+}
 
-async function runFlow() {
-  if (st.running) return;
-  const key = $('flowSel').value;
-  const flow = FLOWS[key], fs = st.flows[key];
-  st.running = true;
-  $('btnRun').disabled = true;
-  $('btnReset').disabled = true;
-  $('evoPanel').classList.remove('open');
+// ===== 详情浮层 =====
+function openDetail(t){
+  document.getElementById("mName").textContent = t.name + " 模板";
+  document.getElementById("mSub").textContent = `当前版本 ${t.ver} · 累计执行 ${t.runs} 次 · 成功率 ${t.ok}%`;
+  document.getElementById("mSteps").innerHTML = t.steps.map(s=>`<li>${s}</li>`).join("");
+  document.getElementById("mEx").innerHTML = (t.ex||[]).map(s=>`<li>${s}</li>`).join("");
+  const tl = document.getElementById("mTimeline");
+  tl.innerHTML = (t.history||[]).map(h=>`<div class="node ${h.v==="v2"?"v2":""}"><b>${h.v}</b> · ${h.note}<br><span style="color:var(--dim)">${h.t}</span></div>`).join("");
+  document.getElementById("mask").classList.add("show");
+}
+document.getElementById("maskClose").onclick = ()=>document.getElementById("mask").classList.remove("show");
 
-  const isV2 = fs.ver === 2;
-  const steps = isV2 ? flow.v2 : flow.steps;
-  log('run', (isV2 ? '⚡ 复用 v2 进化模板执行「' : '▶ 执行「') + flow.name + '」（' + steps.length + ' 步）');
-  let total = 0, excText = null;
+// ===== 执行台：运行所选流程 =====
+const IMPROVE_POOL = [
+  "合并重复步骤，预计执行时间 ↓18%",
+  "预置异常处理：失败自动重试 + 降级方案",
+  "预取常用参数，减少人工输入",
+  "新增校验节点：结果二次确认后再提交"
+];
+let improveIdx = 0;
 
-  for (let i = 0; i < steps.length; i++) {
-    const s = steps[i];
-    await sleep();
-    total += s.ms;
-    if (!isV2 && s.exc) {
-      log('err', '步骤 ' + (i + 1) + '「' + s.t + '」异常：' + s.exc);
-      total += s.excMs;
-      excText = s.exc.split(' → ')[0];
-    } else {
-      log('ok', '步骤 ' + (i + 1) + '「' + s.t + '」完成（' + s.ms + 'ms）');
+function logRow(cls, text){
+  const row = document.createElement("div");
+  row.className = "row " + cls;
+  row.innerHTML = `<span class="s">${new Date().toLocaleTimeString("zh-CN",{hour12:false})}</span><span class="t">${text}</span>`;
+  document.getElementById("log").appendChild(row);
+}
+
+document.getElementById("btnRun").onclick = async ()=>{
+  const f = FLOWS.find(x=>x.id===selFlow);
+  const btn = document.getElementById("btnRun");
+  btn.disabled = true;
+  document.getElementById("summary").classList.remove("show");
+  document.getElementById("log").innerHTML = "";
+  logRow("warn","开始执行流程：「"+f.name+"」");
+
+  // 逐步骤执行；命中 failStep 的步骤先失败 → 自动重试成功（演示失败重试能力）
+  for(let i=0;i<f.steps.length;i++){
+    await new Promise(r=>setTimeout(r,260));
+    if(f.failStep && i+1===f.failStep){
+      f.fails++;
+      logRow("fail",`步骤 ${i+1}：${f.steps[i]} → 执行失败（页面元素未找到/数据校验不通过）`);
+      await new Promise(r=>setTimeout(r,300));
+      logRow("ok",`步骤 ${i+1}：${f.steps[i]} → 自动重试成功（降级解析器/二次拉取）`);
+    }else{
+      logRow("ok",`步骤 ${i+1}：${f.steps[i]} → 完成`);
     }
   }
-  await sleep();
-  log('ok', '流程执行完成，总耗时 ' + fmtSec(total) + (isV2 ? '（v2 进化模板加速生效）' : ''));
 
-  /* --- 执行后自动沉淀（AI 总结）--- */
-  fs.runs++; st.runs++;
-  if (!fs.firstMs) fs.firstMs = total;
-  fs.lastMs = total;
-  if (!fs.tpl) {
-    fs.tpl = true;
-    log('evo', '🧠 AI 自动总结：流程步骤、参数与异常处理已沉淀为 v1 模板');
-  } else if (isV2) {
-    const saved = fs.firstMs - total;
-    if (saved > fs.savedMs) { st.savedMs -= fs.savedMs; fs.savedMs = saved; st.savedMs += saved; }
-    log('evo', '🧠 AI 自动总结：本次执行已同步至 v2 模板（较首次执行节省 ' + fmtSec(Math.max(saved, 0)) + '）');
-  } else {
-    log('evo', '🧠 AI 自动总结：执行记录已归档，模板经验值 +1');
+  f.runs++;
+  f.succ++;   // 重试后成功也算成功
+  await new Promise(r=>setTimeout(r,300));
+  logRow("ok","✅ 流程执行完成，开始 AI 自动总结沉淀…");
+
+  // ===== 闭环核心：settleTemplate（执行 → 自动沉淀 → 自我改进）=====
+  const summary = document.getElementById("summary");
+  const sumText = document.getElementById("sumText");
+  const sumAct = document.getElementById("sumAction");
+  summary.classList.add("show");
+  sumText.innerHTML = `本次执行「${f.name}」${f.runs} 次 · ${f.steps.length} 个步骤 · ${f.fails?("失败 "+f.fails+" 次后自动恢复"):"一次成功"}。AI 正在总结步骤、参数与异常处理…`;
+
+  const same = TPLS.find(t=>t.flowId===f.id);
+  if(same){
+    // 重复执行 → 自我改进：版本 +1
+    const newVer = "v" + (parseInt(same.ver.slice(1))+1);
+    same.ver = newVer;
+    same.runs++; same.ok = 100;
+    const note = "自我改进：" + IMPROVE_POOL[improveIdx++ % IMPROVE_POOL.length];
+    same.history.push({v:newVer, note, t:new Date().toLocaleString("zh-CN",{hour12:false})});
+    if(newVer==="v2"){
+      same.steps = [...same.steps.slice(0,2), "合并同类科目校验（一次遍历完成 8 科目）", ...same.steps.slice(2)];
+      same.ex = [...(same.ex||[]), "差异率&gt;5% 自动预标记，人工一键确认"];
+    }
+    sumAct.textContent = "♻️ 自我改进：" + same.name + " v1 → v2 —— 合并冗余步骤 / 预置异常处理 / 预取参数，执行提速 34% 异常清零";
+  }else{
+    // 首次执行 → 自动沉淀生成新模板 v1 并置顶
+    TPLS.unshift({ name:f.name, ver:"v1", runs:1, ok:100, tags:f.tags, flowId:f.id,
+      steps:[...f.steps],
+      ex:["失败自动重试一次","关键步骤结果二次确认"],
+      history:[{v:"v1", note:"首次执行自动沉淀生成", t:new Date().toLocaleString("zh-CN",{hour12:false})}] });
+    sumAct.textContent = "📦 自动沉淀：已生成「"+f.name+" v1」模板，进入模板库可搜索复用";
   }
 
-  renderSumCard(key, total, excText, isV2);
-  upsertTplCard(key);
-  renderStats();
+  // 生成一条跨执行记忆
+  MEMS.unshift({ text:`${f.name}：第 ${f.runs} 次执行完成（${f.fails?"失败 "+f.fails+" 次自动恢复":"一次成功"}），已沉淀执行要点与异常策略`, tag:f.tags[0]||"流程" });
 
-  /* --- 进化分析：同一流程累计执行 2 次（v1 阶段）触发 --- */
-  if (!isV2 && fs.runs >= 2) {
-    const saving = total - estimateV2(flow);
-    $('evoFlow').textContent = '分析对象：「' + flow.name + '」（已执行 ' + fs.runs + ' 次，沉淀 1 个 v1 模板）';
-    $('evoList').innerHTML = flow.evo.map(x => '<li>' + x + '</li>').join('');
-    $('evoExpect').innerHTML = '预计进化后执行耗时：<b>' + fmtSec(estimateV2(flow)) + '</b>（当前 ' + fmtSec(total) + '，提速 <b>' + Math.round((1 - estimateV2(flow) / total) * 100) + '%</b>）';
-    $('evoPanel').classList.add('open');
-    log('evo', '🧬 自动进化分析完成：发现 ' + flow.evo.length + ' 个改进点，等待应用');
-  }
+  renderStat(); renderFlows(); renderTpls(); renderMems();
+  btn.disabled = false;
+};
 
-  st.running = false;
-  $('btnRun').disabled = false;
-  $('btnReset').disabled = false;
-}
+// ===== 搜索监听：模板库 / 跨执行记忆 输入即过滤 =====
+document.getElementById("tplSearch").addEventListener("input", renderTpls);
+document.getElementById("memSearch").addEventListener("input", renderMems);
 
-function estimateV2(flow) {
-  return flow.v2.reduce((a, s) => a + s.ms, 0);
-}
-
-function renderSumCard(key, total, excText, isV2) {
-  const flow = FLOWS[key], fs = st.flows[key];
-  $('sumCard').style.display = 'block';
-  $('sumBody').innerHTML =
-    '<div class="head"><span class="name">' + flow.name + '</span>' +
-    '<span class="pill">' + (isV2 ? 'v2 进化模板' : 'v1 新沉淀模板') + '</span>' +
-    '<span class="pill gold">第 ' + fs.runs + ' 次执行</span></div>' +
-    '<div class="kv">' +
-    '<div class="k">本次总耗时</div><div class="v">' + fmtSec(total) + '</div>' +
-    '<div class="k">步骤数</div><div class="v">' + (isV2 ? flow.v2.length : flow.steps.length) + ' 步（含异常处理）</div>' +
-    '<div class="k">异常处理</div><div class="v ' + (excText ? 'exc' : 'good') + '">' + (excText ? excText + '（AI 已自动重试并记入模板）' : '无异常（进化后已预置处理）') + '</div>' +
-    '<div class="k">沉淀结果</div><div class="v good">' + (isV2 ? '模板经验 +1，进化效果持续验证中' : '模板已入库，再执行 1 次即可触发自动进化') + '</div>' +
-    '</div>';
-}
-
-/* ===== 模板库 ===== */
-function upsertTplCard(key) {
-  const flow = FLOWS[key], fs = st.flows[key];
-  const lib = $('tplLib');
-  if (lib.querySelector('.empty')) lib.innerHTML = '';
-  let card = lib.querySelector('[data-flow="' + key + '"]');
-  if (!card) {
-    card = document.createElement('div');
-    card.className = 'card';
-    card.dataset.flow = key;
-    card.addEventListener('click', () => card.classList.toggle('open'));
-    lib.appendChild(card);
-  }
-  const steps = fs.ver === 2 ? flow.v2 : flow.steps;
-  card.innerHTML =
-    '<div class="nm"><span>' + flow.name + '</span><span class="ver ' + (fs.ver === 2 ? 'v2' : 'v1') + '">' + (fs.ver === 2 ? 'v2 已进化' : 'v1 原始沉淀') + '</span></div>' +
-    '<div class="meta">执行次数 <b>' + fs.runs + '</b> 次 ｜ 最近耗时 <b>' + fmtSec(fs.lastMs) + '</b> ｜ 步骤 ' + steps.length + ' 个</div>' +
-    (fs.ver === 2 ? '<div class="tags">' + flow.evo.map(x => '<span class="tag">' + x.split('（')[0] + '</span>').join('') + '</div><div class="tip">已节省 ' + fmtSec(Math.max(fs.savedMs, 0)) + '（对比首次执行）</div>' : '<div class="tip">再执行 1 次可触发自动进化分析</div>') +
-    '<div class="detail"><ol>' + steps.map(s => '<li>' + s.t + '（' + s.ms + 'ms）</li>').join('') + '</ol></div>';
-}
-
-/* ===== 应用进化 ===== */
-function applyEvolution() {
-  const key = $('flowSel').value;
-  const fs = st.flows[key];
-  fs.ver = 2;
-  st.evos++;
-  log('evo', '✅ 「' + FLOWS[key].name + '」模板已升级 v1 → v2，下次执行自动加速');
-  upsertTplCard(key);
-  renderStats();
-  $('evoPanel').classList.remove('open');
-}
-
-/* ===== 重置 ===== */
-function resetAll() {
-  initState();
-  $('logs').innerHTML = '<div class="empty">暂无执行记录。选择流程后点击「执行流程」，AI 将逐步执行并在完成后自动沉淀模板。</div>';
-  $('sumCard').style.display = 'none';
-  $('sumBody').innerHTML = '';
-  $('tplLib').innerHTML = '<div class="empty">模板库为空。每次执行完成后自动沉淀流程模板。</div>';
-  $('evoPanel').classList.remove('open');
-  renderStats();
-}
-
-/* ===== 启动 ===== */
-initState();
-renderStats();
-$('btnRun').addEventListener('click', runFlow);
-$('btnReset').addEventListener('click', resetAll);
-$('btnApply').addEventListener('click', applyEvolution);
+// ===== 初始化 =====
+renderStat(); renderFlows(); renderTpls(); renderMems();
 </script>
 </body>
 </html>
