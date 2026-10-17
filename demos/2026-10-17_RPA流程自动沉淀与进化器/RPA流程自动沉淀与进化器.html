@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA 流程自动沉淀与进化器</title>
+<style>
+  /* ===== 全局：深色仪表盘风格（与 10/10-10/16 RPA 系列一致） ===== */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#0d1117; color:#e6edf3; font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    min-height:100vh; padding:20px 16px 40px;
+  }
+  .wrap { max-width:1100px; margin:0 auto; }
+
+  /* ===== 顶部 ===== */
+  header h1 { font-size:26px; font-weight:700; letter-spacing:.5px; }
+  header h1 .acc { color:#4da3ff; }
+  .sub { color:#8b949e; font-size:13px; line-height:1.7; margin-top:6px; }
+  .sub b { color:#58a6ff; font-weight:600; }
+  .stats { display:flex; gap:10px; flex-wrap:wrap; margin:16px 0 18px; }
+  .stat {
+    background:#161b22; border:1px solid #30363d; border-radius:10px; padding:10px 16px; flex:1; min-width:130px;
+  }
+  .stat .num { font-size:22px; font-weight:700; color:#4da3ff; }
+  .stat .num.green { color:#3fb950; }
+  .stat .lbl { font-size:12px; color:#8b949e; margin-top:2px; }
+
+  /* ===== 操作区（业务表单） ===== */
+  .actions {
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:20px;
+    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:14px 16px;
+  }
+  .actions label { font-size:13px; color:#8b949e; }
+  select, .btn {
+    padding:9px 14px; border-radius:8px; border:1px solid #30363d; background:#21262d; color:#e6edf3;
+    font-size:14px; cursor:pointer; transition:.15s;
+  }
+  select { min-width:210px; }
+  .btn:hover { background:#30363d; }
+  .btn.primary { background:#1f6feb; border-color:#1f6feb; color:#fff; }
+  .btn.primary:hover { background:#388bfd; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .hint { font-size:12px; color:#8b949e; width:100%; }
+  .hint b { color:#d29922; }
+
+  /* ===== 进化建议面板 ===== */
+  .evo {
+    display:none; background:#161b22; border:1px solid #d29922; border-radius:12px; padding:18px; margin-bottom:20px;
+  }
+  .evo.open { display:block; }
+  .evo h3 { font-size:16px; color:#d29922; margin-bottom:4px; }
+  .evo .flowname { font-size:13px; color:#8b949e; margin-bottom:10px; }
+  .evo ul { margin:8px 0 12px 18px; }
+  .evo li { font-size:13px; line-height:1.9; color:#e6edf3; }
+  .evo li b { color:#3fb950; }
+  .evo .expect { font-size:13px; color:#8b949e; margin-bottom:12px; }
+  .evo .expect b { color:#3fb950; }
+
+  /* ===== 日志 ===== */
+  .logbox {
+    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; margin-top:4px;
+  }
+  .logbox h3 { font-size:15px; margin-bottom:10px; }
+  #logs { max-height:300px; overflow:auto; font-size:13px; line-height:1.8; }
+  .log { padding:4px 8px; border-radius:6px; margin-bottom:4px; }
+  .log .t { color:#8b949e; font-size:11px; margin-right:8px; }
+  .log.ok { background:#23863622; color:#3fb950; }
+  .log.err { background:#da363322; color:#f85149; }
+  .log.run { background:#1f6feb22; color:#58a6ff; }
+  .log.evo { background:#d2992222; color:#d29922; }
+  .empty { color:#8b949e; font-size:13px; padding:8px; }
+
+  /* ===== 沉淀卡 ===== */
+  .sumcard {
+    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; margin-top:16px;
+  }
+  .sumcard h3 { font-size:15px; margin-bottom:10px; }
+  .sumcard .head { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .sumcard .name { font-size:15px; font-weight:700; }
+  .sumcard .pill { background:#1f6feb22; color:#58a6ff; border:1px solid #1f6feb44; padding:2px 10px; border-radius:20px; font-size:12px; }
+  .sumcard .pill.gold { background:#d2992222; color:#d29922; border-color:#d2992244; }
+  .sumcard .kv { display:grid; grid-template-columns:110px 1fr; gap:6px 10px; font-size:13px; }
+  .sumcard .kv .k { color:#8b949e; }
+  .sumcard .kv .v { color:#e6edf3; }
+  .sumcard .kv .v.exc { color:#f85149; }
+  .sumcard .kv .v.good { color:#3fb950; }
+
+  /* ===== 模板库 ===== */
+  .lib { margin-top:20px; }
+  .lib h3 { font-size:15px; margin-bottom:10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+  .card {
+    background:#161b22; border:1px solid #30363d; border-radius:12px; padding:16px; cursor:pointer; transition:.15s;
+  }
+  .card:hover { border-color:#58a6ff; }
+  .card .nm { font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .card .ver { font-size:12px; padding:2px 10px; border-radius:20px; white-space:nowrap; }
+  .card .ver.v1 { background:#30363d; color:#8b949e; }
+  .card .ver.v2 { background:#23863633; color:#3fb950; border:1px solid #23863655; }
+  .card .meta { font-size:12px; color:#8b949e; margin-top:8px; line-height:1.8; }
+  .card .meta b { color:#4da3ff; }
+  .card .tags { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
+  .card .tag { background:#23863622; color:#3fb950; border:1px solid #23863644; font-size:11px; padding:2px 8px; border-radius:20px; }
+  .card .detail { display:none; margin-top:10px; border-top:1px dashed #30363d; padding-top:8px; }
+  .card.open .detail { display:block; }
+  .card .detail ol { margin-left:18px; font-size:12px; color:#8b949e; line-height:1.9; }
+  .card .tip { font-size:11px; color:#8b949e; margin-top:8px; }
+
+  @media (max-width:600px){
+    body { padding:14px 10px 30px; }
+    header h1 { font-size:21px; }
+    .grid { grid-template-columns:1fr; }
+    select { min-width:0; flex:1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>RPA 流程<span class="acc">自动沉淀与进化器</span></h1>
+    <div class="sub">
+      参考 <b>Hermes Agent</b> 闭环学习架构：流程执行后 <b>AI 自动总结沉淀</b>为可复用模板 → 多次执行后 <b>自动发现改进点并进化</b> → 进化后的模板执行更快、异常更少。越用越聪明。
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="stRuns">0</div><div class="lbl">累计执行次数</div></div>
+    <div class="stat"><div class="num" id="stTpl">0</div><div class="lbl">沉淀模板数</div></div>
+    <div class="stat"><div class="num" id="stEvo">0</div><div class="lbl">模板进化次数</div></div>
+    <div class="stat"><div class="num green" id="stSaved">0.0s</div><div class="lbl">进化累计节省耗时</div></div>
+  </div>
+
+  <div class="actions">
+    <label for="flowSel">选择流程：</label>
+    <select id="flowSel">
+      <option value="f1">销售日报汇总（ERP 订单明细）</option>
+      <option value="f2">发票数据录入（OCR + 财务凭证）</option>
+      <option value="f3">应收账款对账（银行流水核对）</option>
+    </select>
+    <button class="btn primary" id="btnRun">▶ 执行流程</button>
+    <button class="btn" id="btnReset">↺ 重置演示</button>
+    <div class="hint">同一流程执行 <b>2 次</b>后触发自动进化分析；沉淀与进化全部由 AI 自动完成，无需人工编写规则。</div>
+  </div>
+
+  <div class="evo" id="evoPanel">
+    <h3>🧬 自动进化分析完成</h3>
+    <div class="flowname" id="evoFlow"></div>
+    <ul id="evoList"></ul>
+    <div class="expect" id="evoExpect"></div>
+    <button class="btn primary" id="btnApply">应用进化，升级为 v2 模板</button>
+  </div>
+
+  <div class="logbox">
+    <h3>执行日志</h3>
+    <div id="logs"><div class="empty">暂无执行记录。选择流程后点击「执行流程」，AI 将逐步执行并在完成后自动沉淀模板。</div></div>
+  </div>
+
+  <div class="sumcard" id="sumCard" style="display:none">
+    <h3>📋 执行后自动沉淀（AI 总结）</h3>
+    <div id="sumBody"></div>
+  </div>
+
+  <div class="lib">
+    <h3>🗂 沉淀模板库（点击卡片展开步骤）</h3>
+    <div class="grid" id="tplLib"><div class="empty">模板库为空。每次执行完成后自动沉淀流程模板。</div></div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+/* ===== 流程定义（示例数据固化）===== */
+const FLOWS = {
+  f1: {
+    name: '销售日报汇总',
+    steps: [
+      { t: '登录 ERP 系统', ms: 1200 },
+      { t: '导出当日订单明细', ms: 1600, exc: '导出接口超时 → 自动重试成功（+800ms）', excMs: 800 },
+      { t: '按区域汇总销售额', ms: 1400 },
+      { t: '生成日报表格', ms: 1100 },
+      { t: '邮件发送给销售总监', ms: 900 }
+    ],
+    evo: [
+      '合并「导出明细 + 按区域汇总」为单步内存处理（省 <b>1400ms</b>）',
+      '预置导出超时重试 + 缓存兜底，异常不再阻塞（省 <b>800ms</b>）',
+      '预取收件人列表参数，免去运行时查询（省 <b>200ms</b>）'
+    ],
+    v2: [
+      { t: '登录 ERP 系统', ms: 1200 },
+      { t: '导出+按区域汇总（内存合并处理）', ms: 1600 },
+      { t: '生成日报表格（预取参数）', ms: 900 },
+      { t: '邮件发送给销售总监', ms: 900 }
+    ]
+  },
+  f2: {
+    name: '发票数据录入',
+    steps: [
+      { t: '打开发票影像目录', ms: 800 },
+      { t: 'OCR 识别发票字段', ms: 1800, exc: '第 3 张影像模糊 → 自动降噪重试成功（+500ms）', excMs: 500 },
+      { t: '校验税号与金额', ms: 1200 },
+      { t: '写入财务系统凭证', ms: 1500 },
+      { t: '归档影像文件', ms: 700 }
+    ],
+    evo: [
+      '批量 OCR 改并行处理（省 <b>900ms</b>）',
+      '模糊影像预降噪预处理，识别不再中断（省 <b>500ms</b>）',
+      '税号校验规则缓存复用（省 <b>300ms</b>）'
+    ],
+    v2: [
+      { t: '打开发票影像目录', ms: 800 },
+      { t: 'OCR 批量并行识别（含降噪预处理）', ms: 900 },
+      { t: '校验税号与金额（规则缓存）', ms: 900 },
+      { t: '写入财务系统凭证', ms: 1500 },
+      { t: '归档影像文件', ms: 700 }
+    ]
+  },
+  f3: {
+    name: '应收账款对账',
+    steps: [
+      { t: '拉取银行流水', ms: 1300 },
+      { t: '拉取应收明细', ms: 1100, exc: '流水接口限流 → 退避重试成功（+600ms）', excMs: 600 },
+      { t: '按客户逐笔核对', ms: 1600 },
+      { t: '生成差异清单', ms: 1000 },
+      { t: '推送差异给催收专员', ms: 800 }
+    ],
+    evo: [
+      '逐笔核对改哈希索引匹配（省 <b>1000ms</b>）',
+      '预置限流退避策略，拉取一次到位（省 <b>600ms</b>）',
+      '差异清单模板预生成（省 <b>200ms</b>）'
+    ],
+    v2: [
+      { t: '拉取银行流水', ms: 1300 },
+      { t: '拉取应收明细（限流退避内置）', ms: 1100 },
+      { t: '按客户核对（哈希索引匹配）', ms: 600 },
+      { t: '生成差异清单（模板预生成）', ms: 800 },
+      { t: '推送差异给催收专员', ms: 800 }
+    ]
+  }
+};
+
+/* ===== 状态 ===== */
+let st = null;
+function initState() {
+  st = {
+    runs: 0, evos: 0, savedMs: 0, running: false,
+    flows: {}
+  };
+  Object.keys(FLOWS).forEach(k => {
+    st.flows[k] = { runs: 0, ver: 1, firstMs: 0, lastMs: 0, tpl: false, savedMs: 0 };
+  });
+}
+
+/* ===== 工具 ===== */
+const $ = id => document.getElementById(id);
+const fmtSec = ms => (ms / 1000).toFixed(1) + 's';
+function log(kind, text) {
+  const box = $('logs');
+  if (box.querySelector('.empty')) box.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'log ' + kind;
+  const t = document.createElement('span');
+  t.className = 't';
+  t.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  div.appendChild(t);
+  div.appendChild(document.createTextNode(text));
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+function renderStats() {
+  $('stRuns').textContent = st.runs;
+  $('stTpl').textContent = Object.values(st.flows).filter(f => f.tpl).length;
+  $('stEvo').textContent = st.evos;
+  $('stSaved').textContent = fmtSec(st.savedMs);
+}
+
+/* ===== 执行流程（模拟）===== */
+const sleep = ms => new Promise(r => setTimeout(r, 280)); // 演示节奏（页面展示的 ms 为业务模拟值）
+
+async function runFlow() {
+  if (st.running) return;
+  const key = $('flowSel').value;
+  const flow = FLOWS[key], fs = st.flows[key];
+  st.running = true;
+  $('btnRun').disabled = true;
+  $('btnReset').disabled = true;
+  $('evoPanel').classList.remove('open');
+
+  const isV2 = fs.ver === 2;
+  const steps = isV2 ? flow.v2 : flow.steps;
+  log('run', (isV2 ? '⚡ 复用 v2 进化模板执行「' : '▶ 执行「') + flow.name + '」（' + steps.length + ' 步）');
+  let total = 0, excText = null;
+
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    await sleep();
+    total += s.ms;
+    if (!isV2 && s.exc) {
+      log('err', '步骤 ' + (i + 1) + '「' + s.t + '」异常：' + s.exc);
+      total += s.excMs;
+      excText = s.exc.split(' → ')[0];
+    } else {
+      log('ok', '步骤 ' + (i + 1) + '「' + s.t + '」完成（' + s.ms + 'ms）');
+    }
+  }
+  await sleep();
+  log('ok', '流程执行完成，总耗时 ' + fmtSec(total) + (isV2 ? '（v2 进化模板加速生效）' : ''));
+
+  /* --- 执行后自动沉淀（AI 总结）--- */
+  fs.runs++; st.runs++;
+  if (!fs.firstMs) fs.firstMs = total;
+  fs.lastMs = total;
+  if (!fs.tpl) {
+    fs.tpl = true;
+    log('evo', '🧠 AI 自动总结：流程步骤、参数与异常处理已沉淀为 v1 模板');
+  } else if (isV2) {
+    const saved = fs.firstMs - total;
+    if (saved > fs.savedMs) { st.savedMs -= fs.savedMs; fs.savedMs = saved; st.savedMs += saved; }
+    log('evo', '🧠 AI 自动总结：本次执行已同步至 v2 模板（较首次执行节省 ' + fmtSec(Math.max(saved, 0)) + '）');
+  } else {
+    log('evo', '🧠 AI 自动总结：执行记录已归档，模板经验值 +1');
+  }
+
+  renderSumCard(key, total, excText, isV2);
+  upsertTplCard(key);
+  renderStats();
+
+  /* --- 进化分析：同一流程累计执行 2 次（v1 阶段）触发 --- */
+  if (!isV2 && fs.runs >= 2) {
+    const saving = total - estimateV2(flow);
+    $('evoFlow').textContent = '分析对象：「' + flow.name + '」（已执行 ' + fs.runs + ' 次，沉淀 1 个 v1 模板）';
+    $('evoList').innerHTML = flow.evo.map(x => '<li>' + x + '</li>').join('');
+    $('evoExpect').innerHTML = '预计进化后执行耗时：<b>' + fmtSec(estimateV2(flow)) + '</b>（当前 ' + fmtSec(total) + '，提速 <b>' + Math.round((1 - estimateV2(flow) / total) * 100) + '%</b>）';
+    $('evoPanel').classList.add('open');
+    log('evo', '🧬 自动进化分析完成：发现 ' + flow.evo.length + ' 个改进点，等待应用');
+  }
+
+  st.running = false;
+  $('btnRun').disabled = false;
+  $('btnReset').disabled = false;
+}
+
+function estimateV2(flow) {
+  return flow.v2.reduce((a, s) => a + s.ms, 0);
+}
+
+function renderSumCard(key, total, excText, isV2) {
+  const flow = FLOWS[key], fs = st.flows[key];
+  $('sumCard').style.display = 'block';
+  $('sumBody').innerHTML =
+    '<div class="head"><span class="name">' + flow.name + '</span>' +
+    '<span class="pill">' + (isV2 ? 'v2 进化模板' : 'v1 新沉淀模板') + '</span>' +
+    '<span class="pill gold">第 ' + fs.runs + ' 次执行</span></div>' +
+    '<div class="kv">' +
+    '<div class="k">本次总耗时</div><div class="v">' + fmtSec(total) + '</div>' +
+    '<div class="k">步骤数</div><div class="v">' + (isV2 ? flow.v2.length : flow.steps.length) + ' 步（含异常处理）</div>' +
+    '<div class="k">异常处理</div><div class="v ' + (excText ? 'exc' : 'good') + '">' + (excText ? excText + '（AI 已自动重试并记入模板）' : '无异常（进化后已预置处理）') + '</div>' +
+    '<div class="k">沉淀结果</div><div class="v good">' + (isV2 ? '模板经验 +1，进化效果持续验证中' : '模板已入库，再执行 1 次即可触发自动进化') + '</div>' +
+    '</div>';
+}
+
+/* ===== 模板库 ===== */
+function upsertTplCard(key) {
+  const flow = FLOWS[key], fs = st.flows[key];
+  const lib = $('tplLib');
+  if (lib.querySelector('.empty')) lib.innerHTML = '';
+  let card = lib.querySelector('[data-flow="' + key + '"]');
+  if (!card) {
+    card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.flow = key;
+    card.addEventListener('click', () => card.classList.toggle('open'));
+    lib.appendChild(card);
+  }
+  const steps = fs.ver === 2 ? flow.v2 : flow.steps;
+  card.innerHTML =
+    '<div class="nm"><span>' + flow.name + '</span><span class="ver ' + (fs.ver === 2 ? 'v2' : 'v1') + '">' + (fs.ver === 2 ? 'v2 已进化' : 'v1 原始沉淀') + '</span></div>' +
+    '<div class="meta">执行次数 <b>' + fs.runs + '</b> 次 ｜ 最近耗时 <b>' + fmtSec(fs.lastMs) + '</b> ｜ 步骤 ' + steps.length + ' 个</div>' +
+    (fs.ver === 2 ? '<div class="tags">' + flow.evo.map(x => '<span class="tag">' + x.split('（')[0] + '</span>').join('') + '</div><div class="tip">已节省 ' + fmtSec(Math.max(fs.savedMs, 0)) + '（对比首次执行）</div>' : '<div class="tip">再执行 1 次可触发自动进化分析</div>') +
+    '<div class="detail"><ol>' + steps.map(s => '<li>' + s.t + '（' + s.ms + 'ms）</li>').join('') + '</ol></div>';
+}
+
+/* ===== 应用进化 ===== */
+function applyEvolution() {
+  const key = $('flowSel').value;
+  const fs = st.flows[key];
+  fs.ver = 2;
+  st.evos++;
+  log('evo', '✅ 「' + FLOWS[key].name + '」模板已升级 v1 → v2，下次执行自动加速');
+  upsertTplCard(key);
+  renderStats();
+  $('evoPanel').classList.remove('open');
+}
+
+/* ===== 重置 ===== */
+function resetAll() {
+  initState();
+  $('logs').innerHTML = '<div class="empty">暂无执行记录。选择流程后点击「执行流程」，AI 将逐步执行并在完成后自动沉淀模板。</div>';
+  $('sumCard').style.display = 'none';
+  $('sumBody').innerHTML = '';
+  $('tplLib').innerHTML = '<div class="empty">模板库为空。每次执行完成后自动沉淀流程模板。</div>';
+  $('evoPanel').classList.remove('open');
+  renderStats();
+}
+
+/* ===== 启动 ===== */
+initState();
+renderStats();
+$('btnRun').addEventListener('click', runFlow);
+$('btnReset').addEventListener('click', resetAll);
+$('btnApply').addEventListener('click', applyEvolution);
+</script>
+</body>
+</html>
