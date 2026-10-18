@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>33</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/17</b><span>持续产出</span></div>
+      <div><b>34</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/18</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-18", name:"RPA多任务并行执行控制台",
+    desc:"参考 Orca Agent Fleet Manager（Stably 开源 ADE，94.7K★ MIT，独立 git worktree 隔离多个 coding agent）演示 RPA 多任务的『并行执行与舰队管理』：预置 4 个并行 RPA 任务（竞品价格采集/Excel销售报表处理/发票数据录入核对/邮件自动分发）各自独立沙箱 workspace 互不干扰；『启动全部』多任务并行打执行日志，t3 发票核对第 3 步注入失败→进入异常待干预；手机 companion 远程监控面板实时看各任务状态（运行中/已完成/异常）并在移动端一键重跑；Diff 对比面板展示每个任务执行前后数据变化行（新增/变更/删除）；全局『全部暂停/全部继续』与单卡暂停/继续/重跑干预；统计条（总数/运行中/已完成/异常）实时联动。讲 RPA 从『单任务可靠』扩展到『多任务并行+远程值守+异常干预』的舰队管理主题，延续 10/14 后台任务管理器、10/12 并行编排的叙事线。",
+    src:"10/18 资讯 · Orca Agent Fleet Manager（4星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-18_RPA%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%B9%B6%E8%A1%8C%E6%89%A7%E8%A1%8C%E6%8E%A7%E5%88%B6%E5%8F%B0/RPA%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%B9%B6%E8%A1%8C%E6%89%A7%E8%A1%8C%E6%8E%A7%E5%88%B6%E5%8F%B0.html"
+  },
   {
     date:"10-17", name:"RPA流程自动沉淀与进化器",
     desc:"参考 Hermes Agent（Nous Research 开源自主智能体，闭环学习+自主创建技能）演示 RPA 技能的『自动沉淀与自我进化』：执行台 3 个预置流程（财务月结对账/销售日报生成/竞品价格采集）逐步打执行日志，财务月结对账首次执行第 3 步失败→自动重试成功；每次执行完自动总结生成流程模板 v1（LLM 提炼步骤+异常策略），重复执行『自我改进』升 v2（合并同类步骤/补异常处理/换更优工具）并写入进化时间线；模板库可视化搜索复用（FTS5 风格）；跨执行记忆全文索引，输入新任务自动召回相似历史流程作参考；统计条（模板数/累计执行/成功率/记忆条目）实时联动。讲 RPA 从『技能复用』收束到『闭环自我进化』，让流程越用越聪明。",
