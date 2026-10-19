@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA最少步骤流程生成器</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--primary:#2563eb;--primary-bg:#eff6ff;--ok:#059669;--ok-bg:#ecfdf5;--bad:#dc2626;--bad-bg:#fef2f2;--warn:#d97706;--warn-bg:#fffbeb;--line:#e5e7eb;--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:20px;font-size:14px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:22px;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.stat{flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;text-align:center}
+.stat b{display:block;font-size:24px;color:var(--primary)}
+.stat span{font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.card h2{font-size:15px;margin-bottom:10px}
+.sec-tag{display:inline-block;font-size:11px;background:var(--primary-bg);color:var(--primary);border-radius:6px;padding:1px 8px;margin-right:6px;vertical-align:2px}
+textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;min-height:64px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--primary-bg);color:var(--primary);border:none;border-radius:14px;padding:4px 12px;font-size:12px;cursor:pointer}
+.chip:hover{opacity:.85}
+.modes{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;align-items:center}
+.modes label{cursor:pointer;font-size:13px}
+.modes input{vertical-align:-2px;margin-right:3px}
+.modes .mdesc{color:var(--muted);font-size:11px}
+button.btn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 22px;font-size:14px;cursor:pointer}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer}
+.warn{display:none;background:var(--warn-bg);border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:8px 12px;font-size:13px;margin-top:8px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.plan{border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-width:0}
+.plan h3{font-size:13px;margin-bottom:8px}
+.plan.bad-side h3{color:var(--bad)}
+.plan.good-side h3{color:var(--ok)}
+.plan ol{padding-left:20px}
+.plan li{margin:5px 0;font-size:13px}
+li.bad{color:var(--bad);background:var(--bad-bg);border-radius:6px;padding:3px 8px;list-style-type:none;margin-left:-20px;text-decoration:line-through}
+li.bad::before{content:"✂️ 已砍 · 过度设计：";font-weight:600;text-decoration:none;font-size:12px}
+li.ok{color:var(--ink)}
+li.exc{color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:3px 8px}
+.bar-wrap{margin-top:12px;background:var(--line);border-radius:8px;height:22px;overflow:hidden;position:relative}
+.bar{height:100%;background:linear-gradient(90deg,#10b981,#059669);width:0;transition:width .5s}
+.bar-txt{position:absolute;right:8px;top:0;line-height:22px;font-size:12px;color:#fff;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.risks{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rbox{border-radius:var(--radius);padding:12px;min-width:0}
+.rbox.skip{background:var(--bad-bg);border:1px solid #fecaca}
+.rbox.know{background:var(--warn-bg);border:1px solid #fde68a}
+.rbox h4{font-size:13px;margin-bottom:6px}
+.rbox ul{padding-left:18px;font-size:13px}
+.rbox li{margin:4px 0}
+.tpl-item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:13px;flex-wrap:wrap}
+.tpl-item b{color:var(--primary)}
+.tpl-item .meta{color:var(--muted);font-size:12px;flex:1;min-width:120px}
+.empty-tip{color:var(--muted);font-size:13px;padding:8px 0}
+@media(max-width:760px){.compare,.risks{grid-template-columns:1fr}}
+@media(max-width:390px){body{padding:12px}h1{font-size:19px}.stat b{font-size:20px}.tpl-item{align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>✂️ RPA 最少步骤流程生成器</h1>
+  <div class="sub">灵感来源：ponytail 5（GitHub 157K★，4星）——「最好的代码是从未写过的代码」。AI 原始方案 → 砍掉过度设计 → 最少步骤 + 强制风险说明，三档模式 lite / full / ultra。</div>
+
+  <div class="stats">
+    <div class="stat"><b id="statOrig">–</b><span>AI 原始步骤</span></div>
+    <div class="stat"><b id="statMin">–</b><span>最少步骤方案</span></div>
+    <div class="stat"><b id="statCut">–</b><span>步骤压缩率</span></div>
+    <div class="stat"><b id="statRisk">–</b><span>风险说明条数</span></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="sec-tag">①</span>需求描述</h2>
+    <textarea id="inp" placeholder="例：每天从ERP导出销售明细，汇总生成日报并发邮件给总监"></textarea>
+    <div class="chips">
+      <button class="chip" data-tpl="0">示例：销售日报自动化</button>
+      <button class="chip" data-tpl="1">示例：发票录入核对</button>
+      <button class="chip" data-tpl="2">示例：竞品价格监控</button>
+    </div>
+    <div class="modes">
+      <b style="font-size:13px">模式：</b>
+      <label><input type="radio" name="mode" value="lite" checked>lite <span class="mdesc">只给核心步骤</span></label>
+      <label><input type="radio" name="mode" value="full">full <span class="mdesc">核心步骤 + 基础异常处理</span></label>
+      <label><input type="radio" name="mode" value="ultra">ultra <span class="mdesc">最少步骤 + 完整风险说明</span></label>
+    </div>
+    <button class="btn" id="btnGen">✂️ 生成最少步骤流程</button>
+    <button class="ghost" id="btnReset" style="margin-left:8px">重置</button>
+    <div class="warn" id="warn"></div>
+  </div>
+
+  <div class="card" id="secCompare" style="display:none">
+    <h2><span class="sec-tag">②</span>步骤压缩：AI 原始方案 vs 最少步骤方案</h2>
+    <div class="compare">
+      <div class="plan bad-side">
+        <h3>🤖 AI 原始方案（过度工程化）</h3>
+        <ol id="origList"></ol>
+      </div>
+      <div class="plan good-side">
+        <h3>✅ 最少步骤方案（<span id="modeLabel"></span>）</h3>
+        <ol id="miniList"></ol>
+      </div>
+    </div>
+    <div class="bar-wrap"><div class="bar" id="bar"></div><div class="bar-txt" id="barTxt"></div></div>
+  </div>
+
+  <div class="card" id="secRisk" style="display:none">
+    <h2><span class="sec-tag">③</span>强制风险说明（每次生成都必须带上）</h2>
+    <div class="risks">
+      <div class="rbox skip"><h4>🚫 跳过了什么</h4><ul id="skipList"></ul></div>
+      <div class="rbox know"><h4>⚠️ 你必须知道</h4><ul id="knowList"></ul></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="sec-tag">④</span>验证过的流程模板库</h2>
+    <div id="tplList"></div>
+    <button class="ghost" id="btnSaveTpl" style="margin-top:6px">💾 把当前流程存为模板</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* 场景规则库（示例数据固化进 JS，确定性解析，无外部依赖） */
+const SCENARIOS=[
+ {key:["导出","日报","邮件","汇总","销售"],name:"销售日报自动化",
+  orig:["安装 pandas / openpyxl / requests 等 8 个依赖库","写一个通用的 DataPipeline 抽象基类","再包一层 ERPConnector 适配器 + 工厂方法","登录 ERP 导出销售明细","用 pandas 按区域汇总销售额","建一套插件式报表渲染引擎","生成日报 Excel","写通用邮件模板引擎（支持变量插值/多语言）","发邮件给总监并写执行日志"],
+  core:["登录 ERP 导出销售明细","按区域汇总销售额","生成日报 Excel","发邮件给总监"],
+  exc:["导出失败自动重试 1 次再报错","汇总前校验明细行数 > 0，为空直接告警"],
+  skip:["登录会话过期的自动续期","ERP 接口限流 / 熔断处理"],
+  know:["假设 ERP 导出入口和字段名固定，页面改版需人工调整","邮件发送失败只提示，不自动重发"]},
+ {key:["发票","录入","核对","财务","对账"],name:"发票数据录入核对",
+  orig:["安装 OCR 识别全家桶（PaddleOCR + OpenCV + Pillow）","写一个抽象的 DocumentParser 工厂 + 注册器","引入消息总线解耦各处理环节","读取发票 Excel","逐行录入财务系统","写一套策略模式金额校验器","核对总额 = 明细合计","录入日志写入 MongoDB","输出差异清单"],
+  core:["读取发票 Excel","逐行录入财务系统","核对总额 = 明细合计","输出差异清单"],
+  exc:["金额格式异常的行跳过并单独记录","录入后按 10% 抽样回读校验"],
+  skip:["发票图片 / 扫描件 OCR（只处理文本型 Excel）","财务系统会话超时自动重登"],
+  know:["假设 Excel 列名固定（发票号/金额/日期），改名会导致读不到","差异清单只生成不自动调账，调账需人工确认"]},
+ {key:["抓取","价格","竞品","爬","监控"],name:"竞品价格监控",
+  orig:["引入 Playwright + Selenium 双引擎并自动切换","写一个通用的 CrawlerFramework 基类","建代理 IP 池 + 指纹伪装模块","打开竞品价格页","抓取品名 + 价格","上 MongoDB 存历史价格","再建一层 REST API 供查询","生成价格对比 Excel","生成对比图表并发群"],
+  core:["打开竞品价格页","抓取品名 + 价格","追加写入 Excel","生成对比图"],
+  exc:["页面结构变化（找不到元素）时停止并明确提示","每次抓取间隔 2 秒，降低被封风险"],
+  skip:["无头浏览器渲染（只处理静态页面，JS 动态加载的页面不适配）","代理 IP 池与验证码破解"],
+  know:["假设页面元素路径（class 名）短期稳定，大改版需重新适配","高频抓取可能触发对方风控，请控制频率","只采集公开页面数据，不登录、不绕权限"]},
+ {key:["报表","excel","数据","清洗","整理"],name:"Excel 数据整理",
+  orig:["安装 pandas + numpy + openpyxl + xlsxwriter","写一个通用的 ETL 抽象层","引入 DAG 任务编排引擎调度清洗步骤","读取源 Excel","清洗空值与格式","写一个规则引擎处理业务映射","输出结果 Excel","再写一套日志中间件记录每步耗时","生成处理报告"],
+  core:["读取源 Excel","清洗空值与格式错误","按业务规则映射字段","输出结果 Excel"],
+  exc:["源文件不存在 / 被占用时明确报错","清洗后校验行数与源文件一致"],
+  skip:["多 Sheet 复杂合并场景（只处理单表）","超大文件（>50 万行）的性能优化"],
+  know:["假设列名和 Sheet 名固定，改名会导致映射失败","格式规则按常见财务数据预设，特殊格式需人工补规则"]}
+];
+const FALLBACK={key:[],name:"通用数据处理流程",
+  orig:["安装 10 个通用工具库","写一个可扩展的 AutomationFramework 框架","建插件注册中心","读取源数据","处理数据","写出结果","发通知"],
+  core:["读取源数据","按业务规则处理","写出结果","通知相关人"],
+  exc:["源数据缺失时明确报错","处理后校验数据量一致"],
+  skip:["针对具体系统的适配逻辑（未匹配到专用场景库）"],
+  know:["这是通用兜底流程，请补充关键词（导出/发票/抓取/报表等）获得更精准的最少步骤"]};
+const PRESETS=[
+ {text:"每天从ERP导出销售明细，汇总生成日报并发邮件给总监",mode:"full"},
+ {text:"把本月发票Excel数据录入财务系统并核对总额",mode:"lite"},
+ {text:"抓取竞品价格存入Excel并生成对比图表",mode:"ultra"}
+];
+/* 模板库：预置 2 个验证过的模板 */
+const state={tpls:[
+ {name:"销售日报自动化",need:PRESETS[0].text,mode:"full",min:6,orig:9},
+ {name:"发票数据录入核对",need:PRESETS[1].text,mode:"lite",min:4,orig:9}
+],cur:null};
+
+const $=id=>document.getElementById(id);
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function getMode(){return document.querySelector('input[name=mode]:checked').value}
+
+function matchScenario(text){
+  let best=null,bestHits=0;
+  for(const s of SCENARIOS){
+    const hits=s.key.filter(k=>text.includes(k)).length;
+    if(hits>bestHits){best=s;bestHits=hits}
+  }
+  return bestHits>0?best:FALLBACK;
+}
+
+function generate(){
+  const text=$("inp").value.trim();
+  const warn=$("warn");
+  if(!text){warn.textContent="请先填写需求描述（或点上方示例一键填入）";warn.style.display="block";return}
+  warn.style.display="none";
+  const mode=getMode();
+  const sc=matchScenario(text);
+  const mini=mode==="full"?sc.core.concat(sc.exc):sc.core.slice();
+  const cutPct=Math.round((1-mini.length/sc.orig.length)*100);
+  /* ② 对比区：原始方案全部步骤，与最少方案重叠的标正常、其余标过度设计 */
+  const overlap=mini.map(s=>s);
+  $("origList").innerHTML=sc.orig.map(t=>{
+    const isCore=overlap.some(m=>t.includes(m.slice(0,4))||m.includes(t.slice(0,4)));
+    return isCore?`<li class="ok">${esc(t)}</li>`:`<li class="bad">${esc(t)}</li>`;
+  }).join("");
+  $("miniList").innerHTML=mini.map((t,i)=>{
+    const isExc=mode==="full"&&i>=sc.core.length;
+    return `<li class="${isExc?"exc":"ok"}">${isExc?"🛡️ ":""}${esc(t)}</li>`;
+  }).join("");
+  $("modeLabel").textContent={lite:"lite · 只给核心步骤",full:"full · 核心 + 基础异常",ultra:"ultra · 最少步骤 + 完整风险"}[mode];
+  $("bar").style.width=Math.max(cutPct,0)+"%";
+  $("barTxt").textContent=`步骤压缩：${sc.orig.length} 步 → ${mini.length} 步（减少 ${cutPct}%）`;
+  /* ③ 风险说明 */
+  const skips=mode==="lite"?["全部异常处理（lite 模式只给核心步骤，出错需人工介入）"].concat(sc.skip.slice(0,1)):sc.skip.slice();
+  const knows=mode==="ultra"?sc.know.slice():(mode==="full"?sc.know.slice(0,2):sc.know.slice(0,1));
+  if(mode==="ultra"&&sc.skip.length===1)skips.push(sc.skip[0]);
+  $("skipList").innerHTML=skips.map(s=>`<li>${esc(s)}</li>`).join("");
+  $("knowList").innerHTML=knows.map(s=>`<li>${esc(s)}</li>`).join("");
+  /* 统计 */
+  $("statOrig").textContent=sc.orig.length;
+  $("statMin").textContent=mini.length;
+  $("statCut").textContent=cutPct+"%";
+  $("statRisk").textContent=skips.length+knows.length;
+  $("secCompare").style.display="block";
+  $("secRisk").style.display="block";
+  state.cur={name:sc.name,need:text,mode:mode,min:mini.length,orig:sc.orig.length};
+}
+
+function renderTpls(){
+  const el=$("tplList");
+  if(!state.tpls.length){el.innerHTML='<div class="empty-tip">暂无模板，生成流程后可点下方按钮保存。</div>';return}
+  el.innerHTML=state.tpls.map((t,i)=>`<div class="tpl-item"><b>${esc(t.name)}</b><span class="meta">${esc(t.need)} · ${t.mode} 模式 · ${t.orig}步→${t.min}步</span><button class="ghost tpl-load" data-i="${i}">载入复用</button></div>`).join("");
+  el.querySelectorAll(".tpl-load").forEach(b=>b.addEventListener("click",()=>{
+    const t=state.tpls[+b.dataset.i];
+    $("inp").value=t.need;
+    document.querySelector(`input[name=mode][value=${t.mode}]`).checked=true;
+    generate();
+  }));
+}
+
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
+  const p=PRESETS[+c.dataset.tpl];
+  $("inp").value=p.text;
+  document.querySelector(`input[name=mode][value=${p.mode}]`).checked=true;
+  generate();
+}));
+$("btnGen").addEventListener("click",generate);
+$("btnSaveTpl").addEventListener("click",()=>{
+  if(!state.cur){const w=$("warn");w.textContent="还没有生成流程，先生成再保存为模板。";w.style.display="block";return}
+  if(state.tpls.some(t=>t.name===state.cur.name&&t.mode===state.cur.mode)){const w=$("warn");w.textContent="同名同模式的模板已存在，无需重复保存。";w.style.display="block";return}
+  state.tpls.unshift(Object.assign({},state.cur));
+  renderTpls();
+});
+$("btnReset").addEventListener("click",()=>{
+  $("inp").value="";$("warn").style.display="none";
+  $("secCompare").style.display="none";$("secRisk").style.display="none";
+  $("statOrig").textContent="–";$("statMin").textContent="–";$("statCut").textContent="–";$("statRisk").textContent="–";
+  document.querySelector('input[name=mode][value=lite]').checked=true;
+  state.cur=null;
+});
+renderTpls();
+</script>
+</body>
+</html>
