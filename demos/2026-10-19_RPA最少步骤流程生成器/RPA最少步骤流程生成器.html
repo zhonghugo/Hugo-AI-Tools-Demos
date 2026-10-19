@@ -5,251 +5,491 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RPA最少步骤流程生成器</title>
 <style>
-:root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--primary:#2563eb;--primary-bg:#eff6ff;--ok:#059669;--ok-bg:#ecfdf5;--bad:#dc2626;--bad-bg:#fef2f2;--warn:#d97706;--warn-bg:#fffbeb;--line:#e5e7eb;--radius:12px}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:20px;font-size:14px;line-height:1.6}
-.wrap{max-width:1080px;margin:0 auto}
-h1{font-size:22px;margin-bottom:4px}
-.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
-.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.stat{flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;text-align:center}
-.stat b{display:block;font-size:24px;color:var(--primary)}
-.stat span{font-size:12px;color:var(--muted)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
-.card h2{font-size:15px;margin-bottom:10px}
-.sec-tag{display:inline-block;font-size:11px;background:var(--primary-bg);color:var(--primary);border-radius:6px;padding:1px 8px;margin-right:6px;vertical-align:2px}
-textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;min-height:64px}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-.chip{background:var(--primary-bg);color:var(--primary);border:none;border-radius:14px;padding:4px 12px;font-size:12px;cursor:pointer}
-.chip:hover{opacity:.85}
-.modes{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;align-items:center}
-.modes label{cursor:pointer;font-size:13px}
-.modes input{vertical-align:-2px;margin-right:3px}
-.modes .mdesc{color:var(--muted);font-size:11px}
-button.btn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 22px;font-size:14px;cursor:pointer}
-button.btn:disabled{opacity:.45;cursor:not-allowed}
-button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer}
-.warn{display:none;background:var(--warn-bg);border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:8px 12px;font-size:13px;margin-top:8px}
-.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.plan{border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-width:0}
-.plan h3{font-size:13px;margin-bottom:8px}
-.plan.bad-side h3{color:var(--bad)}
-.plan.good-side h3{color:var(--ok)}
-.plan ol{padding-left:20px}
-.plan li{margin:5px 0;font-size:13px}
-li.bad{color:var(--bad);background:var(--bad-bg);border-radius:6px;padding:3px 8px;list-style-type:none;margin-left:-20px;text-decoration:line-through}
-li.bad::before{content:"✂️ 已砍 · 过度设计：";font-weight:600;text-decoration:none;font-size:12px}
-li.ok{color:var(--ink)}
-li.exc{color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:3px 8px}
-.bar-wrap{margin-top:12px;background:var(--line);border-radius:8px;height:22px;overflow:hidden;position:relative}
-.bar{height:100%;background:linear-gradient(90deg,#10b981,#059669);width:0;transition:width .5s}
-.bar-txt{position:absolute;right:8px;top:0;line-height:22px;font-size:12px;color:#fff;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.25)}
-.risks{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.rbox{border-radius:var(--radius);padding:12px;min-width:0}
-.rbox.skip{background:var(--bad-bg);border:1px solid #fecaca}
-.rbox.know{background:var(--warn-bg);border:1px solid #fde68a}
-.rbox h4{font-size:13px;margin-bottom:6px}
-.rbox ul{padding-left:18px;font-size:13px}
-.rbox li{margin:4px 0}
-.tpl-item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:13px;flex-wrap:wrap}
-.tpl-item b{color:var(--primary)}
-.tpl-item .meta{color:var(--muted);font-size:12px;flex:1;min-width:120px}
-.empty-tip{color:var(--muted);font-size:13px;padding:8px 0}
-@media(max-width:760px){.compare,.risks{grid-template-columns:1fr}}
-@media(max-width:390px){body{padding:12px}h1{font-size:19px}.stat b{font-size:20px}.tpl-item{align-items:flex-start}}
+  /* ===== 全局基础样式 ===== */
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --line:#e2e8f0;
+    --primary:#2563eb; --primary-soft:#eff6ff;
+    --ok:#16a34a; --warn:#d97706; --err:#dc2626;
+    --text:#1e293b; --muted:#64748b; --dark:#0f172a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+
+  /* ===== 顶部标题区 ===== */
+  header{background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#fff;border-radius:14px;padding:22px 24px;margin-bottom:16px}
+  header h1{font-size:24px;font-weight:700}
+  header p{font-size:13px;color:#cbd5e1;margin-top:6px;line-height:1.6}
+  .tag{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:2px 10px;font-size:12px;margin-right:6px;margin-top:8px}
+
+  /* ===== 卡片通用 ===== */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+
+  /* ===== 输入区 ===== */
+  .sec-title{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .sec-title .bar{width:4px;height:16px;background:var(--primary);border-radius:2px}
+  textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;resize:vertical;font-family:inherit;line-height:1.6}
+  textarea:focus{outline:none;border-color:var(--primary)}
+  .examples{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .ex-btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;transition:.15s}
+  .ex-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+
+  /* ===== 三档模式切换 ===== */
+  .modes{display:flex;gap:8px;margin-top:12px}
+  .mode{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;text-align:center;transition:.15s;background:#fff}
+  .mode .m-name{font-weight:700;font-size:14px}
+  .mode .m-desc{font-size:12px;color:var(--muted);margin-top:3px}
+  .mode.active{border-color:var(--primary);background:var(--primary-soft);box-shadow:0 0 0 1px var(--primary)}
+  .mode.active .m-name{color:var(--primary)}
+
+  .gen-btn{width:100%;margin-top:12px;padding:13px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+  .gen-btn:hover{background:#1d4ed8}
+
+  /* ===== 生成结果对比区 ===== */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .plan-card{border-radius:10px;padding:14px;border:1px solid var(--line)}
+  .plan-card.raw{background:#fef2f2;border-color:#fecaca}
+  .plan-card.min{background:#f0fdf4;border-color:#bbf7d0}
+  .plan-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .plan-head .p-name{font-weight:700;font-size:14px}
+  .plan-head .p-badge{font-size:12px;border-radius:999px;padding:2px 10px}
+  .plan-card.raw .p-badge{background:#fee2e2;color:#b91c1c}
+  .plan-card.min .p-badge{background:#dcfce7;color:#15803d}
+  .step{display:flex;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px;line-height:1.5}
+  .step:last-child{border-bottom:none}
+  .step .n{flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;background:var(--muted)}
+  .plan-card.raw .step .n{background:#f87171}
+  .plan-card.min .step .n{background:#4ade80}
+  .step .waste{color:#b91c1c;text-decoration:line-through;text-decoration-color:#f87171;font-size:12px}
+
+  /* ===== 压缩统计条 ===== */
+  .stats{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+  .stat-box{flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+  .stat-box b{font-size:22px;color:var(--primary);display:block}
+  .stat-box span{font-size:12px;color:var(--muted)}
+
+  /* ===== 风险说明 ===== */
+  .risks{margin-top:14px;border-radius:10px;padding:14px;border:1px solid #fde68a;background:#fffbeb}
+  .risks h4{font-size:14px;color:#92400e;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .risk-item{display:flex;gap:8px;font-size:13px;padding:5px 0;color:#78350f;line-height:1.5}
+  .risk-item .dot{flex:none;width:8px;height:8px;border-radius:50%;background:#d97706;margin-top:5px}
+  .risk-item.skip .dot{background:#dc2626}
+  .risk-item .lbl{flex:none;font-weight:700;font-size:12px;border-radius:4px;padding:1px 6px}
+  .lbl-skip{background:#fee2e2;color:#b91c1c}
+  .lbl-risk{background:#fef3c7;color:#92400e}
+
+  /* ===== 模板库 ===== */
+  .tpl-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:10px}
+  .tpl-card{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}
+  .tpl-card h5{font-size:14px;margin-bottom:4px}
+  .tpl-card p{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px}
+  .tpl-ops{display:flex;gap:6px}
+  .tpl-ops button{flex:1;border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 0;font-size:12px;cursor:pointer}
+  .tpl-ops button.load:hover{border-color:var(--primary);color:var(--primary)}
+  .tpl-ops button.del:hover{border-color:var(--err);color:var(--err)}
+  .empty{font-size:13px;color:var(--muted);padding:20px;text-align:center;border:1px dashed var(--line);border-radius:10px}
+
+  /* ===== 底部统计条 ===== */
+  footer{display:flex;gap:10px;align-items:center;justify-content:center;padding:14px;color:var(--muted);font-size:12px}
+
+  /* ===== 移动端适配 ===== */
+  @media(max-width:640px){
+    .compare{grid-template-columns:1fr}
+    header h1{font-size:20px}
+    .modes{flex-direction:column}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>✂️ RPA 最少步骤流程生成器</h1>
-  <div class="sub">灵感来源：ponytail 5（GitHub 157K★，4星）——「最好的代码是从未写过的代码」。AI 原始方案 → 砍掉过度设计 → 最少步骤 + 强制风险说明，三档模式 lite / full / ultra。</div>
 
-  <div class="stats">
-    <div class="stat"><b id="statOrig">–</b><span>AI 原始步骤</span></div>
-    <div class="stat"><b id="statMin">–</b><span>最少步骤方案</span></div>
-    <div class="stat"><b id="statCut">–</b><span>步骤压缩率</span></div>
-    <div class="stat"><b id="statRisk">–</b><span>风险说明条数</span></div>
-  </div>
+  <!-- 顶部标题区 -->
+  <header>
+    <h1>RPA最少步骤流程生成器</h1>
+    <p>参考 ponytail（157K★ 开源 Skill，53% 少代码 / 41% 更快 / 26% 更便宜）的「最少代码原则 + 强制风险说明」理念：用户描述需求 → 生成用<b>最少步骤</b>完成的 RPA 流程，拒绝过度设计（不装不必要的库、不建冗余中间层），并强制标注「跳过了什么异常」和「必须知道的风险」。</p>
+    <div>
+      <span class="tag">三档模式 lite / full / ultra</span>
+      <span class="tag">步骤压缩对比</span>
+      <span class="tag">可复用模板库</span>
+    </div>
+  </header>
 
+  <!-- 需求输入区 -->
   <div class="card">
-    <h2><span class="sec-tag">①</span>需求描述</h2>
-    <textarea id="inp" placeholder="例：每天从ERP导出销售明细，汇总生成日报并发邮件给总监"></textarea>
-    <div class="chips">
-      <button class="chip" data-tpl="0">示例：销售日报自动化</button>
-      <button class="chip" data-tpl="1">示例：发票录入核对</button>
-      <button class="chip" data-tpl="2">示例：竞品价格监控</button>
+    <div class="sec-title"><span class="bar"></span>① 描述你的自动化需求</div>
+    <textarea id="reqInput" placeholder="例：每天早上 8 点采集 5 个竞品价格，汇总成 Excel 报表发到邮箱"></textarea>
+    <div class="examples">
+      <button class="ex-btn" data-req="每天早上采集竞品价格并生成Excel报表">采集竞品价格 → Excel 报表</button>
+      <button class="ex-btn" data-req="每月末财务对账：核对银行流水与账务系统，输出差异表">财务月结对账 → 差异表</button>
+      <button class="ex-btn" data-req="每天把采购发票录入系统并核对金额，异常的单独标记">发票录入核对 → 异常标记</button>
+      <button class="ex-btn" data-req="每周五自动生成销售日报并邮件分发给管理层">销售日报 → 邮件分发</button>
     </div>
-    <div class="modes">
-      <b style="font-size:13px">模式：</b>
-      <label><input type="radio" name="mode" value="lite" checked>lite <span class="mdesc">只给核心步骤</span></label>
-      <label><input type="radio" name="mode" value="full">full <span class="mdesc">核心步骤 + 基础异常处理</span></label>
-      <label><input type="radio" name="mode" value="ultra">ultra <span class="mdesc">最少步骤 + 完整风险说明</span></label>
+    <div class="modes" id="modes">
+      <div class="mode active" data-mode="lite"><div class="m-name">Lite · 精简</div><div class="m-desc">只给核心步骤</div></div>
+      <div class="mode" data-mode="full"><div class="m-name">Full · 完整</div><div class="m-desc">核心步骤 + 基础异常</div></div>
+      <div class="mode" data-mode="ultra"><div class="m-name">Ultra · 极致</div><div class="m-desc">最少步骤 + 完整风险说明</div></div>
     </div>
-    <button class="btn" id="btnGen">✂️ 生成最少步骤流程</button>
-    <button class="ghost" id="btnReset" style="margin-left:8px">重置</button>
-    <div class="warn" id="warn"></div>
+    <button class="gen-btn" id="genBtn">生成最少步骤流程</button>
   </div>
 
-  <div class="card" id="secCompare" style="display:none">
-    <h2><span class="sec-tag">②</span>步骤压缩：AI 原始方案 vs 最少步骤方案</h2>
+  <!-- 生成结果区 -->
+  <div class="card" id="resultCard" style="display:none">
+    <div class="sec-title"><span class="bar"></span>② 生成结果：<span id="planName" style="color:var(--primary)"></span></div>
     <div class="compare">
-      <div class="plan bad-side">
-        <h3>🤖 AI 原始方案（过度工程化）</h3>
-        <ol id="origList"></ol>
+      <div class="plan-card raw">
+        <div class="plan-head"><span class="p-name">AI 原始方案（过度工程）</span><span class="p-badge" id="rawCount">0 步</span></div>
+        <div id="rawList"></div>
       </div>
-      <div class="plan good-side">
-        <h3>✅ 最少步骤方案（<span id="modeLabel"></span>）</h3>
-        <ol id="miniList"></ol>
+      <div class="plan-card min">
+        <div class="plan-head"><span class="p-name">最少步骤方案</span><span class="p-badge" id="minCount">0 步</span></div>
+        <div id="minList"></div>
       </div>
     </div>
-    <div class="bar-wrap"><div class="bar" id="bar"></div><div class="bar-txt" id="barTxt"></div></div>
-  </div>
-
-  <div class="card" id="secRisk" style="display:none">
-    <h2><span class="sec-tag">③</span>强制风险说明（每次生成都必须带上）</h2>
-    <div class="risks">
-      <div class="rbox skip"><h4>🚫 跳过了什么</h4><ul id="skipList"></ul></div>
-      <div class="rbox know"><h4>⚠️ 你必须知道</h4><ul id="knowList"></ul></div>
+    <div class="stats">
+      <div class="stat-box"><b id="sCompress">0%</b><span>步骤压缩率</span></div>
+      <div class="stat-box"><b id="sSaved">0</b><span>省去冗余步骤</span></div>
+      <div class="stat-box"><b id="sMode">-</b><span>当前模式</span></div>
+    </div>
+    <div class="risks" id="riskBox">
+      <h4>⚠ 强制风险说明（ponytail 模式）</h4>
+      <div id="riskList"></div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="ex-btn" id="saveTpl" style="border-color:var(--ok);color:var(--ok)">＋ 存为可复用模板</button>
+      <span style="font-size:12px;color:var(--muted);align-self:center">模板存入本地浏览器，可随时加载复用</span>
     </div>
   </div>
 
+  <!-- 模板库 -->
   <div class="card">
-    <h2><span class="sec-tag">④</span>验证过的流程模板库</h2>
-    <div id="tplList"></div>
-    <button class="ghost" id="btnSaveTpl" style="margin-top:6px">💾 把当前流程存为模板</button>
+    <div class="sec-title"><span class="bar"></span>③ 可复用模板库</div>
+    <div class="tpl-list" id="tplList"></div>
   </div>
+
+  <footer>
+    <span>模板 <b id="fTpl">0</b></span>·
+    <span>今日生成 <b id="fGen">0</b> 次</span>·
+    <span>平均压缩率 <b id="fAvg">-</b></span>
+  </footer>
 </div>
 
 <script>
 "use strict";
-/* 场景规则库（示例数据固化进 JS，确定性解析，无外部依赖） */
-const SCENARIOS=[
- {key:["导出","日报","邮件","汇总","销售"],name:"销售日报自动化",
-  orig:["安装 pandas / openpyxl / requests 等 8 个依赖库","写一个通用的 DataPipeline 抽象基类","再包一层 ERPConnector 适配器 + 工厂方法","登录 ERP 导出销售明细","用 pandas 按区域汇总销售额","建一套插件式报表渲染引擎","生成日报 Excel","写通用邮件模板引擎（支持变量插值/多语言）","发邮件给总监并写执行日志"],
-  core:["登录 ERP 导出销售明细","按区域汇总销售额","生成日报 Excel","发邮件给总监"],
-  exc:["导出失败自动重试 1 次再报错","汇总前校验明细行数 > 0，为空直接告警"],
-  skip:["登录会话过期的自动续期","ERP 接口限流 / 熔断处理"],
-  know:["假设 ERP 导出入口和字段名固定，页面改版需人工调整","邮件发送失败只提示，不自动重发"]},
- {key:["发票","录入","核对","财务","对账"],name:"发票数据录入核对",
-  orig:["安装 OCR 识别全家桶（PaddleOCR + OpenCV + Pillow）","写一个抽象的 DocumentParser 工厂 + 注册器","引入消息总线解耦各处理环节","读取发票 Excel","逐行录入财务系统","写一套策略模式金额校验器","核对总额 = 明细合计","录入日志写入 MongoDB","输出差异清单"],
-  core:["读取发票 Excel","逐行录入财务系统","核对总额 = 明细合计","输出差异清单"],
-  exc:["金额格式异常的行跳过并单独记录","录入后按 10% 抽样回读校验"],
-  skip:["发票图片 / 扫描件 OCR（只处理文本型 Excel）","财务系统会话超时自动重登"],
-  know:["假设 Excel 列名固定（发票号/金额/日期），改名会导致读不到","差异清单只生成不自动调账，调账需人工确认"]},
- {key:["抓取","价格","竞品","爬","监控"],name:"竞品价格监控",
-  orig:["引入 Playwright + Selenium 双引擎并自动切换","写一个通用的 CrawlerFramework 基类","建代理 IP 池 + 指纹伪装模块","打开竞品价格页","抓取品名 + 价格","上 MongoDB 存历史价格","再建一层 REST API 供查询","生成价格对比 Excel","生成对比图表并发群"],
-  core:["打开竞品价格页","抓取品名 + 价格","追加写入 Excel","生成对比图"],
-  exc:["页面结构变化（找不到元素）时停止并明确提示","每次抓取间隔 2 秒，降低被封风险"],
-  skip:["无头浏览器渲染（只处理静态页面，JS 动态加载的页面不适配）","代理 IP 池与验证码破解"],
-  know:["假设页面元素路径（class 名）短期稳定，大改版需重新适配","高频抓取可能触发对方风控，请控制频率","只采集公开页面数据，不登录、不绕权限"]},
- {key:["报表","excel","数据","清洗","整理"],name:"Excel 数据整理",
-  orig:["安装 pandas + numpy + openpyxl + xlsxwriter","写一个通用的 ETL 抽象层","引入 DAG 任务编排引擎调度清洗步骤","读取源 Excel","清洗空值与格式","写一个规则引擎处理业务映射","输出结果 Excel","再写一套日志中间件记录每步耗时","生成处理报告"],
-  core:["读取源 Excel","清洗空值与格式错误","按业务规则映射字段","输出结果 Excel"],
-  exc:["源文件不存在 / 被占用时明确报错","清洗后校验行数与源文件一致"],
-  skip:["多 Sheet 复杂合并场景（只处理单表）","超大文件（>50 万行）的性能优化"],
-  know:["假设列名和 Sheet 名固定，改名会导致映射失败","格式规则按常见财务数据预设，特殊格式需人工补规则"]}
-];
-const FALLBACK={key:[],name:"通用数据处理流程",
-  orig:["安装 10 个通用工具库","写一个可扩展的 AutomationFramework 框架","建插件注册中心","读取源数据","处理数据","写出结果","发通知"],
-  core:["读取源数据","按业务规则处理","写出结果","通知相关人"],
-  exc:["源数据缺失时明确报错","处理后校验数据量一致"],
-  skip:["针对具体系统的适配逻辑（未匹配到专用场景库）"],
-  know:["这是通用兜底流程，请补充关键词（导出/发票/抓取/报表等）获得更精准的最少步骤"]};
-const PRESETS=[
- {text:"每天从ERP导出销售明细，汇总生成日报并发邮件给总监",mode:"full"},
- {text:"把本月发票Excel数据录入财务系统并核对总额",mode:"lite"},
- {text:"抓取竞品价格存入Excel并生成对比图表",mode:"ultra"}
-];
-/* 模板库：预置 2 个验证过的模板 */
-const state={tpls:[
- {name:"销售日报自动化",need:PRESETS[0].text,mode:"full",min:6,orig:9},
- {name:"发票数据录入核对",need:PRESETS[1].text,mode:"lite",min:4,orig:9}
-],cur:null};
+/* ============================================================
+ * RPA最少步骤流程生成器
+ * 核心思路（参考 ponytail）：
+ *   1. 最少步骤原则：同样的需求，只保留真正必要的步骤，砍掉
+ *      "装库 / 写 wrapper / 建配置中心 / 加中间层" 等过度设计。
+ *   2. 强制风险说明：每个方案末尾必须标注「跳过了什么异常处理」
+ *      和「用户必须知道的风险」，不假装方案是完美的。
+ *   3. 三档模式：lite（核心步骤）/ full（核心+基础异常）/
+ *      ultra（最少步骤+完整风险说明）。
+ *   4. 模板库：把验证过的最少步骤流程存为模板，一键加载复用。
+ * ============================================================ */
 
-const $=id=>document.getElementById(id);
-function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
-function getMode(){return document.querySelector('input[name=mode]:checked').value}
-
-function matchScenario(text){
-  let best=null,bestHits=0;
-  for(const s of SCENARIOS){
-    const hits=s.key.filter(k=>text.includes(k)).length;
-    if(hits>bestHits){best=s;bestHits=hits}
+/* ---------- 规则库：需求类型 → 原始方案 / 最少方案 / 风险 ---------- */
+const RULES = [
+  {
+    keys: ["竞品", "价格", "采集", "爬"],
+    name: "竞品价格采集",
+    raw: [
+      {t:"安装 requests、BeautifulSoup、pandas 三个库并锁定版本", w:true},
+      {t:"写一个 DataFetcher 抽象类封装所有采集源", w:true},
+      {t:"为每个竞品网站单独写 Spider 子类（继承 DataFetcher）", w:true},
+      {t:"搭建配置文件中心管理站点 URL、选择器、重试次数", w:true},
+      {t:"写请求重试装饰器 + 指数退避，处理限流", w:true},
+      {t:"逐站点抓取页面并解析价格字段，清洗去重", w:false},
+      {t:"统一写入 pandas DataFrame，追加历史记录", w:false},
+      {t:"调用 Excel 引擎导出报表，手动校验后发送", w:false}
+    ],
+    min: [
+      {t:"读取配置中的站点列表和选择器（硬编码 5 个也够用）", w:false},
+      {t:"requests 逐个抓取页面，正则提取价格文本", w:false},
+      {t:"写入 csv / openpyxl 生成当日价格表", w:false},
+      {t:"发送报表邮件（或保存到共享目录）", w:false}
+    ],
+    skip: ["网站改版导致选择器失效未做自动修复", "反爬风控（验证码/封 IP）未处理", "历史价格趋势对比未做"],
+    risks: ["页面结构变化后需人工更新选择器", "高频采集可能触发网站限流，建议控制在每日 1-2 次", "价格含税费/币种差异时需人工核对口径"]
+  },
+  {
+    keys: ["对账", "银行流水", "账务", "结账"],
+    name: "财务月结对账",
+    raw: [
+      {t:"引入 SQLAlchemy 并搭建数据库 ORM 模型层", w:true},
+      {t:"设计流水表/账务表/差异表三张表的关联模型", w:true},
+      {t:"封装 BankAPI 客户端对接银行接口（含鉴权刷新）", w:true},
+      {t:"写数据一致性校验中间件，先校验再入库", w:true},
+      {t:"拉取银行流水与账务系统导出文件", w:false},
+      {t:"按交易日期+金额+对手方做匹配归并", w:false},
+      {t:"生成差异清单并标记待核查项", w:false},
+      {t:"输出 Excel 差异报表，留痕审计日志", w:false}
+    ],
+    min: [
+      {t:"导出银行流水 CSV 与账务系统明细 CSV", w:false},
+      {t:"按 日期+金额 做 VLOOKUP/脚本匹配，标记未匹配项", w:false},
+      {t:"差异项按规则归因（金额差/遗漏/重复）", w:false},
+      {t:"输出差异 Excel，附核对说明", w:false}
+    ],
+    skip: ["跨境多币种折算未做", "重复流水（同日同额）未去重", "账务系统无导出接口时的替代路径未提供"],
+    risks: ["匹配键仅日期+金额时，同日同额多笔记账可能错配，需人工复核", "银行流水导出格式变化会导致解析失败", "差异归因规则需财务确认，不可自动冲账"]
+  },
+  {
+    keys: ["发票", "录入", "核对"],
+    name: "发票录入核对",
+    raw: [
+      {t:"引入 OCR 库并搭建图像预处理流水线", w:true},
+      {t:"写 InvoiceParser 类解析不同版式发票", w:true},
+      {t:"搭建字段映射配置表（发票号/金额/税号）", w:true},
+      {t:"写录入重试队列 + 失败补偿机制", w:true},
+      {t:"读取 PDF/图片发票，OCR 提取关键字段", w:false},
+      {t:"与采购单/订单金额逐笔核对", w:false},
+      {t:"异常发票单独标记并暂停录入", w:false},
+      {t:"录入 ERP 系统，输出核对报告", w:false}
+    ],
+    min: [
+      {t:"读取发票 PDF/图片，OCR 提取 发票号/金额/税号", w:false},
+      {t:"与采购单金额逐笔比对，差异>阈值即标记", w:false},
+      {t:"正常发票批量录入，异常项输出待处理清单", w:false},
+      {t:"生成核对报告留档", w:false}
+    ],
+    skip: ["手写/模糊发票 OCR 低置信度未做人工兜底提示", "税率类别自动判定未做", "发票真伪查验（税务平台）未接入"],
+    risks: ["OCR 对扫描件/印章遮挡的发票识别率下降，需抽检", "录入系统字段校验规则变化会导致写入失败", "金额核对仅按总额，明细行差异需人工核查"]
+  },
+  {
+    keys: ["日报", "邮件", "销售", "分发"],
+    name: "销售日报邮件分发",
+    raw: [
+      {t:"引入 Jinja2 模板引擎渲染邮件 HTML", w:true},
+      {t:"搭建收件人分组配置 + 订阅中心", w:true},
+      {t:"写 MailSender 门面类封装 SMTP/Exchange 双通道", w:true},
+      {t:"加发送重试 + 退信监控 + 送达日志", w:true},
+      {t:"从 BI/Excel 读取当日销售数据", w:false},
+      {t:"按模板生成日报正文与附件", w:false},
+      {t:"按收件人分组发送，抄送相关领导", w:false},
+      {t:"记录发送日志，失败人工补发", w:false}
+    ],
+    min: [
+      {t:"读取当日销售数据（Excel/BI 导出）", w:false},
+      {t:"按固定模板拼装正文与附件", w:false},
+      {t:"SMTP 发送给预置收件人列表", w:false},
+      {t:"发送结果写日志，失败标记待重发", w:false}
+    ],
+    skip: ["邮件模板动态化（按团队定制）未做", "退信自动重试未做", "假期/空数据日自动跳过未做"],
+    risks: ["SMTP 授权码过期会导致发送失败，需定期更新", "数据未刷新时可能发送前一日数据，建议发送前校验日期", "附件过大可能被邮件网关拦截"]
   }
-  return bestHits>0?best:FALLBACK;
+];
+
+/* ---------- 通用兜底规则：未匹配到具体需求类型时使用 ---------- */
+const GENERIC = {
+  name: "通用自动化流程",
+  raw: [
+    {t:"引入框架并搭建工程目录结构（src/tests/config）", w:true},
+    {t:"写统一配置类 + 日志模块", w:true},
+    {t:"封装数据源适配器（预留多源扩展）", w:true},
+    {t:"实现主流程核心步骤", w:false},
+    {t:"增加失败重试与补偿逻辑", w:false},
+    {t:"输出结果文件并通知", w:false}
+  ],
+  min: [
+    {t:"按需求拆成 1 个主流程函数", w:false},
+    {t:"只做需求点名的输入→处理→输出", w:false},
+    {t:"结果落地（文件/邮件/系统）", w:false}
+  ],
+  skip: ["需求未点名的边界情况均未处理", "多环境配置（测试/生产）未区分", "异常重试策略未定义"],
+  risks: ["需求描述越模糊，生成的流程越依赖人工补细节", "涉及外部系统时需确认接口/导出能力", "建议先用示例数据跑通再接入真实环境"]
+};
+
+/* ---------- 状态 ---------- */
+let curMode = "lite";          // 当前三档模式
+let curPlan = null;            // 当前生成的方案（供存模板用）
+let genCount = 0;              // 本会话生成次数
+let compressSum = 0;           // 压缩率累计（算平均）
+
+/* ---------- 工具函数：匹配需求类型 ---------- */
+function matchRule(req){
+  /* 遍历规则库，统计每个规则命中的关键词数，取命中最多者 */
+  let best = null, bestScore = 0;
+  for(const r of RULES){
+    let score = 0;
+    for(const k of r.keys){
+      if(req.includes(k)) score++;
+    }
+    if(score > bestScore){ bestScore = score; best = r; }
+  }
+  return bestScore > 0 ? best : GENERIC;
 }
 
+/* ---------- 工具函数：渲染步骤列表 ---------- */
+function renderSteps(el, steps, showWaste){
+  el.innerHTML = steps.map(function(s, i){
+    /* 有 w 标记的步骤在原始方案中标注为「冗余/过度设计」 */
+    const waste = (showWaste && s.w) ? ' <span class="waste">（冗余：' + s.wNote + '）</span>' : '';
+    return '<div class="step"><span class="n">' + (i+1) + '</span><span>' + s.t + waste + '</span></div>';
+  }).join("");
+}
+
+/* ---------- 核心：按模式生成方案 ---------- */
+function buildPlan(rule){
+  /* 三档差异：
+   *  lite  = 只给最少步骤（核心），风险说明一行提示
+   *  full  = 最少步骤 + 基础风险（跳过项截断展示）
+   *  ultra = 最少步骤 + 完整风险说明（跳过的异常 + 全部风险）
+   */
+  const minSteps = rule.min.map(function(s){ return {t:s.t}; });
+  const compress = Math.round((rule.raw.length - rule.min.length) / rule.raw.length * 100);
+  return { name: rule.name, min: minSteps, rawCount: rule.raw.length,
+           minCount: minSteps.length, compress: compress,
+           saved: rule.raw.length - rule.min.length, rule: rule };
+}
+
+/* ---------- 渲染风险说明（按模式分级） ---------- */
+function renderRisks(rule, mode){
+  const box = document.getElementById("riskList");
+  if(mode === "lite"){
+    box.innerHTML = '<div class="risk-item"><span class="dot"></span><span>精简模式仅给出核心步骤；上线前请切换 Full / Ultra 查看异常与风险说明。</span></div>';
+    return;
+  }
+  let html = "";
+  /* 跳过了什么异常处理（全部模式 ultra 展示，full 展示前 2 条） */
+  const skips = mode === "full" ? rule.skip.slice(0,2) : rule.skip;
+  skips.forEach(function(s){
+    html += '<div class="risk-item skip"><span class="dot"></span><span class="lbl lbl-skip">跳过</span><span>' + s + '</span></div>';
+  });
+  /* 必须知道的风险 */
+  const risks = mode === "full" ? rule.risks.slice(0,2) : rule.risks;
+  risks.forEach(function(r){
+    html += '<div class="risk-item"><span class="dot"></span><span class="lbl lbl-risk">风险</span><span>' + r + '</span></div>';
+  });
+  box.innerHTML = html;
+}
+
+/* ---------- 生成主流程 ---------- */
 function generate(){
-  const text=$("inp").value.trim();
-  const warn=$("warn");
-  if(!text){warn.textContent="请先填写需求描述（或点上方示例一键填入）";warn.style.display="block";return}
-  warn.style.display="none";
-  const mode=getMode();
-  const sc=matchScenario(text);
-  const mini=mode==="full"?sc.core.concat(sc.exc):sc.core.slice();
-  const cutPct=Math.round((1-mini.length/sc.orig.length)*100);
-  /* ② 对比区：原始方案全部步骤，与最少方案重叠的标正常、其余标过度设计 */
-  const overlap=mini.map(s=>s);
-  $("origList").innerHTML=sc.orig.map(t=>{
-    const isCore=overlap.some(m=>t.includes(m.slice(0,4))||m.includes(t.slice(0,4)));
-    return isCore?`<li class="ok">${esc(t)}</li>`:`<li class="bad">${esc(t)}</li>`;
-  }).join("");
-  $("miniList").innerHTML=mini.map((t,i)=>{
-    const isExc=mode==="full"&&i>=sc.core.length;
-    return `<li class="${isExc?"exc":"ok"}">${isExc?"🛡️ ":""}${esc(t)}</li>`;
-  }).join("");
-  $("modeLabel").textContent={lite:"lite · 只给核心步骤",full:"full · 核心 + 基础异常",ultra:"ultra · 最少步骤 + 完整风险"}[mode];
-  $("bar").style.width=Math.max(cutPct,0)+"%";
-  $("barTxt").textContent=`步骤压缩：${sc.orig.length} 步 → ${mini.length} 步（减少 ${cutPct}%）`;
-  /* ③ 风险说明 */
-  const skips=mode==="lite"?["全部异常处理（lite 模式只给核心步骤，出错需人工介入）"].concat(sc.skip.slice(0,1)):sc.skip.slice();
-  const knows=mode==="ultra"?sc.know.slice():(mode==="full"?sc.know.slice(0,2):sc.know.slice(0,1));
-  if(mode==="ultra"&&sc.skip.length===1)skips.push(sc.skip[0]);
-  $("skipList").innerHTML=skips.map(s=>`<li>${esc(s)}</li>`).join("");
-  $("knowList").innerHTML=knows.map(s=>`<li>${esc(s)}</li>`).join("");
-  /* 统计 */
-  $("statOrig").textContent=sc.orig.length;
-  $("statMin").textContent=mini.length;
-  $("statCut").textContent=cutPct+"%";
-  $("statRisk").textContent=skips.length+knows.length;
-  $("secCompare").style.display="block";
-  $("secRisk").style.display="block";
-  state.cur={name:sc.name,need:text,mode:mode,min:mini.length,orig:sc.orig.length};
+  const req = document.getElementById("reqInput").value.trim();
+  if(!req){
+    document.getElementById("reqInput").placeholder = "请先描述你的自动化需求（或点上方示例按钮）";
+    document.getElementById("reqInput").focus();
+    return;
+  }
+  /* 匹配需求类型 → 生成方案 */
+  const rule = matchRule(req);
+  const plan = buildPlan(rule);
+  curPlan = plan;
+
+  /* 渲染左右对比 */
+  document.getElementById("planName").textContent = plan.name + " · 最少步骤方案 vs AI 原始方案";
+  document.getElementById("rawCount").textContent = plan.rawCount + " 步";
+  document.getElementById("minCount").textContent = plan.minCount + " 步";
+  renderSteps(document.getElementById("rawList"), plan.rule.raw, true);
+  renderSteps(document.getElementById("minList"), plan.min, false);
+
+  /* 渲染统计 */
+  document.getElementById("sCompress").textContent = plan.compress + "%";
+  document.getElementById("sSaved").textContent = plan.saved;
+  document.getElementById("sMode").textContent = curMode.toUpperCase();
+
+  /* 渲染风险说明 */
+  renderRisks(plan.rule, curMode);
+
+  /* 更新底部统计（会话内累计） */
+  genCount++; compressSum += plan.compress;
+  document.getElementById("fGen").textContent = genCount;
+  document.getElementById("fAvg").textContent = genCount > 0 ? Math.round(compressSum / genCount) + "%" : "-";
+
+  document.getElementById("resultCard").style.display = "block";
+  document.getElementById("resultCard").scrollIntoView({behavior:"smooth", block:"start"});
 }
 
-function renderTpls(){
-  const el=$("tplList");
-  if(!state.tpls.length){el.innerHTML='<div class="empty-tip">暂无模板，生成流程后可点下方按钮保存。</div>';return}
-  el.innerHTML=state.tpls.map((t,i)=>`<div class="tpl-item"><b>${esc(t.name)}</b><span class="meta">${esc(t.need)} · ${t.mode} 模式 · ${t.orig}步→${t.min}步</span><button class="ghost tpl-load" data-i="${i}">载入复用</button></div>`).join("");
-  el.querySelectorAll(".tpl-load").forEach(b=>b.addEventListener("click",()=>{
-    const t=state.tpls[+b.dataset.i];
-    $("inp").value=t.need;
-    document.querySelector(`input[name=mode][value=${t.mode}]`).checked=true;
-    generate();
-  }));
+/* ---------- 模板库（localStorage 持久化） ---------- */
+function getTemplates(){
+  try{
+    return JSON.parse(localStorage.getItem("rpa_min_tpl") || "[]");
+  }catch(e){ return []; }
+}
+function saveTemplates(list){
+  try{ localStorage.setItem("rpa_min_tpl", JSON.stringify(list)); }catch(e){ /* 隐私模式下静默降级为内存 */ }
+}
+function renderTemplates(){
+  const list = getTemplates();
+  const el = document.getElementById("tplList");
+  document.getElementById("fTpl").textContent = list.length;
+  if(list.length === 0){
+    el.innerHTML = '<div class="empty">还没有模板 —— 生成一个最少步骤流程后点「存为可复用模板」</div>';
+    return;
+  }
+  el.innerHTML = list.map(function(t, i){
+    return '<div class="tpl-card"><h5>' + t.name + '</h5><p>' + t.steps + ' 步 · 压缩 ' + t.compress + '%</p>' +
+           '<div class="tpl-ops"><button class="load" data-i="' + i + '">加载</button>' +
+           '<button class="del" data-i="' + i + '">删除</button></div></div>';
+  }).join("");
+}
+function saveTemplate(){
+  if(!curPlan) return;
+  const list = getTemplates();
+  /* 同名去重：已存在则覆盖（防止模板库膨胀） */
+  const idx = list.findIndex(function(t){ return t.name === curPlan.name; });
+  const item = { name: curPlan.name, steps: curPlan.minCount, compress: curPlan.compress,
+                 rule: curPlan.rule, mode: curMode };
+  if(idx >= 0){ list[idx] = item; } else { list.unshift(item); }
+  saveTemplates(list);
+  renderTemplates();
 }
 
-document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
-  const p=PRESETS[+c.dataset.tpl];
-  $("inp").value=p.text;
-  document.querySelector(`input[name=mode][value=${p.mode}]`).checked=true;
-  generate();
-}));
-$("btnGen").addEventListener("click",generate);
-$("btnSaveTpl").addEventListener("click",()=>{
-  if(!state.cur){const w=$("warn");w.textContent="还没有生成流程，先生成再保存为模板。";w.style.display="block";return}
-  if(state.tpls.some(t=>t.name===state.cur.name&&t.mode===state.cur.mode)){const w=$("warn");w.textContent="同名同模式的模板已存在，无需重复保存。";w.style.display="block";return}
-  state.tpls.unshift(Object.assign({},state.cur));
-  renderTpls();
+/* ---------- 事件绑定 ---------- */
+document.getElementById("genBtn").addEventListener("click", generate);
+
+/* 三档模式切换 */
+document.querySelectorAll(".mode").forEach(function(m){
+  m.addEventListener("click", function(){
+    document.querySelectorAll(".mode").forEach(function(x){ x.classList.remove("active"); });
+    m.classList.add("active");
+    curMode = m.dataset.mode;
+    /* 已有生成结果则按新模式重渲染风险说明，并同步统计条模式 */
+    if(curPlan) renderRisks(curPlan.rule, curMode);
+    document.getElementById("sMode").textContent = curMode.toUpperCase();
+  });
 });
-$("btnReset").addEventListener("click",()=>{
-  $("inp").value="";$("warn").style.display="none";
-  $("secCompare").style.display="none";$("secRisk").style.display="none";
-  $("statOrig").textContent="–";$("statMin").textContent="–";$("statCut").textContent="–";$("statRisk").textContent="–";
-  document.querySelector('input[name=mode][value=lite]').checked=true;
-  state.cur=null;
+
+/* 示例需求一键填充 */
+document.querySelectorAll(".ex-btn[data-req]").forEach(function(b){
+  b.addEventListener("click", function(){
+    document.getElementById("reqInput").value = b.dataset.req;
+  });
 });
-renderTpls();
+
+/* 存模板 + 模板操作（事件委托） */
+document.getElementById("saveTpl").addEventListener("click", saveTemplate);
+document.getElementById("tplList").addEventListener("click", function(e){
+  const btn = e.target.closest("button");
+  if(!btn) return;
+  const i = parseInt(btn.dataset.i, 10);
+  const list = getTemplates();
+  if(btn.classList.contains("del")){
+    list.splice(i, 1);
+    saveTemplates(list);
+    renderTemplates();
+  }else if(btn.classList.contains("load")){
+    const t = list[i];
+    if(!t) return;
+    /* 加载模板：把规则回填生成区并重新生成 */
+    curPlan = buildPlan(t.rule);
+    document.getElementById("reqInput").value = "【模板】" + t.name;
+    document.getElementById("planName").textContent = curPlan.name + " · 最少步骤方案 vs AI 原始方案";
+    document.getElementById("rawCount").textContent = curPlan.rawCount + " 步";
+    document.getElementById("minCount").textContent = curPlan.minCount + " 步";
+    renderSteps(document.getElementById("rawList"), curPlan.rule.raw, true);
+    renderSteps(document.getElementById("minList"), curPlan.min, false);
+    document.getElementById("sCompress").textContent = curPlan.compress + "%";
+    document.getElementById("sSaved").textContent = curPlan.saved;
+    document.getElementById("sMode").textContent = (t.mode || "lite").toUpperCase();
+    renderRisks(curPlan.rule, t.mode || "lite");
+    document.getElementById("resultCard").style.display = "block";
+    document.getElementById("resultCard").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+});
+
+/* 初始化模板库 */
+renderTemplates();
 </script>
 </body>
 </html>
