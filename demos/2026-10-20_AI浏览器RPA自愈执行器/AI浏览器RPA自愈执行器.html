@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI浏览器RPA自愈执行器</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1c2333; --sub:#66708a; --line:#e3e8f2;
+    --blue:#2f6bff; --blue-bg:#eef3ff; --green:#0f9d6e; --green-bg:#e8f7f1;
+    --orange:#e07b00; --orange-bg:#fdf3e6; --red:#d64545; --red-bg:#fdecec;
+    --purple:#7a4fd8; --purple-bg:#f2edfc; --mono:"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:18px;font-size:14px;line-height:1.55}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:21px;margin-bottom:4px}
+  .lead{color:var(--sub);margin-bottom:14px}
+  .lead b{color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;min-width:0}
+  .card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+  .tag-blue{background:var(--blue-bg);color:var(--blue)}
+  .tag-purple{background:var(--purple-bg);color:var(--purple)}
+  .tag-green{background:var(--green-bg);color:var(--green)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-width:0}
+  label{display:block;font-size:12px;color:var(--sub);margin:8px 0 4px}
+  select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .chip{padding:5px 12px;border:1px solid var(--line);border-radius:16px;background:#fff;cursor:pointer;font-size:13px}
+  .chip:hover{border-color:var(--blue);color:var(--blue)}
+  .btn{padding:9px 20px;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn-main{background:var(--blue);color:#fff}
+  .btn-ghost{background:#fff;color:var(--sub);border:1px solid var(--line)}
+  .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  /* 可访问性树 */
+  .tree{font-family:var(--mono);font-size:12.5px;background:#0f1420;color:#c9d4ec;border-radius:10px;padding:12px;overflow-x:auto;max-height:300px;overflow-y:auto}
+  .tn{padding:2px 6px;border-radius:5px;white-space:nowrap;margin:1px 0}
+  .tn .r{color:#7ee2b8}
+  .tn .n{color:#e8edf8}
+  .tn .q{color:#8b97b8}
+  .tn-heal{background:rgba(224,123,0,.28);outline:1px dashed var(--orange)}
+  .tn-chg .n{color:#ffc46b}
+  /* agent 卡片 */
+  .agents{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-width:0}
+  .agent{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+  .agent h3{font-size:13.5px;display:flex;align-items:center;gap:6px}
+  .ast{font-size:11px;padding:1px 8px;border-radius:9px;background:#eef1f7;color:var(--sub)}
+  .ast.working{background:var(--blue-bg);color:var(--blue)}
+  .ast.done{background:var(--green-bg);color:var(--green)}
+  .ast.alert{background:var(--orange-bg);color:var(--orange)}
+  .agent p{font-size:12px;color:var(--sub);margin-top:4px}
+  .planlist{margin-top:8px;font-size:12.5px}
+  .planlist li{margin:3px 0 3px 16px}
+  pre.code{font-family:var(--mono);font-size:12px;background:#0f1420;color:#c9d4ec;border-radius:10px;padding:10px 12px;margin-top:8px;overflow-x:auto;white-space:pre;max-height:220px;overflow-y:auto}
+  .heallog{font-family:var(--mono);font-size:12px;margin-top:8px;max-height:220px;overflow-y:auto}
+  .heallog div{padding:2px 4px;border-radius:4px;margin:1px 0;white-space:pre-wrap}
+  .hl-info{color:var(--sub)}
+  .hl-warn{color:var(--orange)}
+  .hl-ok{color:var(--green)}
+  /* 步骤 */
+  .steps{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .step{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;min-width:0}
+  .step .st{font-size:12px;font-weight:600;white-space:nowrap}
+  .step .sel{font-family:var(--mono);font-size:11.5px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+  .st-wait{color:var(--sub)}
+  .st-run{color:var(--blue)}
+  .st-ok{color:var(--green)}
+  .st-healed{color:var(--orange)}
+  .step.sty-ok{border-color:var(--green);background:var(--green-bg)}
+  .step.sty-healed{border-color:var(--orange);background:var(--orange-bg)}
+  .step.sty-run{border-color:var(--blue);background:var(--blue-bg)}
+  /* 统计 */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:center;min-width:0}
+  .stat b{display:block;font-size:22px}
+  .stat span{font-size:11.5px;color:var(--sub)}
+  .banner{display:none;margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--green-bg);color:var(--green);font-weight:600}
+  .banner.show{display:block}
+  .mainlog{font-family:var(--mono);font-size:12px;color:var(--sub);max-height:180px;overflow-y:auto;margin-top:8px}
+  .mainlog div{padding:1px 0}
+  footer{color:var(--sub);font-size:12px;text-align:center;margin-top:6px}
+  @media (max-width:760px){
+    .grid2,.agents{grid-template-columns:1fr}
+    .stats{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🩹 AI浏览器RPA自愈执行器</h1>
+  <p class="lead">参考 <b>Microsoft Playwright AI agent CLI</b>（GitHub Trending，97K stars）三 agent 架构：<b>Planner</b> 读可访问性树定计划 → <b>Generator</b> 生成操作代码 → <b>Healer</b> 在页面改版导致定位失败时自动重找元素、修复流程。<b>零人工维护选择器</b>。</p>
+
+  <div class="card">
+    <h2>⚙️ 任务配置 <span class="tag tag-blue">业务表单</span></h2>
+    <div class="grid2">
+      <div>
+        <label>RPA 任务（模拟页面：供应商协同后台）</label>
+        <select id="taskSel">
+          <option value="t1">采集供应商报价（本月明细→导出CSV）</option>
+          <option value="t2">生成月度对账单（选期间→生成→下载）</option>
+          <option value="t3">提交差旅报销单（填表→传票→提交）</option>
+        </select>
+        <div class="chips">
+          <button class="chip" data-task="t1">📦 报价采集</button>
+          <button class="chip" data-task="t2">🧾 月度对账</button>
+          <button class="chip" data-task="t3">💰 差旅报销</button>
+        </div>
+      </div>
+      <div>
+        <label>页面改版场景（执行中途模拟上线变更）</label>
+        <select id="verSel">
+          <option value="none">无改版（页面稳定）</option>
+          <option value="a">改版A：按钮文案调整（1次自愈）</option>
+          <option value="b">改版B：文案调整＋按钮移入新分组（2次自愈）</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-main" id="btnRun">▶ 启动三 Agent 流水线</button>
+      <button class="btn btn-ghost" id="btnReset">↺ 重置</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🌳 页面可访问性树 <span class="tag tag-purple">结构化理解·非截图</span><span id="treeMeta" style="font-size:12px;color:var(--sub)"></span></h2>
+    <div class="tree" id="treePanel"></div>
+  </div>
+
+  <div class="card">
+    <h2>🤖 三 Agent 流水线</h2>
+    <div class="agents">
+      <div class="agent">
+        <h3>🗺️ Planner <span class="ast" id="agPlanner">待命</span></h3>
+        <p>读取可访问性树，产出执行计划</p>
+        <ol class="planlist" id="planList"></ol>
+      </div>
+      <div class="agent">
+        <h3>⌨️ Generator <span class="ast" id="agGen">待命</span></h3>
+        <p>把计划翻译为 Playwright 代码</p>
+        <pre class="code" id="genCode">// 代码将在此生成…</pre>
+      </div>
+      <div class="agent">
+        <h3>🩹 Healer <span class="ast" id="agHealer">待命</span></h3>
+        <p>定位失败时重读树、语义匹配、修复重试</p>
+        <div class="heallog" id="healLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 执行进度</h2>
+    <div class="steps" id="execList"></div>
+    <div class="banner" id="doneBanner"></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 运行统计</h2>
+    <div class="stats">
+      <div class="stat"><b id="stPlan">0</b><span>计划步骤</span></div>
+      <div class="stat"><b id="stGen">0</b><span>生成代码行</span></div>
+      <div class="stat"><b id="stHeal">0</b><span>自愈次数</span></div>
+      <div class="stat"><b id="stSave">0 min</b><span>节省人工修选择器</span></div>
+    </div>
+    <div class="mainlog" id="mainLog"></div>
+  </div>
+
+  <footer>AI浏览器RPA自愈执行器 · 单文件自包含 Demo · 示例数据已固化 · 2026-10-20</footer>
+</div>
+
+<script>
+"use strict";
+/* ============ 数据：可访问性树（示例页面：供应商协同后台） ============ */
+const BASE_NODES = [
+  {id:"n1", role:"banner",    name:"供应商协同后台", d:0},
+  {id:"n2", role:"navigation",name:"主菜单",         d:1},
+  {id:"n3", role:"link",      name:"报价管理",       d:2},
+  {id:"n4", role:"link",      name:"对账中心",       d:2},
+  {id:"n5", role:"link",      name:"费用报销",       d:2},
+  {id:"n6", role:"main",      name:"工作区",         d:1},
+  {id:"n7", role:"heading",   name:"报价管理",       d:2},
+  {id:"n8", role:"button",    name:"本月",           d:3},
+  {id:"n9", role:"button",    name:"查询",           d:3},
+  {id:"n10",role:"table",     name:"本月报价明细",   d:3},
+  {id:"n11",role:"button",    name:"导出CSV",        d:3},
+  {id:"n12",role:"heading",   name:"对账中心",       d:2},
+  {id:"n13",role:"combobox",  name:"对账期间",       d:3},
+  {id:"n14",role:"button",    name:"生成对账单",     d:3},
+  {id:"n15",role:"text",      name:"金额汇总：¥1,286,400", d:3},
+  {id:"n16",role:"button",    name:"下载对账单",     d:3},
+  {id:"n17",role:"heading",   name:"费用报销",       d:2},
+  {id:"n18",role:"textbox",   name:"报销金额",       d:3},
+  {id:"n19",role:"textbox",   name:"报销事由",       d:3},
+  {id:"n20",role:"button",    name:"上传发票附件",   d:3},
+  {id:"n21",role:"button",    name:"提交报销单",     d:3},
+  {id:"n22",role:"status",    name:"提交成功：单号 BX-20261020-0042", d:3},
+];
+
+/* ============ 任务定义（步骤引用树节点） ============ */
+const TASKS = {
+  t1:{ name:"采集供应商报价", steps:[
+    {t:"n3", act:"click",   note:"进入报价管理"},
+    {t:"n8", act:"click",   note:"筛选本月"},
+    {t:"n9", act:"click",   note:"执行查询"},
+    {t:"n10",act:"extract", note:"提取 24 行 × 6 列明细"},
+    {t:"n11",act:"click",   note:"导出CSV并保存"},
+  ]},
+  t2:{ name:"生成月度对账单", steps:[
+    {t:"n4", act:"click",   note:"进入对账中心"},
+    {t:"n13",act:"select",  note:"选择对账期间 2026-09"},
+    {t:"n14",act:"click",   note:"触发生成"},
+    {t:"n15",act:"extract", note:"校验金额汇总"},
+    {t:"n16",act:"click",   note:"下载对账单"},
+  ]},
+  t3:{ name:"提交差旅报销单", steps:[
+    {t:"n5", act:"click",   note:"进入费用报销"},
+    {t:"n18",act:"fill",    note:"填入金额 ¥3,580"},
+    {t:"n19",act:"fill",    note:"填入事由：深圳出差3天"},
+    {t:"n20",act:"click",   note:"上传发票附件 2 张"},
+    {t:"n21",act:"click",   note:"提交报销单"},
+    {t:"n22",act:"extract", note:"读取确认单号"},
+  ]},
+};
+
+/* ============ 改版场景 ============ */
+const VER_A_REN = {n9:"开始检索", n14:"创建对账单", n20:"上传附件", n11:"下载数据(CSV)", n16:"导出对账单", n21:"保存并提交"};
+const VER_B_REN2 = {n11:"下载数据(CSV)", n16:"导出对账单文件", n21:"保存并提交"};
+
+/* ============ 状态 ============ */
+let S = {task:"t1", ver:"none", running:false, nodes:[], heal:0, planN:0, genN:0, verLabel:""};
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const ROLE_ICON = {banner:"🏛️",navigation:"🧭",link:"🔗",main:"📄",heading:"🔖",button:"🔘",table:"📊",combobox:"🔽",textbox:"✏️",text:"🏷️",status:"✅",group:"📁"};
+
+function nodeById(id){ return S.nodes.find(n=>n.id===id); }
+function selOf(node){ return "page.getByRole('"+node.role+"', { name: '"+node.name+"' })"; }
+function now(){ const d=new Date(); return d.toTimeString().slice(0,8); }
+function mlog(msg,cls){ const div=document.createElement("div"); div.textContent="["+now()+"] "+msg; if(cls)div.style.color=cls; $("mainLog").appendChild(div); $("mainLog").scrollTop=1e9; }
+function hlog(msg,cls){ const div=document.createElement("div"); div.className="hl-"+cls; div.textContent=msg; $("healLog").appendChild(div); $("healLog").scrollTop=1e9; }
+function setAgent(id,st,txt){ const el=$(id); el.className="ast "+st; el.textContent=txt; }
+
+/* ============ 树渲染 ============ */
+function renderTree(){
+  const box=$("treePanel"); box.innerHTML="";
+  let count=0;
+  S.nodes.forEach(n=>{
+    const div=document.createElement("div");
+    div.className="tn"+(n.healed?" tn-heal":"")+(n.changed?" tn-chg":"");
+    div.dataset.id=n.id;
+    div.style.paddingLeft=(8+n.d*18)+"px";
+    div.innerHTML='<span class="r">'+(ROLE_ICON[n.role]||"·")+" "+esc(n.role)+"</span> "+
+      '<span class="n">'+esc(n.name)+"</span>"+
+      (n.group?' <span class="q">← 新增分组</span>':"");
+    box.appendChild(div); count++;
+  });
+  $("treeMeta").textContent="共 "+count+" 个节点"+(S.verLabel?" · 版本："+S.verLabel:"");
+}
+
+/* ============ 改版注入 ============ */
+function applyMutation(phase){
+  let changed=[];
+  if(phase===1){
+    Object.keys(VER_A_REN).forEach(id=>{ const n=nodeById(id); if(n){ n.name=VER_A_REN[id]; n.changed=true; changed.push(id);} });
+    S.verLabel = S.ver==="b" ? "改版B·文案+结构" : "改版A·文案";
+    mlog("⚡ 检测到页面改版：按钮文案调整（"+Object.keys(VER_A_REN).length+" 个节点变更）","#e07b00");
+  }else{
+    // 结构改版：当前任务 idx4 目标按钮改名并移入新增分组
+    const task=TASKS[S.task];
+    const tgt=task.steps[4].t;
+    const n=nodeById(tgt);
+    n.name=VER_B_REN2[tgt]; n.changed=true;
+    const grp={id:"g_"+tgt, role:"group", name:"操作栏", d:n.d, group:true, changed:true};
+    const idx=S.nodes.findIndex(x=>x.id===tgt);
+    S.nodes.splice(idx,0,grp);
+    n.d=n.d+1; n.healed=true;
+    S.nodes.filter(x=>x.parentOfGrp).forEach(()=>{});
+    changed=[tgt];
+    mlog("⚡ 检测到页面结构改版：按钮「"+n.name+"」移入新增分组「操作栏」，层级+1","#e07b00");
+  }
+  renderTree();
+  return changed;
+}
+
+/* ============ 步骤行渲染 ============ */
+function renderSteps(){
+  const box=$("execList"); box.innerHTML="";
+  const task=TASKS[S.task];
+  task.steps.forEach((sp,i)=>{
+    const n=nodeById(sp.t);
+    const div=document.createElement("div");
+    div.className="step"; div.id="step_"+i;
+    div.innerHTML='<span class="st st-wait" id="stp_'+i+'">待执行</span>'+
+      '<span class="sel">'+esc(selOf(n))+'</span>'+
+      '<span style="font-size:12px;color:var(--sub)">'+esc(sp.note)+'</span>';
+    box.appendChild(div);
+  });
+}
+function setStep(i,status,txt){
+  const st=$("stp_"+i), row=$("step_"+i);
+  st.className="st st-"+status; st.textContent=txt;
+  row.className="step"+(status==="ok"?" sty-ok":status==="healed"?" sty-healed":status==="run"?" sty-run":"");
+}
+
+/* ============ 重置 ============ */
+function resetAll(silent){
+  if(S.running) return;
+  S.nodes=BASE_NODES.map(n=>Object.assign({},n));
+  S.heal=0; S.planN=0; S.genN=0; S.verLabel="";
+  $("planList").innerHTML=""; $("genCode").textContent="// 代码将在此生成…";
+  $("healLog").innerHTML=""; $("execList").innerHTML="";
+  $("mainLog").innerHTML=""; $("doneBanner").className="banner";
+  ["agPlanner","agGen","agHealer"].forEach(id=>setAgent(id,"","待命"));
+  $("stPlan").textContent="0"; $("stGen").textContent="0"; $("stHeal").textContent="0"; $("stSave").textContent="0 min";
+  renderTree();
+  if(!silent) mlog("已重置：页面树恢复原始版本，等待新任务。");
+}
+
+/* ============ 主流程 ============ */
+async function run(){
+  if(S.running) return;
+  resetAll(true);
+  S.running=true; $("btnRun").disabled=true; $("taskSel").disabled=true; $("verSel").disabled=true;
+  const task=TASKS[S.task];
+  mlog("启动任务「"+task.name+"」，改版场景："+$("verSel").selectedOptions[0].text);
+
+  /* --- Planner --- */
+  setAgent("agPlanner","working","分析中");
+  await sleep(500);
+  const planBox=$("planList");
+  for(let i=0;i<task.steps.length;i++){
+    const sp=task.steps[i], n=nodeById(sp.t);
+    const li=document.createElement("li");
+    li.textContent=(i+1)+". "+sp.note+" → "+n.role+"[\""+n.name+"\"]";
+    planBox.appendChild(li);
+    await sleep(260);
+  }
+  S.planN=task.steps.length; $("stPlan").textContent=S.planN;
+  setAgent("agPlanner","done","完成 ✓");
+  mlog("Planner：产出 "+S.planN+" 步执行计划。");
+
+  /* --- Generator --- */
+  setAgent("agGen","working","生成中");
+  const code=["const page = await browser.newPage();","await page.goto('https://scm.example.com');"];
+  $("genCode").textContent=code.join("\n");
+  await sleep(400);
+  task.steps.forEach((sp,i)=>{
+    const n=nodeById(sp.t);
+    let line;
+    if(sp.act==="click") line="await "+selOf(n)+".click();";
+    else if(sp.act==="fill") line="await "+selOf(n)+".fill('"+(sp.t==="n18"?"3580":"深圳出差3天")+"');";
+    else if(sp.act==="select") line="await "+selOf(n)+".selectOption('2026-09');";
+    else if(sp.act==="extract") line="const data = await "+selOf(n)+".extractAll();";
+    else line="await "+selOf(n)+".read();";
+    code.push("// 步骤"+(i+1)+"："+sp.note);
+    code.push(line);
+    $("genCode").textContent=code.join("\n");
+  });
+  S.genN=code.length;
+  $("stGen").textContent=S.genN;
+  renderSteps();
+  await sleep(300);
+  setAgent("agGen","done","完成 ✓");
+  mlog("Generator：生成 "+S.genN+" 行 Playwright 代码。");
+
+  /* --- Execute（Healer 待命） --- */
+  setAgent("agHealer","","待命");
+  let healedTotal=0;
+  for(let i=0;i<task.steps.length;i++){
+    const sp=task.steps[i];
+    // 改版注入点
+    if(S.ver==="a" && i===2) applyMutation(1);
+    if(S.ver==="b" && i===2) applyMutation(1);
+    if(S.ver==="b" && i===4) applyMutation(2);
+
+    setStep(i,"run","执行中");
+    await sleep(520);
+    const willFail = (S.ver!=="none" && i===2) || (S.ver==="b" && i===4);
+    if(willFail){
+      setStep(i,"wait","定位失败");
+      setAgent("agHealer","alert","自愈中");
+      const n=nodeById(sp.t);
+      const oldName=Object.values(i===2?VER_A_REN:VER_B_REN2).length? (i===2? Object.keys(VER_A_REN).includes(sp.t)? "原节点" : "原节点" : "原节点") : "";
+      hlog("❌ 步骤"+(i+1)+" 定位失败：旧选择器未命中（页面已改版）","warn");
+      mlog("步骤"+(i+1)+" 定位失败，Healer 介入。","#e07b00");
+      await sleep(500);
+      hlog("🔍 重读可访问性树，按角色+语义搜索候选节点…","info");
+      await sleep(550);
+      hlog("   候选命中：button[\""+n.name+"\"]（相似度 "+(i===2?"0.86":"0.81")+"）","info");
+      await sleep(500);
+      hlog("🩹 采纳新选择器并重试 → "+selOf(n),"ok");
+      await sleep(500);
+      setStep(i,"healed","自愈成功 ✓");
+      hlog("✅ 步骤"+(i+1)+" 重试成功，流程继续（无需人工介入）","ok");
+      setAgent("agHealer","","待命");
+      S.heal++; healedTotal++; $("stHeal").textContent=S.heal;
+      $("stSave").textContent=(S.heal*15)+" min";
+      // 高亮树中 healed 节点
+      renderTree();
+      await sleep(300);
+    }else{
+      setStep(i,"ok","成功 ✓");
+      await sleep(120);
+    }
+  }
+  setAgent("agHealer","done",healedTotal?("自愈 "+healedTotal+" 次 ✓"):"无需自愈 ✓");
+  const banner=$("doneBanner");
+  banner.textContent="🎉 任务「"+task.name+"」执行完成："+task.steps.length+" 步 · 自愈 "+S.heal+" 次 · 节省人工约 "+(S.heal*15)+" 分钟";
+  banner.className="banner show";
+  mlog("任务完成：全部 "+task.steps.length+" 步执行成功，自愈 "+S.heal+" 次。","#0f9d6e");
+  S.running=false;
+  $("btnRun").disabled=false; $("taskSel").disabled=false; $("verSel").disabled=false;
+}
+
+/* ============ 事件绑定 ============ */
+$("taskSel").addEventListener("change",e=>{ S.task=e.target.value; if(!S.running){resetAll(true); mlog("已切换任务："+TASKS[S.task].name);} });
+$("verSel").addEventListener("change",e=>{ S.ver=e.target.value; });
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
+  S.task=c.dataset.task; $("taskSel").value=S.task;
+  if(!S.running){resetAll(true); mlog("已切换任务："+TASKS[S.task].name);}
+}));
+$("btnRun").addEventListener("click",run);
+$("btnReset").addEventListener("click",()=>resetAll(false));
+
+resetAll(true);
+</script>
+</body>
+</html>

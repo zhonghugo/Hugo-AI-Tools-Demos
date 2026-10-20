@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>35</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/19</b><span>持续产出</span></div>
+      <div><b>36</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/20</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-20", name:"AI浏览器RPA自愈执行器",
+    desc:"参考 Microsoft Playwright AI agent CLI（GitHub Trending，97K★，三 agent 架构 Planner/Generator/Healer + Playwright MCP）演示浏览器 RPA 的『结构化理解+异常自愈』：模拟页面「供应商协同后台」以可访问性树呈现（22 节点，角色+名称，非截图理解）；预置 3 个 RPA 任务（报价采集/月度对账/差旅报销）业务表单配置；Planner 读树产出执行计划 → Generator 翻译为 Playwright 代码（getByRole 选择器）→ 逐步执行；执行中途注入页面改版（改版A 文案调整 1 次自愈 / 改版B 文案+按钮移入新分组 2 次自愈），定位失败时 Healer 重读树、语义匹配候选（相似度评分）、采纳新选择器重试成功，树面板实时更新并高亮自愈节点；统计条（计划步骤/生成代码行/自愈次数/节省人工修选择器时间 15min/次）实时联动。讲 RPA 从『页面一改就断』收束到『AI 自动修复选择器、零人工维护』，与 10/11 自适应执行器（录制重放路线）形成两条自愈技术路线对照。",
+    src:"10/20 资讯 · Microsoft Playwright AI agent CLI（4星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-20_AI%E6%B5%8F%E8%A7%88%E5%99%A8RPA%E8%87%AA%E6%84%88%E6%89%A7%E8%A1%8C%E5%99%A8/AI%E6%B5%8F%E8%A7%88%E5%99%A8RPA%E8%87%AA%E6%84%88%E6%89%A7%E8%A1%8C%E5%99%A8.html"
+  },
   {
     date:"10-19", name:"RPA最少步骤流程生成器",
     desc:"参考 ponytail（DietrichGebert/ponytail，157K★ 开源 SKILL.md 风格插件，最少代码原则+强制风险说明，53%少代码/41%更快/26%更便宜）演示 RPA 流程的『最少步骤生成+强制风险说明』：预置 4 个 RPA 需求（竞品价格采集/财务月结对账/发票录入核对/销售日报邮件）＋自定义需求输入，规则引擎匹配需求类型→生成 AI 原始方案（逐条标注冗余步骤）与最少步骤方案左右对比（8步→4步压缩50%）；三档模式 lite（核心步骤）/ full（核心+基础异常）/ ultra（最少步骤+完整风险说明，逐条标注『跳过了什么异常处理』与『你必须知道的风险』）；验证过的最少步骤流程一键存为模板库（localStorage 持久化）可加载复用；底部统计条（模板数/今日生成/平均压缩率）实时联动。讲 RPA 从『流程能跑』收束到『流程要精简+风险透明』，延续 10/16 技能市场、10/18 舰队管理的叙事线。",
