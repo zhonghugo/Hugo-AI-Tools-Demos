@@ -66,7 +66,7 @@
 const DEMOS = [
   {
     date:"10-20", name:"AI浏览器RPA自愈执行器",
-    desc:"参考 Microsoft Playwright AI agent CLI（GitHub Trending，97K★，三 agent 架构 Planner/Generator/Healer + Playwright MCP）演示浏览器 RPA 的『结构化理解+异常自愈』：模拟页面「供应商协同后台」以可访问性树呈现（22 节点，角色+名称，非截图理解）；预置 3 个 RPA 任务（报价采集/月度对账/差旅报销）业务表单配置；Planner 读树产出执行计划 → Generator 翻译为 Playwright 代码（getByRole 选择器）→ 逐步执行；执行中途注入页面改版（改版A 文案调整 1 次自愈 / 改版B 文案+按钮移入新分组 2 次自愈），定位失败时 Healer 重读树、语义匹配候选（相似度评分）、采纳新选择器重试成功，树面板实时更新并高亮自愈节点；统计条（计划步骤/生成代码行/自愈次数/节省人工修选择器时间 15min/次）实时联动。讲 RPA 从『页面一改就断』收束到『AI 自动修复选择器、零人工维护』，与 10/11 自适应执行器（录制重放路线）形成两条自愈技术路线对照。",
+    desc:"参考 Playwright AI agent CLI（Microsoft，97K★ GitHub trending，Planner/Generator/Healer 三 Agent 架构 + Playwright MCP + 可访问性树结构化页面理解）演示『AI 浏览器 RPA 自愈执行器』：自然语言任务→Planner 解析意图（任务目标/目标站点/所需数据/执行策略）→Generator 基于页面可访问性树快照生成执行步骤（goto/wait/extract/fill/click/assert，比截图理解更准确更便宜）→执行模拟逐步骤推进→首个『可失败点』注入定位失败→Healer 介入诊断失败原因+生成修复补丁（换选择器/加显式等待/滚动重试）+重试成功→预置 4 个任务模板（竞品价格采集/订单状态监控/表单自动填写/每日数据回填Excel）+ 通用兜底规则→Agent 协作日志（Planner/Generator/Healer/执行分角色时间线）→运行统计（任务完成/成功率/自愈次数/平均耗时）localStorage 持久化。讲『AI 驱动的 RPA 不再依赖脆弱的固定选择器，失败自愈+结构理解才是可交付的浏览器自动化』，延续 10/16 技能市场、10/18 舰队管理、10/19 最少步骤叙事线。",
     src:"10/20 资讯 · Microsoft Playwright AI agent CLI（4星）",
     url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-20_AI%E6%B5%8F%E8%A7%88%E5%99%A8RPA%E8%87%AA%E6%84%88%E6%89%A7%E8%A1%8C%E5%99%A8/AI%E6%B5%8F%E8%A7%88%E5%99%A8RPA%E8%87%AA%E6%84%88%E6%89%A7%E8%A1%8C%E5%99%A8.html"
   },
