@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA流程自动调优器</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+  body { background:#f2f5f9; color:#1d2433; min-height:100vh; }
+  header { background:linear-gradient(135deg,#102a56,#1d4ed8); color:#fff; padding:26px 20px 20px; text-align:center; }
+  header h1 { font-size:26px; letter-spacing:1px; }
+  header .sub { margin-top:6px; font-size:13px; opacity:.85; }
+  .wrap { max-width:1180px; margin:0 auto; padding:16px; }
+  .card { background:#fff; border-radius:14px; padding:18px; margin-bottom:16px; box-shadow:0 2px 10px rgba(20,40,90,.07); }
+  .card h2 { font-size:16px; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .card h2 .dot { display:inline-block; width:10px; height:10px; border-radius:50%; }
+  .dot.p{background:#2563eb} .dot.g{background:#7c3aed} .dot.r{background:#f59e0b} .dot.x{background:#059669} .dot.a{background:#dc2626}
+  textarea { width:100%; min-height:66px; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px; font-size:14px; resize:vertical; }
+  textarea:focus { outline:none; border-color:#2563eb; }
+  .btn { border:none; border-radius:10px; padding:10px 18px; font-size:14px; font-weight:600; cursor:pointer; transition:.15s; }
+  .btn.pri { background:#2563eb; color:#fff; } .btn.pri:hover{background:#1d4ed8}
+  .btn.sec { background:#e2e8f0; color:#334155; } .btn.sec:hover{background:#cbd5e1}
+  .btn.danger { background:#fee2e2; color:#dc2626; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+  .ex { border:1.5px solid #e2e8f0; border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer; background:#f8fafc; }
+  .ex:hover { border-color:#2563eb; background:#eff6ff; }
+  .ab { display:inline-block; background:#eff6ff; color:#2563eb; border-radius:8px; padding:2px 10px; font-size:12px; margin:0 4px 6px 0; }
+  .ab.purple{background:#f3e8ff;color:#7c3aed} .ab.green{background:#ecfdf5;color:#059669} .ab.amber{background:#fef3c7;color:#b45309} .ab.red{background:#fee2e2;color:#dc2626}
+  .muted { color:#64748b; font-size:13px; }
+  .plans { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .plan { border:1.5px solid #e2e8f0; border-radius:12px; padding:12px; background:#fafbfd; }
+  .plan .pt { font-weight:700; font-size:14px; margin-bottom:6px; }
+  .plan ul { list-style:none; font-size:13px; }
+  .plan li { padding:3px 0; border-bottom:1px dashed #eef2f7; }
+  .plan .diff { margin-top:8px; font-size:12px; }
+  .stat-row { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; margin-top:8px; }
+  .stat-row .s b { font-size:18px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { padding:8px 10px; text-align:left; border-bottom:1px solid #eef2f7; }
+  th { background:#f8fafc; color:#475569; font-weight:600; }
+  .best td { background:#ecfdf5; font-weight:600; }
+  .recom { border:1px solid #a7f3d0; background:#ecfdf5; border-radius:10px; padding:12px; font-size:13px; margin-top:10px; }
+  .logbox { background:#0f172a; color:#cbd5e1; border-radius:10px; padding:12px; font-size:12px; font-family:ui-monospace,Menlo,monospace; max-height:200px; overflow-y:auto; white-space:pre-wrap; }
+  .lib-item { border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; font-size:13px; background:#fafbfd; }
+  .lib-item .tag { display:inline-block; background:#eff6ff; color:#2563eb; border-radius:6px; padding:1px 8px; font-size:12px; margin-right:6px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:860px){ .plans{grid-template-columns:1fr} .grid2{grid-template-columns:1fr} }
+  .timeline { font-size:12px; color:#64748b; margin-top:6px; }
+  .steps { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .step { background:#f1f5f9; border-radius:8px; padding:4px 10px; font-size:12px; display:flex; align-items:center; gap:6px; }
+  .step.ok { background:#ecfdf5; color:#047857; }
+  .step.from { background:#fef3c7; color:#b45309; }
+  .progress { height:6px; background:#e2e8f0; border-radius:4px; overflow:hidden; margin-top:6px; }
+  .progress div { height:100%; background:#2563eb; width:0; transition:width .3s; }
+  .exp { font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>RPA 流程自动调优器</h1>
+  <div class="sub">参考 Google Research Harness² · 递归 agent 自我优化 · 多方案生成 → 并行探测 → 行为对比 → 自动重组 → 经验积累</div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2><span class="dot p"></span>Propose · 多方案生成</h2>
+    <textarea id="reqInput" placeholder="描述你想自动化的业务需求，例如：每天从后台导出销售明细，清洗后按门店汇总成日报，最后发送给运营负责人"></textarea>
+    <div class="row">
+      <button class="btn pri" id="genBtn">生成 3 个候选方案</button>
+      <button class="btn sec" id="resetBtn">重置</button>
+    </div>
+    <div class="row">
+      <span class="ex" data-req="每日销售数据汇总成日报并发送">每日销售数据汇总成日报</span>
+      <span class="ex" data-req="从供应商系统抓取报价单，核对价格变动并预警">供应商报价监控预警</span>
+      <span class="ex" data-req="将银行流水对账后生成差异报告">银行流水自动对账</span>
+      <span class="ex" data-req="批量抓取竞品价格，每周生成比价表">竞品价格周报</span>
+    </div>
+  </div>
+
+  <div class="card" id="planCard" style="display:none">
+    <h2><span class="dot g"></span>Propose 输出 · 3 个候选流程方案</h2>
+    <div class="plans" id="plans"></div>
+    <div class="muted" style="margin-top:10px">三个方案采用不同的步骤顺序、工具与异常策略，由 AI 依据需求平行生成（Propose）。</div>
+  </div>
+
+  <div class="card" id="probeCard" style="display:none">
+    <h2><span class="dot r"></span>Probe · 并行探测与行为对比</h2>
+    <div class="muted">在沙箱中并行执行 3 个方案，各自独立记录成功率 / 耗时 / 异常率；AI 对比行为差异，无需标准答案。</div>
+    <div id="probeBody"></div>
+  </div>
+
+  <div class="card" id="composeCard" style="display:none">
+    <h2><span class="dot x"></span>Compose · 自动重组为优化版 v2</h2>
+    <div id="composeBody"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2><span class="dot a"></span>经验积累 · 流程模式库</h2>
+      <div id="libBody" class="muted">暂无沉淀的策略。完成一次调优后，成功策略会存入模式库，下次相似任务自动推荐。</div>
+    </div>
+    <div class="card">
+      <h2><span class="dot x"></span>透明审计 · 决策日志</h2>
+      <div class="logbox" id="log">● 调优器就绪。输入需求 → 多方案生成 → 并行探测 → 行为对比 → 自动重组 → 经验入库。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * RPA 流程自动调优器（demo）
+ * 参考 Google Research Harness²：两层递归 agent 自我优化框架
+ * （Propose 多方案 → Probe 并行探测 → Compose 自动重组）
+ * 1) 单文件 HTML：双击浏览器打开即用，无需服务器
+ * 2) 内置 4 个业务示例 + 自由输入
+ * 3) 模式库 localStorage 持久化：调优结果沉淀为可复用经验
+ * ============================================================ */
+
+const $ = id => document.getElementById(id);
+const logEl = $("log");
+let logBuffer = [];
+
+function log(msg, color){
+  const t = new Date().toLocaleTimeString("zh-CN", {hour12:false});
+  logBuffer.push(`[${t}] ${msg}`);
+  logEl.innerHTML = logBuffer.join("\n");
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+/* ---- 模拟数据：3 个方案模板 × 4 个示例场景 ---- */
+/* 每个场景定义：需求关键词命中规则 + 3 个候选方案（步骤/工具/异常策略/探测数据）+ 最优片段重组逻辑 */
+const SCENES = [
+  {
+    keys:["销售","日报","汇总","门店"],
+    name:"每日销售数据汇总成日报并发送",
+    plans:[
+      { name:"方案A · 串行管道", note:"步骤紧凑、工具单一",
+        steps:["登录后台","导出当日销售明细","按门店分组汇总","生成日报 Excel","发送给运营"],
+        tool:"Excel 模板 + 邮件", guard:"失败即整体重跑", time:2.8, rate:86, err:3.1,
+        weak:"发送环节无重试", good:"按门店分组汇总一次完成" },
+      { name:"方案B · 并行分片", note:"并行处理 + 增量推送",
+        steps:["登录后台","导出明细","按门店分片并行汇总","生成日报","发送 + 失败重试"],
+        tool:"pandas 分片 + 邮件重试", guard:"分片级重试，互不影响", time:2.1, rate:92, err:1.8,
+        weak:"分组口径需人工核对", good:"分片并行，耗时低" },
+      { name:"方案C · 数据中台", note:"中间库承接 + 定时调度",
+        steps:["登录后台","导出明细入库","SQL 汇总日报","定时任务生成","发送 + 告警兜底"],
+        tool:"中台库 + 调度器", guard:"定时失败自动补跑", time:2.4, rate:95, err:1.2,
+        weak:"首次搭建成本高", good:"稳定性和成功率最高" }
+    ],
+    best:"方案C 成功率最高（95%），方案B 耗时最低（2.1s）",
+    compose:{ 
+      desc:"重组方案：取 C 的中间库存储 + B 的分片并行 + C 的定时补跑 + B 的邮件重试，合并为优化版 v2",
+      steps:["登录后台","导出明细入库","分片并行 SQL 汇总","定时任务生成日报","发送 + 重试 + 告警兜底"],
+      tool:"中台库 + 分片并行 + 定时调度 + 邮件重试",
+      guard:"分片级重试 + 定时补跑 + 告警兜底",
+      time:1.9, rate:97, err:0.8
+    },
+    pattern:{ tag:"数据汇总类", rec:"并行分片 + 中间库存储 + 失败重试", gain:"耗时 -0.2s · 成功率 +2%" }
+  },
+  {
+    keys:["报价","供应商","预警"],
+    name:"从供应商系统抓取报价单，核对价格变动并预警",
+    plans:[
+      { name:"方案A · 全量比对", note:"全量抓取 + 邮件提醒",
+        steps:["登录供应商系统","抓取全部报价","与历史价格比对","生成变动清单","邮件预警"],
+        tool:"requests + 邮件", guard:"失败即整体重跑", time:3.6, rate:81, err:4.2,
+        weak:"全量抓取耗时", good:"逻辑简单" },
+      { name:"方案B · 增量比对", note:"只抓变动项 + 即时预警",
+        steps:["登录供应商系统","增量抓取报价","匹配历史记录","比对变动","预警推送"],
+        tool:"增量接口 + 推送", guard:"增量失败自动重试", time:2.2, rate:90, err:2.1,
+        weak:"需供应商支持增量", good:"增量快，命中准" },
+      { name:"方案C · 订阅推送", note:"供应商 webhook + 规则引擎",
+        steps:["订阅供应商推送","规则引擎解析","价格变动判定","命中规则预警","人工复核留档"],
+        tool:"webhook + 规则引擎", guard:"推送失败补偿轮询", time:1.8, rate:93, err:1.6,
+        weak:"依赖供应商开放能力", good:"实时性最好" }
+    ],
+    best:"方案C 实时性最好（1.8s），方案A 兼容性最广",
+    compose:{
+      desc:"重组方案：取 C 的订阅推送 + B 的增量比对 + C 的失败补偿轮询，合并为优化版 v2",
+      steps:["订阅供应商推送","增量抓取兜底","规则引擎比对","命中预警","人工复核留档"],
+      tool:"webhook + 增量比对 + 补偿轮询",
+      guard:"推送失败补偿轮询 + 比对失败重试",
+      time:1.6, rate:95, err:1.0
+    },
+    pattern:{ tag:"数据监控类", rec:"订阅推送 + 增量比对 + 补偿轮询", gain:"耗时 -0.2s · 成功率 +2%" }
+  },
+  {
+    keys:["银行","流水","对账","差异"],
+    name:"将银行流水对账后生成差异报告",
+    plans:[
+      { name:"方案A · 全量对账", note:"两表全量匹配 + 差异清单",
+        steps:["下载银行流水","导入系统账单","全量逐笔匹配","标记差异","生成差异报告"],
+        tool:"openpyxl + 报告", guard:"失败即整体重跑", time:3.2, rate:84, err:3.4,
+        weak:"大表全量慢", good:"逻辑直观" },
+      { name:"方案B · 哈希索引", note:"先哈希分桶再匹配",
+        steps:["下载流水","建立哈希索引","分桶快速匹配","复核疑似差异","生成报告 + 推送"],
+        tool:"哈希索引 + pandas", guard:"分桶失败重试", time:1.9, rate:91, err:1.9,
+        weak:"需处理哈希碰撞", good:"速度快数倍" },
+      { name:"方案C · 阈值模糊匹配", note:"金额日期双键 + 模糊容差",
+        steps:["下载流水","金额+日期双键匹配","容差模糊匹配","差异分级标注","报告 + 人工复核"],
+        tool:"双键匹配 + 容差", guard:"阈值不合理自动调整", time:2.5, rate:94, err:1.3,
+        weak:"需定义容差规则", good:"差异识别最准" }
+    ],
+    best:"方案B 速度最快（1.9s），方案C 差异识别最准（94%）",
+    compose:{
+      desc:"重组方案：取 B 的哈希索引 + C 的双键容差匹配 + C 的分级标注，合并为优化版 v2",
+      steps:["下载流水","哈希索引分桶","双键容差匹配","差异分级标注","报告 + 人工复核"],
+      tool:"哈希索引 + 容差匹配 + 分级标注",
+      guard:"分桶失败重试 + 容差自适应",
+      time:1.7, rate:96, err:0.9
+    },
+    pattern:{ tag:"财务对账类", rec:"哈希索引分桶 + 双键容差匹配", gain:"耗时 -0.2s · 成功率 +2%" }
+  },
+  {
+    keys:["竞品","价格","比价","周报"],
+    name:"批量抓取竞品价格，每周生成比价表",
+    plans:[
+      { name:"方案A · 整站抓取", note:"一次性全量 + 快照对比",
+        steps:["打开竞品站","全量抓取价格","存快照","与上周对比","生成比价表"],
+        tool:"requests + 快照", guard:"失败即整体重跑", time:4.1, rate:78, err:5.1,
+        weak:"量大易被限流", good:"覆盖完整" },
+      { name:"方案B · 轮询增量", note:"分页轮询 + 限速",
+        steps:["打开竞品站","分页轮询抓取","限速防封","增量更新","生成比价表"],
+        tool:"轮询 + 限速 + 重试", guard:"单页失败跳过续抓", time:2.6, rate:88, err:2.6,
+        weak:"速度受限速影响", good:"稳定不易封" },
+      { name:"方案C · 接口直采", note:"抓公开接口 + 定时快照",
+        steps:["定位公开接口","按类目拉取","定时快照入库","差值计算","生成比价表 + 推送"],
+        tool:"接口直采 + 定时", guard:"接口失败自动切轮询", time:1.7, rate:92, err:2.0,
+        weak:"依赖接口可用", good:"最快且稳定" }
+    ],
+    best:"方案C 最快（1.7s），方案B 最抗限流",
+    compose:{
+      desc:"重组方案：取 C 的接口直采 + B 的限速轮询兜底 + C 的定时快照，合并为优化版 v2",
+      steps:["定位公开接口","按类目拉取","接口失败切轮询","定时快照入库","差值计算生成比价表"],
+      tool:"接口直采 + 轮询兜底 + 定时快照",
+      guard:"接口失败自动切轮询 + 快照重试",
+      time:1.5, rate:95, err:1.2
+    },
+    pattern:{ tag:"数据采集类", rec:"接口直采 + 轮询兜底 + 定时快照", gain:"耗时 -0.2s · 成功率 +3%" }
+  }
+];
+
+/* 通用兜底场景（自由输入未命中任何模板时） */
+const GENERIC = {
+  name:"通用业务自动化",
+  plans:[
+    { name:"方案A · 线性流程", note:"顺序执行、逻辑简单",
+      steps:["打开目标系统","定位数据入口","提取所需数据","执行处理逻辑","输出结果"],
+      tool:"常规工具链", guard:"失败即整体重跑", time:3.0, rate:85, err:3.0,
+      weak:"无并行与重试", good:"易于理解维护" },
+    { name:"方案B · 并行子任务", note:"拆分子任务并行",
+      steps:["拆分子任务","并行执行","合并结果","执行处理逻辑","输出结果"],
+      tool:"并行调度", guard:"子任务级重试", time:2.2, rate:90, err:2.0,
+      weak:"需任务可拆分", good:"整体更快" },
+    { name:"方案C · 检查点+重试", note:"关键步骤落检查点",
+      steps:["打开目标系统","提取数据(检查点)","处理(检查点)","失败断点续跑","输出结果"],
+      tool:"检查点 + 重试", guard:"断点续跑 + 告警", time:2.6, rate:93, err:1.5,
+      weak:"实现略复杂", good:"稳定性最高" }
+  ],
+  best:"方案C 稳定性最高（93%），方案B 耗时最低（2.2s）",
+  compose:{
+    desc:"重组方案：取 C 的检查点续跑 + B 的并行子任务 + C 的告警兜底，合并为优化版 v2",
+    steps:["拆分子任务并行","提取数据(检查点)","处理(检查点)","断点续跑","输出 + 告警兜底"],
+    tool:"并行 + 检查点 + 断点续跑",
+    guard:"子任务级重试 + 断点续跑 + 告警",
+    time:2.0, rate:96, err:0.9
+  },
+  pattern:{ tag:"通用流程类", rec:"检查点续跑 + 并行子任务 + 告警兜底", gain:"耗时 -0.2s · 成功率 +3%" }
+};
+
+let cur = null;        // 当前场景
+let probeTimer = null; // 探测动画计时器
+let composeTimer = null; // 重组延时器（重置时须清除）
+
+function matchScene(text){
+  const t = text.toLowerCase();
+  for(const s of SCENES){
+    if(s.keys.some(k => t.includes(k))) return s;
+  }
+  return GENERIC;
+}
+
+/* ---- 第一层递归：Propose ---- */
+function propose(text){
+  const scene = matchScene(text);
+  cur = scene;
+  $("planCard").style.display = "block";
+  $("probeCard").style.display = "none";
+  $("composeCard").style.display = "none";
+  document.querySelector("#planCard h2").innerHTML = `<span class="dot g"></span>Propose 输出 · 3 个候选流程方案 <span class="ab purple" style="margin-left:8px">匹配场景：${scene.name}</span>`;
+  $("plans").innerHTML = scene.plans.map((p,i)=>
+    `<div class="plan">
+      <div class="pt">${p.name}</div>
+      <ul>${p.steps.map(s=>`<li>${s}</li>`).join("")}</ul>
+      <div class="diff muted">工具：${p.tool}<br>异常策略：${p.guard}<br>✓ ${p.good}｜✗ ${p.weak}</div>
+    </div>`).join("");
+  log(`Propose：为「${scene.name}」生成 3 个候选方案（不同步骤顺序/工具/异常策略）`);
+  log(`行为差异预测：${scene.best}`);
+}
+
+/* ---- Probe：并行探测（模拟执行动画 + 行为对比表） ---- */
+function probe(){
+  if(!cur) return;
+  $("probeCard").style.display = "block";
+  const body = $("probeBody");
+  const rows = cur.plans.map((p,i)=>{
+    // 探测轮次模拟：成功率/耗时在基准值附近波动
+    const rate = Math.min(99, p.rate + (i===1?2:0) - Math.floor(Math.random()*3));
+    const time = Math.max(1.2, +(p.time + (Math.random()*0.3 - 0.1)).toFixed(1));
+    const err  = +(p.err  + (Math.random()*0.5 - 0.2)).toFixed(1);
+    return `<tr${i===cur.plans.reduce((a,p2,j)=>p2.rate>cur.plans[a].rate?j:a,0)?" class='best'":""}>
+      <td>${p.name}</td><td>${p.steps.length}</td>
+      <td>${time}s</td><td>${rate}%</td><td>${err}%</td>
+      <td>${p.good}</td></tr>`;
+  }).join("");
+  body.innerHTML = `
+    <div class="progress" id="pb"><div></div></div>
+    <div class="stat-row"><div class="s">并行执行 <b>3</b> 方案</div><div class="s">独立沙箱 <b>3</b> 个</div></div>
+    <table style="margin-top:10px">
+      <tr><th>方案</th><th>步骤数</th><th>耗时</th><th>成功率</th><th>异常率</th><th>行为特征</th></tr>
+      ${rows}
+    </table>
+    <div class="timeline">行为对比结论：${cur.best}（AI 自动标注各方案优势片段，无标准答案参与）</div>`;
+  // 探测动画
+  const bar = body.querySelector("#pb div");
+  let w = 0;
+  clearInterval(probeTimer);
+  probeTimer = setInterval(()=>{ w = Math.min(100, w+7); bar.style.width = w+"%"; if(w>=100) clearInterval(probeTimer); }, 60);
+  log(`Probe：3 个方案在独立沙箱并行执行，对比 ${cur.best}`);
+}
+
+/* ---- Compose：自动重组为 v2 ---- */
+function compose(){
+  if(!cur) return;
+  $("composeCard").style.display = "block";
+  const c = cur.compose;
+  const stepsHtml = c.steps.map(s=>`<span class="step ok">✓ ${s}</span>`).join("");
+  $("composeBody").innerHTML = `
+    <div class="recom">
+      <b>重组决策：</b>${c.desc}
+    </div>
+    <div class="steps">${stepsHtml}</div>
+    <div class="stat-row">
+      <div class="s">优化版耗时 <b style="color:#059669">${c.time}s</b> <span class="muted">(最优方案 ${cur.plans.reduce((a,p)=>p.time<a.time?p.time:a,99)}s)</span></div>
+      <div class="s">成功率 <b style="color:#059669">${c.rate}%</b></div>
+      <div class="s">异常率 <b style="color:#059669">${c.err}%</b></div>
+      <div class="s">步骤数 <b>${c.steps.length}</b> 步</div>
+    </div>
+    <div class="timeline">异常策略：${c.guard} ｜ 工具：${c.tool}</div>`;
+  log(`Compose：提取各方案优势片段重组为优化版 v2（${c.steps.length} 步 / ${c.time}s / 成功率 ${c.rate}%）`);
+
+  /* ---- 经验积累：写入模式库（localStorage） ---- */
+  savePattern();
+  renderLib();
+}
+
+/* ---- 经验积累：模式库 ---- */
+function loadLib(){ try{ return JSON.parse(localStorage.getItem("rpa_tuner_lib")||"[]"); }catch(e){ return []; } }
+function savePattern(){
+  const lib = loadLib();
+  const p = cur.pattern;
+  // 同 tag 去重更新（经验迭代）
+  const idx = lib.findIndex(x=>x.tag===p.tag);
+  const item = { tag:p.tag, name:cur.name, rec:p.rec, gain:p.gain, date:new Date().toLocaleDateString("zh-CN") };
+  if(idx>=0) lib[idx]=item; else lib.unshift(item);
+  localStorage.setItem("rpa_tuner_lib", JSON.stringify(lib.slice(0,8)));
+  log(`经验积累：策略「${p.tag}」已入库（${p.rec}）`);
+}
+function renderLib(){
+  const lib = loadLib();
+  $("libBody").innerHTML = lib.length ? lib.map(x=>
+    `<div class="lib-item"><span class="tag">${x.tag}</span>${x.name}<br>
+     <span class="muted">推荐策略：${x.rec} ｜ 收益：${x.gain} ｜ ${x.date}</span></div>`).join("")
+    : `暂无沉淀的策略。完成一次调优后，成功策略会存入模式库（localStorage），下次相似任务自动推荐。`;
+  // 第二层递归：模式库策略互相引用 → 相似任务自动推荐
+  if(lib.length>=2){
+    log(`第二层递归：模式库已有 ${lib.length} 条策略，相似任务将自动匹配推荐（${lib.map(x=>x.tag).join(" / ")}）`);
+  }
+}
+renderLib();
+
+/* ---- 事件绑定 ---- */
+$("genBtn").addEventListener("click", ()=>{
+  const text = $("reqInput").value.trim();
+  if(!text){ alert("请先描述需求，或点击上方示例"); return; }
+  propose(text);
+  clearTimeout(composeTimer);
+  setTimeout(probe, 500);
+  composeTimer = setTimeout(compose, 2200);
+});
+document.querySelectorAll(".ex").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    $("reqInput").value = b.getAttribute("data-req");
+    propose($("reqInput").value);
+    clearTimeout(composeTimer);
+    setTimeout(probe, 500);
+    composeTimer = setTimeout(compose, 2200);
+  });
+});
+$("resetBtn").addEventListener("click", ()=>{
+  $("reqInput").value = "";
+  $("planCard").style.display="none"; $("probeCard").style.display="none"; $("composeCard").style.display="none";
+  clearInterval(probeTimer);
+  clearTimeout(composeTimer);
+  logBuffer = [];
+  log("已重置。输入需求 → 多方案生成 → 并行探测 → 自动重组 → 经验入库。");
+  renderLib();
+});
+</script>
+</body>
+</html>
