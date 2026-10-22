@@ -1,0 +1,47 @@
+[
+  {
+    "标题": "Anthropic今日发布Claude Duet：主动式AI代理，连接邮件/日历/银行，关机也能在云端虚拟机继续工作",
+    "机会": "主动式RPA任务发现与执行器：①主动扫描（邮件/飞书/Excel/数据库，发现待办事项）②自动执行（发现即触发RPA流程）③云端持续运行（关机也扫描）④安全护栏（敏感操作暂停待人工审批+脱敏）⑤任务看板（可人工干预）⑥学习优化（记录人工干预决策）",
+    "指数": "4星",
+    "日期": "2026-10-22",
+    "链接": "https://claude.com/product/claude-duet",
+    "来源": "其他",
+    "标签": "AI代理,RPA,主动式自动化"
+  },
+  {
+    "标题": "ai-job-search：58K stars爆火开源AI求职框架，基于Claude Code自动评估职位/定制简历/写求职信/面试准备",
+    "机会": "RPA流程自动评估与优化器：①流程评估打分（稳定性/效率/覆盖率/可维护性）②自动优化方案③独立审核④效果验证⑤报告生成⑥经验库",
+    "指数": "4星",
+    "日期": "2026-10-22",
+    "链接": "https://github.com/MadsLorentzen/ai-job-search",
+    "来源": "GitHub",
+    "标签": "AI求职,评估优化"
+  },
+  {
+    "标题": "Omnara：今日Show HN，开源Claude Managed Agents替代品，笔记本离线时agent自动迁移云端沙箱继续运行",
+    "机会": "RPA流程断点续跑与远程监控器：①断点续跑②云端迁移③远程监控④版本化执行⑤多环境管理⑥手动接管",
+    "指数": "3星",
+    "日期": "2026-10-22",
+    "链接": "https://hn.svelte.dev/item/50183892",
+    "来源": "Hacker News",
+    "标签": "断点续跑,云端迁移"
+  },
+  {
+    "标题": "DeepSeek开源Harness(dsh)：453K行插件化agent runtime，模型/工具/技能/UI全部可替换，npx一键启动",
+    "机会": "插件化RPA运行时平台：①插件化架构②插件市场③模型无关④可视化编排⑤热插拔⑥自托管",
+    "指数": "3星",
+    "日期": "2026-10-22",
+    "链接": "https://github.com/deepseek-ai/deepseek-harness",
+    "来源": "GitHub",
+    "标签": "插件化,agent runtime"
+  },
+  {
+    "标题": "nanobrowser：开源Chrome扩展AI web自动化，多agent系统(Planner/Navigator)本地运行，OpenAI Operator免费替代",
+    "机会": "飞书/企业微信AI浏览器助手扩展：①Chrome/Edge扩展②多agent协作③国内系统适配④本地运行+企业API⑤常用操作模板",
+    "指数": "3星",
+    "日期": "2026-10-22",
+    "链接": "https://github.com/nanobrowser/nanobrowser",
+    "来源": "GitHub",
+    "标签": "浏览器扩展,多agent"
+  }
+]

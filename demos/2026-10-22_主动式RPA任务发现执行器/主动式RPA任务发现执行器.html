@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主动式RPA任务发现与执行器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#0d0f14;color:#e6e9f0;min-height:100vh;padding:20px}
+.wrap{max-width:1100px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+h1{font-size:22px;background:linear-gradient(90deg,#8b5cf6,#06b6d4);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:800}
+h1 .sub{display:block;font-size:12px;color:#7a8294;-webkit-text-fill-color:#7a8294;font-weight:400;margin-top:4px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:6px 14px;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.g{background:#22c55e;box-shadow:0 0 8px #22c55e}
+.dot.r{background:#ef4444;box-shadow:0 0 8px #ef4444}
+.card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{font-size:15px;color:#c7cbd6;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ab{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.ab.purple{background:rgba(139,92,246,.18);color:#b7a0ff;border:1px solid rgba(139,92,246,.35)}
+.ab.cyan{background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.35)}
+.ab.green{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.35)}
+.ab.orange{background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.35)}
+.ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+button{cursor:pointer;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#e6e9f0;padding:8px 16px;border-radius:10px;font-size:13px;transition:.15s}
+button:hover{background:rgba(255,255,255,.14)}
+button.primary{background:linear-gradient(135deg,#8b5cf6,#06b6d4);border:none;font-weight:600}
+button.primary:hover{filter:brightness(1.1)}
+button.ok{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4);color:#86efac}
+button.no{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.4);color:#fca5a5}
+button:disabled{opacity:.4;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:5px 10px;font-size:12px;color:#9aa1b2}
+.chip .dot{width:6px;height:6px}
+.tog{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#9aa1b2}
+.tog input{accent-color:#8b5cf6;width:34px;height:18px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;text-align:center}
+.stat b{display:block;font-size:22px;margin-bottom:2px}
+.stat span{font-size:11px;color:#7a8294}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{color:#7a8294;text-align:left;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.1);font-weight:500}
+td{padding:9px 6px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.03)}
+.st{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.st.wait{background:rgba(249,115,22,.18);color:#fdba74}
+.st.run{background:rgba(6,182,212,.18);color:#67e8f9}
+.st.done{background:rgba(34,197,94,.18);color:#86efac}
+.st.rej{background:rgba(239,68,68,.18);color:#fca5a5}
+.st.pause{background:rgba(160,174,192,.18);color:#cbd5e1}
+.st.skip{background:rgba(139,92,246,.18);color:#c4b5fd}
+.mask{color:#f59e0b}
+.actions button{font-size:11px;padding:4px 10px;margin-right:6px;border-radius:8px}
+.exec{display:none}
+.exec .steps{margin-top:8px}
+.step{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;background:rgba(255,255,255,.03);margin-bottom:4px;font-size:12.5px}
+.step .no{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.step.done .no{background:rgba(34,197,94,.25);color:#86efac}
+.step.done{opacity:.65}
+.step.now{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.35)}
+.step.now .no{background:rgba(139,92,246,.3);color:#c4b5fd}
+.step .t{flex:1}
+.rules{display:flex;flex-direction:column;gap:6px}
+.rule{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 10px;font-size:12px;display:flex;gap:8px;align-items:center}
+.rule b{color:#86efac;font-size:11px;white-space:nowrap}
+.log{background:rgba(0,0,0,.3);border-radius:10px;padding:12px;font-size:12px;line-height:1.9;max-height:220px;overflow:auto;font-family:ui-monospace,monospace}
+.log .t{color:#5b6478;margin-right:8px}
+.empty{color:#5b6478;font-size:12px;padding:10px 4px}
+.grp{display:flex;gap:14px;flex-wrap:wrap}
+.grp>div{flex:1;min-width:280px}
+@media(max-width:640px){
+  .stats{grid-template-columns:repeat(3,1fr)}
+  th,td{font-size:11.5px}
+  th:nth-child(2),td:nth-child(2){display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>主动式RPA任务发现与执行器<span class="sub">参考 Claude Duet 主动代理 · 扫描 → 决策 → 执行 → 学习，让流程自己找活干</span></h1>
+    <div class="badge"><span class="dot g"></span>云端运行中 · 电脑关机也持续扫描</div>
+  </header>
+
+  <!-- 控制栏 -->
+  <div class="card">
+    <h2><span class="dot cyan"></span>主动扫描引擎 <span class="ab cyan">Scan</span></h2>
+    <div class="ctrl">
+      <button id="scanBtn" class="primary">立即扫描 4 个数据源</button>
+      <span class="chip"><span class="dot g"></span>邮件</span>
+      <span class="chip"><span class="dot g"></span>飞书消息</span>
+      <span class="chip"><span class="dot g"></span>Excel/数据库</span>
+      <span class="chip"><span class="dot g"></span>ERP 工单</span>
+      <label class="tog">自动来任务 <input type="checkbox" id="autoTog" checked></label>
+      <span class="ab purple" id="scanMeta">上次扫描：-</span>
+    </div>
+    <div class="stats" style="margin-top:12px">
+      <div class="stat"><b id="sFound">0</b><span>已发现</span></div>
+      <div class="stat"><b id="sWait">0</b><span>待审批</span></div>
+      <div class="stat"><b id="sRun">0</b><span>执行中</span></div>
+      <div class="stat"><b id="sDone">0</b><span>已完成</span></div>
+      <div class="stat"><b id="sRej">0</b><span>被驳回/暂停</span></div>
+    </div>
+  </div>
+
+  <!-- 任务看板 -->
+  <div class="card">
+    <h2><span class="dot orange"></span>任务看板 <span class="ab orange">Board</span><span class="ab purple" style="margin-left:auto">敏感操作自动暂停 · 敏感信息自动脱敏</span></h2>
+    <div id="boardWrap"><div class="empty">尚无任务——点「立即扫描」让云端开始发现待办事项。</div></div>
+  </div>
+
+  <!-- 执行区 -->
+  <div class="card exec" id="execCard">
+    <h2><span class="dot g"></span>云端自动执行 <span class="ab green">Execute</span><span id="execName" class="ab cyan" style="margin-left:auto"></span></h2>
+    <div class="steps" id="steps"></div>
+  </div>
+
+  <!-- 规则库 + 日志 -->
+  <div class="grp">
+    <div class="card">
+      <h2><span class="dot purple"></span>学习优化 · 我的规则库 <span class="ab purple">Learn</span></h2>
+      <div class="rules" id="rules"><div class="empty">暂无人工干预记录——每次审批/驳回都会沉淀为规则。</div></div>
+    </div>
+    <div class="card">
+      <h2><span class="dot cyan"></span>决策审计日志</h2>
+      <div class="log" id="log">— 云端启动，等待扫描 —</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 工具函数 ============ */
+const $ = id => document.getElementById(id);
+function log(txt){
+  const l = $("log");
+  const time = new Date().toTimeString().slice(0,8);
+  l.innerHTML = `<div><span class="t">${time}</span>${txt}</div>` + l.innerHTML;
+  while(l.children.length > 60) l.lastChild.remove();
+}
+function mask(str){ // 敏感信息脱敏：连续 8+ 位数字（卡号/手机号）打码
+  return str.replace(/\d{8,}/g, m => m.slice(0,2) + "****" + m.slice(-2));
+}
+function refreshStats(){
+  $("sFound").textContent = tasks.length;
+  $("sWait").textContent = tasks.filter(t=>t.st==="wait").length;
+  $("sRun").textContent  = tasks.filter(t=>t.st==="run").length;
+  $("sDone").textContent = tasks.filter(t=>t.st==="done").length;
+  $("sRej").textContent  = tasks.filter(t=>["rej","pause","skip"].includes(t.st)).length;
+}
+
+/* ============ 数据源与任务池 ============ */
+const SOURCES = {mail:"邮件", feishu:"飞书消息", excel:"Excel/数据库", erp:"ERP 工单"};
+
+// 任务模板：id / 来源 / 分类 / 内容 / 敏感(需审批) / 触发流程(步骤)
+const POOL = [
+  {src:"mail", cat:"客户服务", body:"客户张先生申请退款 ¥5,800（订单 #20261022-8）", sensitive:true, steps:["校验订单与支付记录","核对退款银行卡信息","发起退款 ¥5,800（付款类敏感操作）","发送退款通知邮件","归档客服工单"]},
+  {src:"feishu", cat:"财务", body:"供应商发票 INV-0921 将于 3 天后到期，金额 ¥128,000", sensitive:false, steps:["读取发票到期台账","核对已收票/已付款状态","生成付款提醒推送给财务","更新发票到期状态"]},
+  {src:"excel", cat:"数据", body:"门店销售表发现本月异常：华东区环比 -38%", sensitive:false, steps:["读取销售明细表","按区域/品类聚合对比","标记异常数据点","生成异常核查报告","推送数据负责人复核"]},
+  {src:"erp", cat:"供应链", body:"库存预警：SKU-8832 仅剩 12 件，低于安全库存", sensitive:false, steps:["读取库存快照","对比安全库存阈值","生成补货建议单","推送采购负责人"]},
+  {src:"mail", cat:"IT", body:"离职员工账号权限待回收（工单 #8821，王某某）", sensitive:true, steps:["读取离职流程状态","生成权限回收清单（修改数据类敏感操作）","执行账号冻结","通知 IT 复核"]},
+  {src:"feishu", cat:"客户服务", body:"客户反馈账单金额有误，要求更正后重新开票", sensitive:true, steps:["核对原账单与开票记录","生成更正金额方案","重新开票（修改数据类敏感操作）","发送确认消息"]},
+  {src:"excel", cat:"财务", body:"月末对账：银行流水与账面差异 ¥3,240，超阈值", sensitive:false, steps:["拉取银行流水","与账面逐笔匹配","列出差异明细","生成对账差异报告"]},
+  {src:"erp", cat:"合规", body:"合同 CM-118 将于 7 天后到期，需续签评估", sensitive:false, steps:["读取合同到期台账","生成续签评估清单","推送法务与业务负责人"]},
+  {src:"mail", cat:"数据", body:"周报数据源更新失败，指标看板连续 2 小时无新数据", sensitive:false, steps:["检查数据源连接","重跑增量抽取任务","校验指标完整性","告警数据负责人"]},
+  {src:"feishu", cat:"财务", body:"付款审批完成：供应商货款 ¥86,000 待执行支付", sensitive:true, steps:["读取审批单状态","核对供应商账户","执行支付 ¥86,000（付款类敏感操作）","更新付款台账","通知财务归档"]}
+];
+
+let tasks = [];       // 任务列表
+let rules = [];       // 学习规则
+let poolIdx = 0;      // 任务池游标
+let autoTimer = null; // 自动来任务定时器
+let curExec = null;   // 当前激活执行任务
+
+/* ============ 扫描：发现任务 ============ */
+function scan(){
+  const batch = 2; // 每次扫描发现最多 2 条新事项
+  let found = 0;
+  for(let i=0;i<batch && poolIdx<POOL.length;i++){
+    const tpl = POOL[poolIdx++];
+    const id = "T" + String(1001 + tasks.length).slice(-4);
+    const t = {id, ...tpl, st: tpl.sensitive ? "wait" : "run", stepsNow:0};
+    tasks.unshift(t);
+    found++;
+    log(`<b style="color:#67e8f9">Scan</b> ${SOURCES[tpl.src]} 发现新事项：${mask(tpl.body)}（${tpl.cat}${tpl.sensitive ? " · 敏感·需审批" : ""}）`);
+    if(t.st === "run") startExec(t); // 非敏感任务自动开始执行
+  }
+  const d = new Date();
+  $("scanMeta").textContent = `上次扫描：${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")} · 发现 ${found} 条`;
+  renderBoard();
+  refreshStats();
+}
+
+/* ============ 自动来任务（云端持续运行模拟） ============ */
+function startAuto(){
+  stopAuto();
+  autoTimer = setInterval(()=>{
+    if(poolIdx >= POOL.length){ stopAuto(); $("autoTog").checked = false; return; }
+    scan();
+  }, 9000);
+}
+function stopAuto(){ clearInterval(autoTimer); }
+
+/* ============ 执行：云端心跳推进（多任务并行，互不覆盖） ============ */
+function startExec(t){
+  t.st = "run";
+  t.stepsNow = 0;
+  curExec = t;
+  renderBoard();
+  renderExec(t);
+  log(`<b style="color:#86efac">Execute</b> ${t.id} 自动执行「${t.cat}流程」…`);
+}
+// 全局心跳：每 650ms 推进所有「执行中」任务，暂停的任务自然停住
+setInterval(()=>{
+  let changed = false;
+  tasks.forEach(t=>{
+    if(t.st !== "run") return;
+    t.stepsNow++;
+    if(t.stepsNow >= t.steps.length){
+      t.st = "done";
+      log(`<b style="color:#86efac">Done</b> ${t.id} ${t.cat}流程执行完成（${t.steps.length} 步）`);
+      changed = true;
+      if(curExec && curExec.id === t.id){ curExec = null; $("execCard").style.display = "none"; }
+    }
+  });
+  if(changed){ renderBoard(); refreshStats(); }
+  else if(curExec){ renderExec(curExec); }
+}, 650);
+function renderExec(t){
+  curExec = t;
+  $("execCard").style.display = "block";
+  $("execName").textContent = `${t.id} · ${t.cat}流程 · 进度 ${t.stepsNow}/${t.steps.length}`;
+  $("steps").innerHTML = t.steps.map((s,i)=>{
+    const cls = i < t.stepsNow ? "done" : i === t.stepsNow ? "now" : "";
+    return `<div class="step ${cls}"><span class="no">${i+1}</span><span class="t">${s}</span></div>`;
+  }).join("");
+}
+
+/* ============ 看板渲染 + 人工干预 ============ */
+function renderBoard(){
+  const wrap = $("boardWrap");
+  if(!tasks.length){ wrap.innerHTML = `<div class="empty">尚无任务——点「立即扫描」让云端开始发现待办事项。</div>`; return; }
+  wrap.innerHTML = `<table><tr><th>任务ID</th><th>来源</th><th>内容（已脱敏）</th><th>分类</th><th>优先级</th><th>状态</th><th>操作</th></tr>${
+    tasks.map(t=>{
+      const stMap = {wait:"待审批", run:"执行中", done:"已完成", rej:"已驳回", pause:"已暂停", skip:"已跳过"};
+      const stCls = {wait:"st wait", run:"st run", done:"st done", rej:"st rej", pause:"st pause", skip:"st skip"};
+      const act = t.st==="wait"
+        ? `<button class="ok" onclick="approve('${t.id}')">批准</button><button class="no" onclick="reject('${t.id}')">驳回</button><button onclick="pause('${t.id}')">暂停</button>`
+        : t.st==="run" ? `<button onclick="pause('${t.id}')">暂停</button>`
+        : t.st==="pause" ? `<button class="ok" onclick="resume('${t.id}')">继续</button><button onclick="skip('${t.id}')">跳过</button>`
+        : `<span class="empty">—</span>`;
+      return `<tr><td><b>${t.id}</b></td><td>${SOURCES[t.src]}</td><td>${t.sensitive ? `<span class="mask">🔒 ${mask(t.body)}</span>` : mask(t.body)}</td>
+        <td>${t.cat}</td><td>${t.sensitive ? "🔴 敏感" : "⚪ 常规"}</td>
+        <td><span class="${stCls[t.st]}">${stMap[t.st]}</span></td><td class="actions">${act}</td></tr>`;
+    }).join("")
+  }</table>`;
+}
+function approve(id){
+  const t = tasks.find(x=>x.id===id); if(!t || t.st!=="wait") return;
+  learn(id, "批准：敏感操作放行");
+  log(`<b style="color:#86efac">Approve</b> ${id} 已人工批准，继续自动执行`);
+  startExec(t);
+  refreshStats();
+}
+function reject(id){
+  const t = tasks.find(x=>x.id===id); if(!t || t.st!=="wait") return;
+  t.st = "rej";
+  learn(id, "驳回：该操作不应执行");
+  log(`<b style="color:#fca5a5">Reject</b> ${id} 已人工驳回，流程终止`);
+  renderBoard(); refreshStats();
+}
+function pause(id){
+  const t = tasks.find(x=>x.id===id); if(!t) return;
+  if(t.st==="run"){ t.st="pause"; learn(id, "暂停：执行中途人工介入"); log(`<b style="color:#cbd5e1">Pause</b> ${id} 已暂停（心跳暂停推进）`); }
+  else if(t.st==="wait"){ t.st="pause"; learn(id, "暂停：审批前挂起"); log(`<b style="color:#cbd5e1">Pause</b> ${id} 已暂停（待审批）`); }
+  renderBoard(); refreshStats();
+}
+function resume(id){
+  const t = tasks.find(x=>x.id===id); if(!t || t.st!=="pause") return;
+  if(t.stepsNow>0){ // 从断点继续
+    t.st="run"; curExec=t; renderBoard(); renderExec(t);
+    log(`<b style="color:#86efac">Resume</b> ${id} 从第 ${t.stepsNow+1} 步断点继续执行`);
+  } else if(t.sensitive){ t.st="wait"; log(`<b style="color:#fdba74">Resume</b> ${id} 恢复为待审批`); renderBoard(); }
+  refreshStats();
+}
+function skip(id){
+  const t = tasks.find(x=>x.id===id); if(!t) return;
+  t.st="skip"; learn(id, "跳过：无需自动处理"); log(`<b style="color:#c4b5fd">Skip</b> ${id} 已跳过`); renderBoard(); refreshStats();
+}
+
+/* ============ 学习：决策沉淀规则 ============ */
+function learn(id, action){
+  const t = tasks.find(x=>x.id===id); if(!t) return;
+  // 同类型决策去重更新
+  const idx = rules.findIndex(r=>r.cat===t.cat);
+  const rule = {cat:t.cat, action, at:new Date().toLocaleTimeString("zh-CN",{hour12:false}), sample:t.id};
+  if(idx>=0) rules[idx] = rule; else rules.push(rule);
+  renderRules();
+}
+function renderRules(){
+  const box = $("rules");
+  if(!rules.length){ box.innerHTML = `<div class="empty">暂无人工干预记录——每次审批/驳回都会沉淀为规则。</div>`; return; }
+  box.innerHTML = rules.map(r=>`<div class="rule"><b>${r.cat}</b><span>${r.action}</span><span class="t" style="color:#5b6478;margin-left:auto">${r.sample} · ${r.at}</span></div>`).join("");
+}
+
+/* ============ 事件绑定 ============ */
+$("scanBtn").addEventListener("click", scan);
+$("autoTog").addEventListener("change", e=> e.target.checked ? startAuto() : stopAuto());
+window.addEventListener("load", ()=>{ startAuto(); log("云端调度器已启动：每 9s 扫描一次（模拟），敏感操作自动暂停等待人工审批"); });
+</script>
+</body>
+</html>
