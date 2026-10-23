@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI编译式RPA流程生成器</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1c2333;--muted:#68718a;--line:#e3e7f0;--primary:#2f5cf6;--primary-soft:#eaefff;--ok:#0f9d6e;--ok-soft:#e3f7ef;--warn:#c77700;--warn-soft:#fdf3e0;--bad:#d64545;--bad-soft:#fdeaea;--code:#12172b;--code-ink:#c9d4ff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:18px 14px 60px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto}
+header{text-align:center;margin-bottom:16px}
+.badge{display:inline-block;background:var(--primary-soft);color:var(--primary);font-size:12px;padding:3px 12px;border-radius:20px}
+h1{font-size:26px;margin:8px 0 4px}
+.sub{color:var(--muted);font-size:13px;max-width:720px;margin:0 auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h2 .no{background:var(--primary);color:#fff;width:20px;height:20px;border-radius:50%;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+textarea{width:100%;min-height:74px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;background:#fafbff}
+textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+.chip{background:var(--primary-soft);color:var(--primary);border:none;border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer}
+.chip:hover{filter:brightness(.95)}
+label.lbl{font-size:12px;color:var(--muted);display:block;margin:10px 0 4px}
+.modes{display:flex;gap:10px;flex-wrap:wrap}
+.mode{flex:1;min-width:150px;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer;background:#fff}
+.mode.on{border-color:var(--primary);background:var(--primary-soft)}
+.mode b{display:block;font-size:13px;color:var(--ink)}
+select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;background:#fff;font-family:inherit}
+button.btn{border:none;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-p{background:var(--primary);color:#fff}
+.btn-s{background:var(--ok);color:#fff}
+.btn-w{background:var(--warn);color:#fff}
+.btn-g{background:#eceff5;color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.plan li{list-style:none;display:flex;gap:8px;font-size:13px;padding:6px 8px;border-radius:8px;align-items:flex-start}
+.plan li:nth-child(odd){background:#f6f8fd}
+.plan .n{color:var(--primary);font-weight:700;flex:none;font-family:ui-monospace,monospace}
+pre{background:var(--code);color:var(--code-ink);border-radius:10px;padding:12px;font-size:11.5px;line-height:1.7;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre}
+pre .cm{color:#5b6b9d}
+pre .diff{background:rgba(255,196,60,.22);display:block;border-radius:4px}
+.ver-tag{display:inline-block;background:var(--ok-soft);color:var(--ok);font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;margin-left:8px}
+.log{background:#0f1322;color:#aebadb;border-radius:10px;padding:12px;font-size:12px;font-family:ui-monospace,Menlo,monospace;min-height:150px;max-height:280px;overflow-y:auto;line-height:1.9}
+.log .t{color:#5b6b9d;margin-right:6px}
+.log .ok{color:#4cd696}.log .ai{color:#f4b64c}.log .err{color:#ff7b7b}.log .run{color:#7ea6ff}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.statc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;min-width:0}
+.statc b{font-size:22px;color:var(--primary);display:block}
+.statc span{font-size:11px;color:var(--muted)}
+.statc small{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
+.banner{display:none;border-radius:10px;padding:10px 14px;font-size:13px;margin-top:10px;align-items:center;gap:10px;flex-wrap:wrap}
+.banner.show{display:flex}
+.banner.warn{background:var(--bad-soft);color:var(--bad)}
+.banner.ok{background:var(--ok-soft);color:var(--ok)}
+.pill{display:inline-block;font-size:11px;padding:1px 9px;border-radius:10px;background:var(--primary-soft);color:var(--primary);margin-left:6px}
+.pill.zero{background:var(--ok-soft);color:var(--ok)}
+footer{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}h1{font-size:21px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="badge">参考 Airtop · 规划与执行分离 · 编译式 RPA</span>
+  <h1>🛠️ AI编译式RPA流程生成器</h1>
+  <p class="sub">传统 LLM Agent 每次执行都要推理——贵且不稳定。编译式思路：AI 只在<b>构建时推理一次</b>，把自然语言需求<b>编译成确定性流程代码</b>，之后每次运行零 LLM 调用；网站改版时自动检测失败，AI 修复一次并重新编译。下方完整演示这条链路。</p>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2><span class="no">1</span>业务需求（自然语言）</h2>
+    <div class="chips">
+      <button class="chip" data-i="0">ERP销售日报→飞书群</button>
+      <button class="chip" data-i="1">竞品价格表→Excel</button>
+      <button class="chip" data-i="2">OA待审批单→汇总</button>
+    </div>
+    <textarea id="inp" placeholder="用一句话描述你的自动化需求，如：每天早上 8 点从 ERP 导出销售报表，整理后发到飞书群"></textarea>
+    <label class="lbl">运行模式（对比两种架构）</label>
+    <div class="modes">
+      <div class="mode on" id="mCompile"><b>⚙️ 编译模式</b>规划一次 · 运行零推理</div>
+      <div class="mode" id="mAgent"><b>🤖 LLM Agent 模式</b>每次运行都推理</div>
+    </div>
+    <label class="lbl">注入网站改版（测试自愈能力，影响下一次运行）</label>
+    <select id="injectSel">
+      <option value="">— 不注入，保持网站现状 —</option>
+      <option value="btn">导出按钮文案变更（"导出数据"→"下载报表"）</option>
+      <option value="menu">报表菜单层级加深（新增二级目录）</option>
+    </select>
+    <div class="row">
+      <button class="btn btn-p" id="btnBuild" disabled>① AI 规划并编译</button>
+      <button class="btn btn-s" id="btnRun" disabled>② 运行流程</button>
+      <button class="btn btn-g" id="btnReset">重置</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="no">2</span>AI 规划结果 <span class="ver-tag" id="verTag" style="display:none">v1.0</span></h2>
+    <div id="planEmpty" style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center">尚未编译 —— 输入需求后点「AI 规划并编译」</div>
+    <ul class="plan" id="planSteps" style="display:none"></ul>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2><span class="no">3</span>编译产物 · 确定性流程代码 <span class="pill" id="langPill" style="display:none">Python + Playwright</span></h2>
+    <div id="codeEmpty" style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center">编译完成后在此生成可审计的流程代码</div>
+    <pre id="codeBox" style="display:none"></pre>
+  </div>
+
+  <div class="card">
+    <h2><span class="no">4</span>运行监控</h2>
+    <div class="log" id="logBox"><span class="t">--:--:--</span><span style="color:#5b6b9d">等待操作…（编译 → 运行；可注入改版观察自愈）</span></div>
+    <div class="banner warn" id="bannerFail">⚠️ <b id="failMsg"></b><button class="btn btn-w" id="btnHeal" style="padding:6px 14px;font-size:13px">AI 自愈并重新编译</button></div>
+    <div class="banner ok" id="bannerOk">✅ <span id="okMsg"></span></div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="statc"><b id="stRuns">0</b><span>累计运行次数</span></div>
+  <div class="statc"><b id="stLLM">0</b><span>本次 LLM 调用</span><small id="llmNote">编译 1 次 + 自愈按需</small></div>
+  <div class="statc"><b id="stAgent">0</b><span>若全程 Agent 需推理</span><small>每次运行 × 6 步</small></div>
+  <div class="statc"><b id="stSave">$0.00</b><span>推理成本节省</span><small>按 $0.02/次估算</small></div>
+</div>
+
+<footer>AI编译式RPA流程生成器 · Demo 数据为固化示例 · 2026-10-23</footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- 示例数据（固化） ---------- */
+const SCENARIOS=[
+ {title:"每天早上8点从ERP导出销售报表，整理后发到飞书群",steps:[
+   "启动浏览器，打开 ERP 系统（复用保存的登录态）",
+   "进入「报表中心 → 销售明细」页面",
+   "按昨日日期筛选，点击「导出数据」下载 CSV",
+   "本地整理：去重、按区域汇总、格式化日期",
+   "上传汇总表到飞书群并 @值班同事"],
+  code:["page.goto(\"https://erp.company.com\")","page.click(\"#menu-report\") // 报表中心","page.fill(\"#date-range\", yesterday)","page.click(\"#export-btn\") // 导出数据","df = clean(df)  # 去重/汇总/日期","feishu.upload(\"销售日报.xlsx\")"]},
+ {title:"每周采集 3 家竞品价格表，更新到 Excel 对比表",steps:[
+   "打开竞品 A 官网产品页，采集价格列",
+   "打开竞品 B 商城，翻页采集在售价",
+   "打开竞品 C 旗舰店，采集促销价与库存",
+   "合并写入「竞品价格对比.xlsx」并标注采集时间",
+   "若任一价格波动 >10%，发送预警到邮箱"],
+  code:["for site in [A, B, C]:","    prices = scrape(site)  # 采集价格列","df = merge(prices)  # 合并对比","excel.update(\"竞品价格对比.xlsx\")","if spike(df): mail.alert(\"价格波动>10%\")"]},
+ {title:"每日登录 OA 下载待审批单据，汇总成催办清单",steps:[
+   "登录 OA 系统，进入「待我审批」列表",
+   "分页抓取全部待审批单据（编号/类型/提交人/天数）",
+   "标记挂起超过 3 天的单据为「催办」",
+   "生成催办清单 Excel 并按类型分组",
+   "把清单回发 OA 站内信给对应审批人"],
+  code:["page.goto(\"https://oa.company.com/approve\")","rows = paginate(\"#todo-list\")  // 分页抓取","flag(rows, days>3)  // 标记催办","excel.save(\"催办清单.xlsx\")","oa.notify(approvers)"]}],
+ PATCHES={btn:{step:2,msg:"执行失败：未找到「导出数据」按钮——网站已改版，按钮文案变为「下载报表」",fix:"page.get_by_text(\"下载报表\")  # 自愈：文案选择器",diffIdx:3},
+          menu:{step:1,msg:"执行失败：菜单「报表中心」不可达——网站已改版，新增了二级目录「数据中心」",fix:"page.click(\"#menu-data > #menu-report\")  // 自愈：二级目录",diffIdx:1}};
+const PRICE=0.02, STEPS=6;
+
+/* ---------- 状态 ---------- */
+let S={sc:0,mode:"compile",ver:1.0,built:false,runs:0,llm:0,patch:null,healing:false,failedStep:-1,busy:false};
+
+/* ---------- 工具 ---------- */
+const $=id=>document.getElementById(id);
+const now=()=>new Date().toTimeString().slice(0,8);
+function log(cls,txt){const d=document.createElement("div");d.innerHTML='<span class="t">'+now()+'</span><span class="'+cls+'">'+txt+'</span>';$("logBox").appendChild(d);$("logBox").scrollTop=1e9;}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function stat(){$("stRuns").textContent=S.runs;$("stLLM").textContent=S.llm;
+  const agent=S.runs*STEPS;$("stAgent").textContent=agent;
+  $("stSave").textContent="$"+((agent-S.llm)*PRICE).toFixed(2);
+  $("llmNote").textContent=S.mode==="compile"?"编译 1 次 + 自愈按需":"每次运行 × 6 步推理";}
+function lock(b){S.busy=b;$("btnBuild").disabled=b||!$("inp").value.trim();$("btnRun").disabled=b||!S.built||S.healing;$("btnReset").disabled=b;}
+
+/* ---------- 模式切换 ---------- */
+$("mCompile").onclick=()=>setMode("compile");
+$("mAgent").onclick=()=>setMode("agent");
+function setMode(m){if(S.busy)return;S.mode=m;$("mCompile").classList.toggle("on",m==="compile");$("mAgent").classList.toggle("on",m==="agent");
+  log("run",m==="compile"?"已切换到 ⚙️ 编译模式：规划一次，运行零推理":"已切换到 🤖 LLM Agent 模式：每次运行都将推理 6 步");stat();}
+
+/* ---------- 输入与示例 ---------- */
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{if(S.busy)return;$("inp").value=SCENARIOS[+c.dataset.i].title;S.sc=+c.dataset.i;$("btnBuild").disabled=false;});
+$("inp").oninput=()=>{$("btnBuild").disabled=S.busy||!$("inp").value.trim();S.sc=/飞书/.test($("inp").value)?0:/竞品|价格/.test($("inp").value)?1:/OA|审批/.test($("inp").value)?2:S.sc;};
+
+/* ---------- ① 规划并编译 ---------- */
+$("btnBuild").onclick=()=>{
+  if(S.busy||!$("inp").value.trim())return;const sc=SCENARIOS[S.sc];
+  lock(true);$("planEmpty").style.display="none";$("codeEmpty").style.display="none";
+  log("ai","🤖 [AI 规划] 正在理解需求：「"+sc.title+"」…");
+  setTimeout(()=>{log("ai","🤖 [AI 规划] 拆解出 "+sc.steps.length+" 个步骤，选择工具链：Playwright + pandas");
+    const ul=$("planSteps");ul.innerHTML=sc.steps.map((s,i)=>'<li><span class="n">S'+(i+1)+'</span><span>'+s+'</span></li>').join("");ul.style.display="block";
+    log("ai","🤖 [AI 编译] 将步骤编译为确定性流程代码（构建时推理，仅此一次）…");
+    setTimeout(()=>{
+      S.llm++;stat();
+      const lines=['<span class="cm"># AI 编译产物 · 确定性执行 · 运行时零 LLM 调用</span>','<span class="cm"># 需求：'+esc(sc.title)+'</span>','flow = Flow("'+sc.title.slice(0,12)+'…")'];
+      sc.code.forEach(l=>lines.push(esc(l)));
+      $("codeBox").innerHTML=lines.join("\n");$("codeBox").style.display="block";$("langPill").style.display="inline-block";
+      S.built=true;S.ver=1.0;S.patch=$("injectSel").value||null;
+      $("verTag").style.display="inline-block";$("verTag").textContent="v1.0";
+      log("ok","✅ 编译完成 v1.0 —— 之后每次运行 0 次 LLM 调用，可审计、可回放");
+      $("bannerOk").classList.remove("show");
+      lock(false);stat();
+    },700);},600);
+};
+
+/* ---------- ② 运行 ---------- */
+$("btnRun").onclick=()=>{
+  if(S.busy||!S.built||S.healing)return;const sc=SCENARIOS[S.sc];lock(true);
+  const patch=S.patch&&$("injectSel").value?PATCHES[$("injectSel").value]:null;
+  const injected=S.patch&&$("injectSel").value;
+  $("bannerOk").classList.remove("show");
+  if(S.mode==="agent")log("run","🤖 [LLM Agent 模式] 第 "+(S.runs+1)+" 次运行：每一步都实时推理…");
+  else log("run","⚙️ [编译模式] 第 "+(S.runs+1)+" 次运行：执行编译产物 v"+S.ver.toFixed(1)+"（0 次 LLM 调用）");
+  let i=0;
+  const tick=()=>{
+    if(i>=sc.steps.length){
+      S.runs++;stat();
+      if(S.mode==="agent"){S.llm+=STEPS;log("ok","✅ 运行成功（Agent 全程推理，本次消耗 "+STEPS+" 次 LLM 调用）");}
+      else log("ok","✅ 运行成功（确定性执行，本次 0 次 LLM 调用）");
+      $("okMsg").textContent="第 "+S.runs+" 次运行完成 · "+(S.mode==="compile"?"零推理 · ":"Agent 推理 "+STEPS+" 次 · ")+"累计节省 $"+((S.runs*STEPS-S.llm)*PRICE).toFixed(2);
+      $("bannerOk").classList.add("show");
+      $("injectSel").value="";S.patch=null;lock(false);stat();return;}
+    if(patch&&i===patch.step&&!S.healing){
+      log("err","❌ S"+(i+1)+" "+patch.msg);
+      $("failMsg").textContent=patch.msg;S.failedStep=i;
+      if(S.mode==="agent"){
+        log("ai","🤖 [Agent] 检测到改版，现场推理适配…（这就是 Agent 模式：改版也要花一次推理）");
+        setTimeout(()=>{S.llm+=STEPS+1;S.runs++;stat();log("ok","✅ Agent 现场适配成功（本次共消耗 "+(STEPS+1)+" 次 LLM 调用）");
+          $("okMsg").textContent="Agent 模式自适应成功 · 累计已推理 "+S.llm+" 次";$("bannerOk").classList.add("show");
+          $("injectSel").value="";S.patch=null;lock(false);stat();},900);
+      }else{
+        S.healing=true;$("bannerFail").classList.add("show");
+        log("ai","🛡️ [自愈守卫] 已捕获失败，等待 AI 修复（规划与执行分离：修复后重新编译）");lock(false);}
+      return;}
+    if(S.mode==="agent")log("run","🤖 推理 S"+(i+1)+" → "+sc.steps[i]);
+    else log("ok","⚡ S"+(i+1)+" "+sc.steps[i]+"（确定性执行）");
+    i++;setTimeout(tick,420);
+  };
+  setTimeout(tick,300);
+};
+
+/* ---------- AI 自愈并重新编译 ---------- */
+$("btnHeal").onclick=()=>{
+  if(!S.healing||S.busy)return;const sc=SCENARIOS[S.sc];const pv=$("injectSel").value;const patch=PATCHES[pv];lock(true);
+  $("bannerFail").classList.remove("show");
+  log("ai","🤖 [AI 自愈] 分析失败原因（第 "+(S.failedStep+1)+" 步）…");
+  setTimeout(()=>{
+    S.llm++;S.ver=Math.round((S.ver+0.1)*10)/10;
+    log("ai","🤖 [AI 自愈] 定位到选择器失效，已修补代码并重新编译 → v"+S.ver.toFixed(1)+"（本次仅 +1 次 LLM 调用）");
+    // 更新代码块：对应行高亮为修复后代码
+    const lines=['<span class="cm"># AI 编译产物 · 确定性执行 · 运行时零 LLM 调用</span>','<span class="cm"># 需求：'+esc(sc.title)+'（v'+S.ver.toFixed(1)+' 自愈修补）</span>','flow = Flow("'+sc.title.slice(0,12)+'…")'];
+    sc.code.forEach((l,idx)=>{
+      if(idx===patch.diffIdx)lines.push('<span class="diff">'+esc(patch.fix)+'</span>');
+      else lines.push(esc(l));});
+    $("codeBox").innerHTML=lines.join("\n");
+    $("verTag").textContent="v"+S.ver.toFixed(1);
+    log("ok","✅ 重新编译完成 v"+S.ver.toFixed(1)+" —— 下次运行回到零推理");
+    S.healing=false;S.failedStep=-1;S.patch=null;$("injectSel").value="";
+    lock(false);stat();
+  },800);
+};
+
+/* ---------- 注入改版提示 ---------- */
+$("injectSel").onchange=()=>{S.patch=$("injectSel").value||null;
+  if(S.patch)log("run","🧪 已注入网站改版（"+$("injectSel").selectedOptions[0].text+"）——下一次运行将触发自愈链路");
+  else log("run","已取消改版注入");};
+
+/* ---------- 重置 ---------- */
+$("btnReset").onclick=()=>{
+  if(S.busy)return;
+  S={sc:0,mode:S.mode,ver:1.0,built:false,runs:0,llm:0,patch:null,healing:false,failedStep:-1,busy:false};
+  $("inp").value="";$("injectSel").value="";
+  $("planSteps").style.display="none";$("planEmpty").style.display="block";
+  $("codeBox").style.display="none";$("codeEmpty").style.display="block";$("langPill").style.display="none";
+  $("verTag").style.display="none";$("bannerFail").classList.remove("show");$("bannerOk").classList.remove("show");
+  $("logBox").innerHTML='<span class="t">'+now()+'</span><span style="color:#5b6b9d">已重置 —— 等待新需求</span>';
+  $("btnBuild").disabled=true;$("btnRun").disabled=true;$("btnReset").disabled=false;stat();};
+
+stat();
+</script>
+</body>
+</html>
