@@ -5,276 +5,372 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI编译式RPA流程生成器</title>
 <style>
-:root{--bg:#f5f7fa;--card:#fff;--ink:#1c2333;--muted:#68718a;--line:#e3e7f0;--primary:#2f5cf6;--primary-soft:#eaefff;--ok:#0f9d6e;--ok-soft:#e3f7ef;--warn:#c77700;--warn-soft:#fdf3e0;--bad:#d64545;--bad-soft:#fdeaea;--code:#12172b;--code-ink:#c9d4ff}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:18px 14px 60px;line-height:1.6}
-.wrap{max-width:1080px;margin:0 auto}
-header{text-align:center;margin-bottom:16px}
-.badge{display:inline-block;background:var(--primary-soft);color:var(--primary);font-size:12px;padding:3px 12px;border-radius:20px}
-h1{font-size:26px;margin:8px 0 4px}
-.sub{color:var(--muted);font-size:13px;max-width:720px;margin:0 auto}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
-.card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.card h2 .no{background:var(--primary);color:#fff;width:20px;height:20px;border-radius:50%;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
-textarea{width:100%;min-height:74px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;background:#fafbff}
-textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
-.chip{background:var(--primary-soft);color:var(--primary);border:none;border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer}
-.chip:hover{filter:brightness(.95)}
-label.lbl{font-size:12px;color:var(--muted);display:block;margin:10px 0 4px}
-.modes{display:flex;gap:10px;flex-wrap:wrap}
-.mode{flex:1;min-width:150px;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer;background:#fff}
-.mode.on{border-color:var(--primary);background:var(--primary-soft)}
-.mode b{display:block;font-size:13px;color:var(--ink)}
-select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;background:#fff;font-family:inherit}
-button.btn{border:none;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600}
-button.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-p{background:var(--primary);color:#fff}
-.btn-s{background:var(--ok);color:#fff}
-.btn-w{background:var(--warn);color:#fff}
-.btn-g{background:#eceff5;color:var(--ink)}
-.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
-.plan li{list-style:none;display:flex;gap:8px;font-size:13px;padding:6px 8px;border-radius:8px;align-items:flex-start}
-.plan li:nth-child(odd){background:#f6f8fd}
-.plan .n{color:var(--primary);font-weight:700;flex:none;font-family:ui-monospace,monospace}
-pre{background:var(--code);color:var(--code-ink);border-radius:10px;padding:12px;font-size:11.5px;line-height:1.7;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre}
-pre .cm{color:#5b6b9d}
-pre .diff{background:rgba(255,196,60,.22);display:block;border-radius:4px}
-.ver-tag{display:inline-block;background:var(--ok-soft);color:var(--ok);font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;margin-left:8px}
-.log{background:#0f1322;color:#aebadb;border-radius:10px;padding:12px;font-size:12px;font-family:ui-monospace,Menlo,monospace;min-height:150px;max-height:280px;overflow-y:auto;line-height:1.9}
-.log .t{color:#5b6b9d;margin-right:6px}
-.log .ok{color:#4cd696}.log .ai{color:#f4b64c}.log .err{color:#ff7b7b}.log .run{color:#7ea6ff}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
-.statc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;min-width:0}
-.statc b{font-size:22px;color:var(--primary);display:block}
-.statc span{font-size:11px;color:var(--muted)}
-.statc small{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
-.banner{display:none;border-radius:10px;padding:10px 14px;font-size:13px;margin-top:10px;align-items:center;gap:10px;flex-wrap:wrap}
-.banner.show{display:flex}
-.banner.warn{background:var(--bad-soft);color:var(--bad)}
-.banner.ok{background:var(--ok-soft);color:var(--ok)}
-.pill{display:inline-block;font-size:11px;padding:1px 9px;border-radius:10px;background:var(--primary-soft);color:var(--primary);margin-left:6px}
-.pill.zero{background:var(--ok-soft);color:var(--ok)}
-footer{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}
-@media(max-width:820px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}h1{font-size:21px}}
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; background:#0b1020; color:#dbe4f0; min-height:100vh; }
+  .wrap { max-width:1200px; margin:0 auto; padding:20px 16px 40px; }
+  header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:14px 0 18px; border-bottom:1px solid #1e2a45; }
+  h1 { font-size:22px; font-weight:700; color:#fff; }
+  h1 em { font-style:normal; color:#60a5fa; }
+  .badge { font-size:12px; color:#86efac; background:#123; border:1px solid #86efac44; border-radius:20px; padding:4px 12px; }
+  .grid { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:16px; margin-top:18px; min-width:0; }
+  .card { background:#101830; border:1px solid #1e2a45; border-radius:12px; padding:16px; min-width:0; }
+  .card h2 { font-size:14px; color:#93c5fd; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+  .card h2 .no { background:#1e2a45; color:#93c5fd; border-radius:6px; width:20px; height:20px; font-size:12px; display:inline-flex; align-items:center; justify-content:center; }
+  label { font-size:12px; color:#8ea2c0; display:block; margin-bottom:6px; }
+  textarea { width:100%; height:64px; background:#0b1224; border:1px solid #22304f; border-radius:8px; color:#e6edf7; padding:10px; font-size:13px; resize:vertical; font-family:inherit; }
+  textarea:focus { outline:none; border-color:#3b82f6; }
+  .tpls { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .tpl { font-size:12px; padding:5px 10px; border-radius:20px; border:1px solid #22304f; background:#0b1224; color:#9fb3d4; cursor:pointer; }
+  .tpl:hover { border-color:#3b82f6; color:#dbe4f0; }
+  .tpl.sel { background:#1e40af; border-color:#3b82f6; color:#fff; }
+  .btn { background:#2563eb; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13px; cursor:pointer; font-weight:600; }
+  .btn:hover { background:#1d4ed8; }
+  .btn:disabled { background:#22304f; color:#64748b; cursor:not-allowed; }
+  .btn.ghost { background:transparent; border:1px solid #334a75; color:#a9c0e4; }
+  .btn.ghost:hover { border-color:#3b82f6; }
+  .btn.ok { background:#059669; } .btn.warn { background:#d97706; } .btn.danger { background:#dc2626; }
+  .row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .meta { font-size:12px; color:#8ea2c0; margin-top:8px; display:flex; gap:14px; flex-wrap:wrap; }
+  .meta b { color:#dbe4f0; font-weight:600; }
+  pre { background:#0a0f1e; border:1px solid #1e2a45; border-radius:8px; padding:10px; font-size:12px; line-height:1.55; color:#7dd3fc; overflow:auto; max-height:180px; max-width:100%; font-family:"JetBrains Mono",Consolas,monospace; }
+  pre .c { color:#64748b; } pre .k { color:#c084fc; } pre .s { color:#86efac; } pre .f { color:#93c5fd; }
+  .steps { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .step { display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid #1e2a45; border-radius:8px; background:#0b1224; font-size:13px; }
+  .step .no { width:22px; height:22px; border-radius:6px; background:#1e2a45; color:#8ea2c0; font-size:12px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .step .nm { flex:1; color:#dbe4f0; }
+  .step .tool { font-size:11px; color:#8ea2c0; background:#1e2a45; padding:2px 8px; border-radius:10px; }
+  .st { font-size:11px; padding:2px 8px; border-radius:10px; }
+  .st.wait { background:#1e2a45; color:#8ea2c0; }
+  .st.run { background:#1e40af; color:#93c5fd; }
+  .st.ok { background:#064e3b; color:#86efac; }
+  .st.err { background:#7f1d1d; color:#fca5a5; }
+  .st.heal { background:#78350f; color:#fdba74; }
+  #engineCard { margin-top:16px; border-top:1px dashed #22304f; padding-top:12px; }
+  .gauge { display:flex; gap:12px; margin:8px 0; flex-wrap:wrap; }
+  .gauge .g { flex:1; min-width:120px; background:#0b1224; border:1px solid #1e2a45; border-radius:8px; padding:8px 10px; }
+  .gauge .g b { display:block; font-size:20px; color:#fff; }
+  .gauge .g span { font-size:11px; color:#8ea2c0; }
+  .trace { margin-top:10px; max-height:190px; overflow:auto; display:flex; flex-direction:column; gap:6px; }
+  .trow { display:flex; gap:8px; font-size:12px; padding:6px 8px; border-radius:6px; background:#0a0f1e; border:1px solid #141f36; align-items:baseline; }
+  .trow .t { color:#64748b; font-size:11px; flex-shrink:0; }
+  .trow .msg { color:#c6d2e6; }
+  .trow.ok .msg { color:#86efac; } .trow.err .msg { color:#fca5a5; } .trow.heal .msg { color:#fdba74; } .trow.warn .msg { color:#fcd34d; }
+  .trow .act { margin-left:auto; flex-shrink:0; display:flex; gap:6px; }
+  .trow button { font-size:11px; padding:2px 8px; border-radius:6px; border:1px solid #334a75; background:#0b1224; color:#a9c0e4; cursor:pointer; }
+  .trow button:hover { border-color:#3b82f6; }
+  #notice { position:fixed; right:16px; top:16px; background:#101830; border:1px solid #f59e0b; border-left:4px solid #f59e0b; color:#fde68a; padding:10px 14px; border-radius:8px; font-size:13px; max-width:300px; display:none; box-shadow:0 8px 24px #0008; z-index:9; }
+  #notice .btns { margin-top:8px; display:flex; gap:6px; }
+  #notice button { font-size:12px; padding:4px 10px; border-radius:6px; border:1px solid #334a75; background:#0b1224; color:#dbe4f0; cursor:pointer; }
+  #notice button.primary { background:#d97706; border-color:#d97706; color:#fff; }
+  .foot { margin-top:18px; font-size:11px; color:#5b6b8c; text-align:center; }
+  @media (max-width:860px){ .grid { grid-template-columns:minmax(0,1fr); } }
 </style>
 </head>
 <body>
 <div class="wrap">
-<header>
-  <span class="badge">参考 Airtop · 规划与执行分离 · 编译式 RPA</span>
-  <h1>🛠️ AI编译式RPA流程生成器</h1>
-  <p class="sub">传统 LLM Agent 每次执行都要推理——贵且不稳定。编译式思路：AI 只在<b>构建时推理一次</b>，把自然语言需求<b>编译成确定性流程代码</b>，之后每次运行零 LLM 调用；网站改版时自动检测失败，AI 修复一次并重新编译。下方完整演示这条链路。</p>
-</header>
+  <header>
+    <h1><em>AI编译式</em>RPA流程生成器</h1>
+    <span class="badge">● 编译式 · 确定性 · 自愈</span>
+  </header>
 
-<div class="grid">
-  <div class="card">
-    <h2><span class="no">1</span>业务需求（自然语言）</h2>
-    <div class="chips">
-      <button class="chip" data-i="0">ERP销售日报→飞书群</button>
-      <button class="chip" data-i="1">竞品价格表→Excel</button>
-      <button class="chip" data-i="2">OA待审批单→汇总</button>
-    </div>
-    <textarea id="inp" placeholder="用一句话描述你的自动化需求，如：每天早上 8 点从 ERP 导出销售报表，整理后发到飞书群"></textarea>
-    <label class="lbl">运行模式（对比两种架构）</label>
-    <div class="modes">
-      <div class="mode on" id="mCompile"><b>⚙️ 编译模式</b>规划一次 · 运行零推理</div>
-      <div class="mode" id="mAgent"><b>🤖 LLM Agent 模式</b>每次运行都推理</div>
-    </div>
-    <label class="lbl">注入网站改版（测试自愈能力，影响下一次运行）</label>
-    <select id="injectSel">
-      <option value="">— 不注入，保持网站现状 —</option>
-      <option value="btn">导出按钮文案变更（"导出数据"→"下载报表"）</option>
-      <option value="menu">报表菜单层级加深（新增二级目录）</option>
-    </select>
-    <div class="row">
-      <button class="btn btn-p" id="btnBuild" disabled>① AI 规划并编译</button>
-      <button class="btn btn-s" id="btnRun" disabled>② 运行流程</button>
-      <button class="btn btn-g" id="btnReset">重置</button>
-    </div>
-  </div>
+  <div class="grid">
+    <!-- 左：需求→编译 -->
+    <section>
+      <div class="card">
+        <h2><span class="no">1</span>自然语言描述自动化需求</h2>
+        <textarea id="reqTxt" placeholder="例：每天从ERP导出销售报表，按门店汇总后发到飞书群…"></textarea>
+        <div class="tpls" id="tpls"></div>
+        <div class="row">
+          <button class="btn" id="compileBtn">⚙ 编译生成流程</button>
+          <button class="btn ghost" id="saveBtn">保存到本地</button>
+        </div>
+        <div class="meta">模式：<b id="modeLbl">——</b>　上次运行：<b id="lastRun">从未运行</b>　下次定时：<b id="nextRun">——</b></div>
+      </div>
 
-  <div class="card">
-    <h2><span class="no">2</span>AI 规划结果 <span class="ver-tag" id="verTag" style="display:none">v1.0</span></h2>
-    <div id="planEmpty" style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center">尚未编译 —— 输入需求后点「AI 规划并编译」</div>
-    <ul class="plan" id="planSteps" style="display:none"></ul>
+      <div class="card" style="margin-top:16px">
+        <h2><span class="no">2</span>确定性编译产物 <span style="margin-left:auto;font-size:11px;color:#86efac" id="compileTag">未编译</span></h2>
+        <pre id="codeBox"></pre>
+        <div class="steps" id="stepsBox"></div>
+      </div>
+    </section>
+
+    <!-- 右：执行+自愈+Trace -->
+    <section>
+      <div class="card">
+        <h2><span class="no">3</span>确定性执行引擎 <span style="margin-left:auto;font-size:11px;color:#8ea2c0">每步 600ms 心跳推进</span></h2>
+        <div class="gauge">
+          <div class="g"><b id="gProg">0/0</b><span>步骤进度</span></div>
+          <div class="g"><b id="gRun">0</b><span>成功步数</span></div>
+          <div class="g"><b id="gHeal">0</b><span>自愈次数</span></div>
+          <div class="g"><b id="gStatus">空闲</b><span>运行状态</span></div>
+        </div>
+        <div class="row">
+          <button class="btn ok" id="runBtn" disabled>▶ 运行流程</button>
+          <button class="btn ghost" id="replayBtn" disabled>↺ 回放 Trace</button>
+          <button class="btn ghost" id="resetBtn">重置</button>
+        </div>
+        <div id="engineCard">
+          <label>执行 Trace（步骤级审计日志）</label>
+          <div class="trace" id="traceBox"></div>
+        </div>
+      </div>
+    </section>
   </div>
+  <div class="foot">AI小工具Demo · 参考 Airtop「规划与执行分离 + 编译式执行 + 自愈」架构 · 编译一次，稳定运行，失败自动修复</div>
 </div>
 
-<div class="grid">
-  <div class="card">
-    <h2><span class="no">3</span>编译产物 · 确定性流程代码 <span class="pill" id="langPill" style="display:none">Python + Playwright</span></h2>
-    <div id="codeEmpty" style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center">编译完成后在此生成可审计的流程代码</div>
-    <pre id="codeBox" style="display:none"></pre>
-  </div>
-
-  <div class="card">
-    <h2><span class="no">4</span>运行监控</h2>
-    <div class="log" id="logBox"><span class="t">--:--:--</span><span style="color:#5b6b9d">等待操作…（编译 → 运行；可注入改版观察自愈）</span></div>
-    <div class="banner warn" id="bannerFail">⚠️ <b id="failMsg"></b><button class="btn btn-w" id="btnHeal" style="padding:6px 14px;font-size:13px">AI 自愈并重新编译</button></div>
-    <div class="banner ok" id="bannerOk">✅ <span id="okMsg"></span></div>
-  </div>
-</div>
-
-<div class="stats">
-  <div class="statc"><b id="stRuns">0</b><span>累计运行次数</span></div>
-  <div class="statc"><b id="stLLM">0</b><span>本次 LLM 调用</span><small id="llmNote">编译 1 次 + 自愈按需</small></div>
-  <div class="statc"><b id="stAgent">0</b><span>若全程 Agent 需推理</span><small>每次运行 × 6 步</small></div>
-  <div class="statc"><b id="stSave">$0.00</b><span>推理成本节省</span><small>按 $0.02/次估算</small></div>
-</div>
-
-<footer>AI编译式RPA流程生成器 · Demo 数据为固化示例 · 2026-10-23</footer>
+<div id="notice">
+  <div id="noticeMsg"></div>
+  <div class="btns" id="noticeBtns"></div>
 </div>
 
 <script>
-"use strict";
-/* ---------- 示例数据（固化） ---------- */
-const SCENARIOS=[
- {title:"每天早上8点从ERP导出销售报表，整理后发到飞书群",steps:[
-   "启动浏览器，打开 ERP 系统（复用保存的登录态）",
-   "进入「报表中心 → 销售明细」页面",
-   "按昨日日期筛选，点击「导出数据」下载 CSV",
-   "本地整理：去重、按区域汇总、格式化日期",
-   "上传汇总表到飞书群并 @值班同事"],
-  code:["page.goto(\"https://erp.company.com\")","page.click(\"#menu-report\") // 报表中心","page.fill(\"#date-range\", yesterday)","page.click(\"#export-btn\") // 导出数据","df = clean(df)  # 去重/汇总/日期","feishu.upload(\"销售日报.xlsx\")"]},
- {title:"每周采集 3 家竞品价格表，更新到 Excel 对比表",steps:[
-   "打开竞品 A 官网产品页，采集价格列",
-   "打开竞品 B 商城，翻页采集在售价",
-   "打开竞品 C 旗舰店，采集促销价与库存",
-   "合并写入「竞品价格对比.xlsx」并标注采集时间",
-   "若任一价格波动 >10%，发送预警到邮箱"],
-  code:["for site in [A, B, C]:","    prices = scrape(site)  # 采集价格列","df = merge(prices)  # 合并对比","excel.update(\"竞品价格对比.xlsx\")","if spike(df): mail.alert(\"价格波动>10%\")"]},
- {title:"每日登录 OA 下载待审批单据，汇总成催办清单",steps:[
-   "登录 OA 系统，进入「待我审批」列表",
-   "分页抓取全部待审批单据（编号/类型/提交人/天数）",
-   "标记挂起超过 3 天的单据为「催办」",
-   "生成催办清单 Excel 并按类型分组",
-   "把清单回发 OA 站内信给对应审批人"],
-  code:["page.goto(\"https://oa.company.com/approve\")","rows = paginate(\"#todo-list\")  // 分页抓取","flag(rows, days>3)  // 标记催办","excel.save(\"催办清单.xlsx\")","oa.notify(approvers)"]}],
- PATCHES={btn:{step:2,msg:"执行失败：未找到「导出数据」按钮——网站已改版，按钮文案变为「下载报表」",fix:"page.get_by_text(\"下载报表\")  # 自愈：文案选择器",diffIdx:3},
-          menu:{step:1,msg:"执行失败：菜单「报表中心」不可达——网站已改版，新增了二级目录「数据中心」",fix:"page.click(\"#menu-data > #menu-report\")  // 自愈：二级目录",diffIdx:1}};
-const PRICE=0.02, STEPS=6;
+/* ================= 数据 ================= */
+// 流程模板库（贴合财务/业务场景）
+const TPLS = [
+  { name:"ERP销售日报", req:"每天从ERP导出销售报表，按门店汇总后发到飞书群", steps:[
+      {nm:"连接ERP并导出当日销售明细", tool:"ERP", act:"export", fail:"登录过期，AI重新登录并重试"},
+      {nm:"按门店汇总销售额", tool:"Python", act:"groupby", fail:null},
+      {nm:"生成日报表并附加异常标注", tool:"Excel", act:"render", fail:null},
+      {nm:"发送到飞书群并归档", tool:"Feishu", act:"send", fail:"群机器人地址变更，AI重新获取后发送"}]},
+  { name:"发票到期提醒", req:"扫描发票清单，筛出3天内到期的发票，生成提醒清单并邮件通知", steps:[
+      {nm:"读取发票台账Excel", tool:"Excel", act:"load", fail:null},
+      {nm:"筛选3天内到期发票", tool:"Python", act:"filter", fail:null},
+      {nm:"按供应商汇总提醒清单", tool:"Excel", act:"render", fail:"模板列变更，AI按新表头重建"},
+      {nm:"发送邮件通知并标记已提醒", tool:"Mail", act:"send", fail:"SMTP认证失败，AI重新配置后重试"}]},
+  { name:"库存预警补货", req:"检查库存低于安全线的商品，生成补货建议并通知采购", steps:[
+      {nm:"同步ERP库存数据", tool:"ERP", act:"sync", fail:"接口超时，AI切换备用接口"},
+      {nm:"比对安全库存线并标记预警", tool:"Python", act:"compare", fail:null},
+      {nm:"生成补货建议单", tool:"Excel", act:"render", fail:null},
+      {nm:"推送通知给采购群", tool:"Feishu", act:"send", fail:null}]},
+  { name:"对账差异核对", req:"下载银行对账单，与内部账对比，标出差异生成报告", steps:[
+      {nm:"下载银行对账单", tool:"Bank", act:"download", fail:"页面改版，AI重新定位下载入口"},
+      {nm:"与内部账目逐笔比对", tool:"Python", act:"reconcile", fail:null},
+      {nm:"标注差异并生成核对报告", tool:"Excel", act:"render", fail:null},
+      {nm:"上传报告到共享盘", tool:"Drive", act:"upload", fail:null}]},
+];
 
-/* ---------- 状态 ---------- */
-let S={sc:0,mode:"compile",ver:1.0,built:false,runs:0,llm:0,patch:null,healing:false,failedStep:-1,busy:false};
+// 关键词 → 动作库（模拟“AI编译”：把自然语言编译成确定性步骤）
+const COMPILE_RULES = [
+  { keys:["导出","下载","同步","拉取"], step:{nm:"连接源系统并导出/下载数据", tool:"Source", act:"export"} },
+  { keys:["汇总","整理","对比","比对","筛选","检查","统计"], step:{nm:"数据处理：清洗、过滤与聚合", tool:"Python", act:"transform"} },
+  { keys:["报告","报表","清单","建议","提醒"], step:{nm:"生成结构化产物", tool:"Excel", act:"render"} },
+  { keys:["发送","推送","通知","邮件","飞书"], step:{nm:"发送/推送并归档记录", tool:"Channel", act:"deliver"} },
+];
 
-/* ---------- 工具 ---------- */
-const $=id=>document.getElementById(id);
-const now=()=>new Date().toTimeString().slice(0,8);
-function log(cls,txt){const d=document.createElement("div");d.innerHTML='<span class="t">'+now()+'</span><span class="'+cls+'">'+txt+'</span>';$("logBox").appendChild(d);$("logBox").scrollTop=1e9;}
-function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
-function stat(){$("stRuns").textContent=S.runs;$("stLLM").textContent=S.llm;
-  const agent=S.runs*STEPS;$("stAgent").textContent=agent;
-  $("stSave").textContent="$"+((agent-S.llm)*PRICE).toFixed(2);
-  $("llmNote").textContent=S.mode==="compile"?"编译 1 次 + 自愈按需":"每次运行 × 6 步推理";}
-function lock(b){S.busy=b;$("btnBuild").disabled=b||!$("inp").value.trim();$("btnRun").disabled=b||!S.built||S.healing;$("btnReset").disabled=b;}
+let compiled = null;   // {req, steps[], code, source}
+let running = false;
+let cur = -1;          // 当前执行到的步骤下标（含失败态）
+let failIdx = -1;      // 当前失效/失败的步骤（等待人工或自愈）
+let healCnt = 0, okCnt = 0;
+let heart = null;      // 执行心跳
+let replayTimer = null;
+let saved = JSON.parse(localStorage.getItem("rpa_compiler") || "null");
 
-/* ---------- 模式切换 ---------- */
-$("mCompile").onclick=()=>setMode("compile");
-$("mAgent").onclick=()=>setMode("agent");
-function setMode(m){if(S.busy)return;S.mode=m;$("mCompile").classList.toggle("on",m==="compile");$("mAgent").classList.toggle("on",m==="agent");
-  log("run",m==="compile"?"已切换到 ⚙️ 编译模式：规划一次，运行零推理":"已切换到 🤖 LLM Agent 模式：每次运行都将推理 6 步");stat();}
+const $ = id => document.getElementById(id);
 
-/* ---------- 输入与示例 ---------- */
-document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{if(S.busy)return;$("inp").value=SCENARIOS[+c.dataset.i].title;S.sc=+c.dataset.i;$("btnBuild").disabled=false;});
-$("inp").oninput=()=>{$("btnBuild").disabled=S.busy||!$("inp").value.trim();S.sc=/飞书/.test($("inp").value)?0:/竞品|价格/.test($("inp").value)?1:/OA|审批/.test($("inp").value)?2:S.sc;};
+/* ================= 编译 ================= */
+function renderTpls(){
+  $("tpls").innerHTML = "";
+  TPLS.forEach((t,i)=>{
+    const b = document.createElement("div");
+    b.className = "tpl"; b.textContent = t.name;
+    b.onclick = ()=>{ $("reqTxt").value = t.req; document.querySelectorAll(".tpl").forEach(x=>x.classList.remove("sel")); b.classList.add("sel"); };
+    $("tpls").appendChild(b);
+  });
+}
+renderTpls();
 
-/* ---------- ① 规划并编译 ---------- */
-$("btnBuild").onclick=()=>{
-  if(S.busy||!$("inp").value.trim())return;const sc=SCENARIOS[S.sc];
-  lock(true);$("planEmpty").style.display="none";$("codeEmpty").style.display="none";
-  log("ai","🤖 [AI 规划] 正在理解需求：「"+sc.title+"」…");
-  setTimeout(()=>{log("ai","🤖 [AI 规划] 拆解出 "+sc.steps.length+" 个步骤，选择工具链：Playwright + pandas");
-    const ul=$("planSteps");ul.innerHTML=sc.steps.map((s,i)=>'<li><span class="n">S'+(i+1)+'</span><span>'+s+'</span></li>').join("");ul.style.display="block";
-    log("ai","🤖 [AI 编译] 将步骤编译为确定性流程代码（构建时推理，仅此一次）…");
-    setTimeout(()=>{
-      S.llm++;stat();
-      const lines=['<span class="cm"># AI 编译产物 · 确定性执行 · 运行时零 LLM 调用</span>','<span class="cm"># 需求：'+esc(sc.title)+'</span>','flow = Flow("'+sc.title.slice(0,12)+'…")'];
-      sc.code.forEach(l=>lines.push(esc(l)));
-      $("codeBox").innerHTML=lines.join("\n");$("codeBox").style.display="block";$("langPill").style.display="inline-block";
-      S.built=true;S.ver=1.0;S.patch=$("injectSel").value||null;
-      $("verTag").style.display="inline-block";$("verTag").textContent="v1.0";
-      log("ok","✅ 编译完成 v1.0 —— 之后每次运行 0 次 LLM 调用，可审计、可回放");
-      $("bannerOk").classList.remove("show");
-      lock(false);stat();
-    },700);},600);
+function compile(req){
+  // 模拟 AI 编译：将自然语言匹配为确定性步骤序列（编译产物固定，不随运行变化）
+  const steps = [];
+  COMPILE_RULES.forEach(rule=>{
+    if(rule.keys.some(k=>req.includes(k))){
+      const s = {...rule.step, nm:rule.step.nm};
+      steps.push(s);
+    }
+  });
+  if(steps.length===0) steps.push({nm:"执行自动化主流程", tool:"Auto", act:"main"});
+  // 编号
+  steps.forEach((s,i)=>s.i=i);
+  // 生成确定性代码（伪 Python/Playwright）
+  let code = `# 编译产物：${req}\n# 由自然语言编译生成 · 确定性执行 · 仅失败时启用AI自愈\n`;
+  steps.forEach(s=>{
+    code += `def step${s.i}():\n    # ${s.nm}\n    client.${s.act}("${s.tool}")\n    assert check(${s.i})\n\n`;
+  });
+  code += `schedule = "${$("modeLbl").textContent}运行"\nfor s in steps:\n    run_deterministic(s)   # 固定执行，不做每步推理\n`;
+  compiled = { req, steps, code, ts: Date.now() };
+  renderCompiled();
+  $("runBtn").disabled = false;
+}
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function renderCompiled(){
+  if(!compiled){ $("codeBox").textContent=""; $("stepsBox").innerHTML=""; return; }
+  const {steps, code} = compiled;
+  $("compileTag").textContent = "已编译 · 步骤 " + steps.length;
+  // 代码高亮（简化）
+  let html = esc(code).replace(/(#.*)$/gm, '<span class="c">$1</span>')
+    .replace(/\b(def|assert|for|in|return|import)\b/g, '<span class="k">$1</span>')
+    .replace(/"([^"]*)"/g, '<span class="s">"$1"</span>')
+    .replace(/\b(client|steps|schedule|check|run_deterministic|step\d)\b/g, '<span class="f">$1</span>');
+  $("codeBox").innerHTML = html;
+  $("stepsBox").innerHTML = steps.map(s=>{
+    const st = !running && failIdx<0 ? (s.i<cur ? "ok" : s.i===cur&&running? "run":"wait") : (s.i===failIdx?"err": s.i<cur?"ok":"wait");
+    const lbl = st==="ok"?"✓ 成功": st==="run"?"执行中…": st==="err"?"⚠ 失效":"待执行";
+    return `<div class="step" data-i="${s.i}"><span class="no">${s.i+1}</span><span class="nm">${esc(s.nm)}</span><span class="tool">${s.tool}</span><span class="st ${st}">${lbl}</span></div>`;
+  }).join("");
+}
+
+/* ================= 执行引擎（确定性 + 自愈） ================= */
+function trace(msg, kind, idx, healInfo){
+  const row = document.createElement("div");
+  row.className = "trow " + kind;
+  const t = new Date().toTimeString().slice(0,8);
+  row.innerHTML = `<span class="t">${t}</span><span class="msg">${msg}</span>${healInfo?`<span class="act"><button onclick="fixAndContinue(${idx})">AI修复</button><button onclick="skipStep(${idx})">跳过</button></span>`:""}`;
+  $("traceBox").prepend(row);
+}
+
+function notice(msg, btns){
+  $("noticeMsg").innerHTML = msg;
+  $("noticeBtns").innerHTML = btns.map(b=>`<button class="${b.cls||''}" onclick="${b.fn}">${b.lbl}</button>`).join("");
+  $("notice").style.display = "block";
+}
+
+function setStatus(s){
+  $("gStatus").textContent = s;
+  $("gStatus").parentElement.style.borderColor = s==="执行中"?"#2563eb": s==="已完成"?"#059669": s==="失败"?"#dc2626":"";
+}
+
+function start(){
+  if(!compiled || running) return;
+  running = true; cur = 0; failIdx = -1; okCnt = 0; healCnt = 0;
+  $("compileBtn").disabled = true; $("runBtn").disabled = true; $("replayBtn").disabled = true;
+  setStatus("执行中");
+  trace(`▶ 开始确定性执行：${compiled.req.slice(0,24)}…`, "ok");
+  heart = setInterval(tick, 600);
+}
+
+function tick(){
+  if(failIdx>=0) return; // 等待人工/自愈
+  if(cur >= compiled.steps.length){ finish(); return; }
+  const s = compiled.steps[cur];
+  // 模拟一次随机失效（自愈触发点）：约 1/3 概率在“外部系统”步骤失效
+  const mayFail = (s.tool==="Source" || s.tool==="Channel" || s.tool==="Bank" || s.tool==="ERP") && !s.healed;
+  if(mayFail && Math.random()<0.34){
+    failIdx = cur;
+    renderCompiled();
+    trace(`⚠ 步骤 ${cur+1}「${s.nm}」执行失败：选择器/接口失效（模拟）`, "err", cur, true);
+    notice(`⚠ 步骤 ${cur+1} 执行失败：<b>${s.nm}</b><br><span style="font-size:12px;color:#8ea2c0">确定性执行失败，需 AI 自愈或人工介入</span>`,
+      [{lbl:"🤖 AI自动修复", cls:"primary", fn:`fixAndContinue(${cur})`},{lbl:"跳过此步", fn:`skipStep(${cur})`}]);
+    return;
+  }
+  s.status = "ok";
+  trace(`✓ 步骤 ${cur+1}「${s.nm}」执行成功`, "ok");
+  okCnt++;
+  cur++;
+  renderCompiled();
+  updateGauge();
+}
+
+function finish(){
+  clearInterval(heart); heart=null;
+  running = false;
+  cur = compiled.steps.length;
+  setStatus("已完成");
+  const now = new Date();
+  $("lastRun").textContent = now.toTimeString().slice(0,5);
+  $("nextRun").textContent = "明天 " + now.toTimeString().slice(0,5);
+  trace(`✔ 流程全部完成：${okCnt} 步成功 / ${healCnt} 次自愈`, "ok");
+  renderCompiled(); updateGauge();
+  $("compileBtn").disabled = false; $("runBtn").disabled = false; $("replayBtn").disabled = false;
+}
+
+// AI 自愈：重写失效步骤的选择器/接口，标记已修复并推进到下一步
+function fixAndContinue(i){
+  const s = compiled.steps[i];
+  failIdx = -1;
+  s.healed = true;
+  healCnt++;
+  okCnt++;           // 修复后该步骤视为成功
+  cur = i + 1;       // 推进到下一步（避免同一步骤反复失效）
+  trace(`🤖 AI 自愈：重新定位「${s.nm}」→ 更新选择器/接口后重试成功`, "heal");
+  notice("🤖 AI 已自动修复该步骤，继续执行…", []);
+  setTimeout(()=>$("notice").style.display="none", 1600);
+  renderCompiled(); updateGauge();
+}
+
+function skipStep(i){
+  failIdx = -1;
+  trace(`⏭ 人工选择跳过步骤 ${i+1}，流程继续`, "warn");
+  notice("已跳过该步骤", []);
+  setTimeout(()=>$("notice").style.display="none", 1200);
+  cur++;
+  renderCompiled(); updateGauge();
+}
+
+function updateGauge(){
+  $("gProg").textContent = compiled ? `${cur}/${compiled.steps.length}` : "0/0";
+  $("gRun").textContent = okCnt;
+  $("gHeal").textContent = healCnt;
+}
+
+/* ================= Trace 回放 ================= */
+function replay(){
+  if(!compiled || compiled.steps.length===0) return;
+  const rows = [...$("traceBox").querySelectorAll(".trow")];
+  if(rows.length===0) return;
+  $("replayBtn").disabled = true;
+  let i = 0;
+  replayTimer = setInterval(()=>{
+    if(i>=rows.length){ clearInterval(replayTimer); $("replayBtn").disabled=false; return; }
+    rows[i].style.borderColor = "#3b82f6";
+    rows[i].scrollIntoView({block:"nearest"});
+    rows.slice(0,i).forEach(r=>r.style.borderColor="");
+    i++;
+  }, 220);
+}
+
+/* ================= 事件 ================= */
+$("compileBtn").onclick = ()=>{
+  const req = $("reqTxt").value.trim();
+  if(!req) { $("reqTxt").focus(); $("reqTxt").placeholder="请先输入自动化需求…"; return; }
+  const mode = req.includes("每天")||req.includes("每日")||req.includes("定时") ? "每日定时" : "手动触发";
+  $("modeLbl").textContent = mode;
+  $("traceBox").innerHTML = "";
+  okCnt=0; healCnt=0; cur=0; updateGauge();
+  setStatus("空闲");
+  compile(req);
+  trace(`⚙ 已编译：${req.slice(0,28)}… → ${compiled.steps.length} 个确定性步骤`, "ok");
+};
+$("runBtn").onclick = start;
+$("replayBtn").onclick = replay;
+$("resetBtn").onclick = ()=>{
+  if(heart) clearInterval(heart);
+  if(replayTimer) clearInterval(replayTimer);
+  running=false; compiled=null; cur=0; okCnt=0; healCnt=0; failIdx=-1;
+  $("codeBox").textContent=""; $("stepsBox").innerHTML=""; $("traceBox").innerHTML="";
+  $("compileTag").textContent="未编译"; $("modeLbl").textContent="——";
+  $("lastRun").textContent="从未运行"; $("nextRun").textContent="——";
+  $("runBtn").disabled=true; $("replayBtn").disabled=true; $("compileBtn").disabled=false;
+  setStatus("空闲"); updateGauge();
+  notice("已重置", []); setTimeout(()=>$("notice").style.display="none", 1000);
+};
+$("saveBtn").onclick = ()=>{
+  if(!compiled){ notice("先编译一个流程再保存", []); setTimeout(()=>$("notice").style.display="none",1400); return; }
+  saved = {req:compiled.req, steps:compiled.steps.map(s=>({nm:s.nm,tool:s.tool})), ts:Date.now()};
+  localStorage.setItem("rpa_compiler", JSON.stringify(saved));
+  notice("💾 已保存到本地（localStorage），下次打开可直接复用", []);
+  setTimeout(()=>$("notice").style.display="none", 1800);
 };
 
-/* ---------- ② 运行 ---------- */
-$("btnRun").onclick=()=>{
-  if(S.busy||!S.built||S.healing)return;const sc=SCENARIOS[S.sc];lock(true);
-  const patch=S.patch&&$("injectSel").value?PATCHES[$("injectSel").value]:null;
-  const injected=S.patch&&$("injectSel").value;
-  $("bannerOk").classList.remove("show");
-  if(S.mode==="agent")log("run","🤖 [LLM Agent 模式] 第 "+(S.runs+1)+" 次运行：每一步都实时推理…");
-  else log("run","⚙️ [编译模式] 第 "+(S.runs+1)+" 次运行：执行编译产物 v"+S.ver.toFixed(1)+"（0 次 LLM 调用）");
-  let i=0;
-  const tick=()=>{
-    if(i>=sc.steps.length){
-      S.runs++;stat();
-      if(S.mode==="agent"){S.llm+=STEPS;log("ok","✅ 运行成功（Agent 全程推理，本次消耗 "+STEPS+" 次 LLM 调用）");}
-      else log("ok","✅ 运行成功（确定性执行，本次 0 次 LLM 调用）");
-      $("okMsg").textContent="第 "+S.runs+" 次运行完成 · "+(S.mode==="compile"?"零推理 · ":"Agent 推理 "+STEPS+" 次 · ")+"累计节省 $"+((S.runs*STEPS-S.llm)*PRICE).toFixed(2);
-      $("bannerOk").classList.add("show");
-      $("injectSel").value="";S.patch=null;lock(false);stat();return;}
-    if(patch&&i===patch.step&&!S.healing){
-      log("err","❌ S"+(i+1)+" "+patch.msg);
-      $("failMsg").textContent=patch.msg;S.failedStep=i;
-      if(S.mode==="agent"){
-        log("ai","🤖 [Agent] 检测到改版，现场推理适配…（这就是 Agent 模式：改版也要花一次推理）");
-        setTimeout(()=>{S.llm+=STEPS+1;S.runs++;stat();log("ok","✅ Agent 现场适配成功（本次共消耗 "+(STEPS+1)+" 次 LLM 调用）");
-          $("okMsg").textContent="Agent 模式自适应成功 · 累计已推理 "+S.llm+" 次";$("bannerOk").classList.add("show");
-          $("injectSel").value="";S.patch=null;lock(false);stat();},900);
-      }else{
-        S.healing=true;$("bannerFail").classList.add("show");
-        log("ai","🛡️ [自愈守卫] 已捕获失败，等待 AI 修复（规划与执行分离：修复后重新编译）");lock(false);}
-      return;}
-    if(S.mode==="agent")log("run","🤖 推理 S"+(i+1)+" → "+sc.steps[i]);
-    else log("ok","⚡ S"+(i+1)+" "+sc.steps[i]+"（确定性执行）");
-    i++;setTimeout(tick,420);
-  };
-  setTimeout(tick,300);
-};
-
-/* ---------- AI 自愈并重新编译 ---------- */
-$("btnHeal").onclick=()=>{
-  if(!S.healing||S.busy)return;const sc=SCENARIOS[S.sc];const pv=$("injectSel").value;const patch=PATCHES[pv];lock(true);
-  $("bannerFail").classList.remove("show");
-  log("ai","🤖 [AI 自愈] 分析失败原因（第 "+(S.failedStep+1)+" 步）…");
-  setTimeout(()=>{
-    S.llm++;S.ver=Math.round((S.ver+0.1)*10)/10;
-    log("ai","🤖 [AI 自愈] 定位到选择器失效，已修补代码并重新编译 → v"+S.ver.toFixed(1)+"（本次仅 +1 次 LLM 调用）");
-    // 更新代码块：对应行高亮为修复后代码
-    const lines=['<span class="cm"># AI 编译产物 · 确定性执行 · 运行时零 LLM 调用</span>','<span class="cm"># 需求：'+esc(sc.title)+'（v'+S.ver.toFixed(1)+' 自愈修补）</span>','flow = Flow("'+sc.title.slice(0,12)+'…")'];
-    sc.code.forEach((l,idx)=>{
-      if(idx===patch.diffIdx)lines.push('<span class="diff">'+esc(patch.fix)+'</span>');
-      else lines.push(esc(l));});
-    $("codeBox").innerHTML=lines.join("\n");
-    $("verTag").textContent="v"+S.ver.toFixed(1);
-    log("ok","✅ 重新编译完成 v"+S.ver.toFixed(1)+" —— 下次运行回到零推理");
-    S.healing=false;S.failedStep=-1;S.patch=null;$("injectSel").value="";
-    lock(false);stat();
-  },800);
-};
-
-/* ---------- 注入改版提示 ---------- */
-$("injectSel").onchange=()=>{S.patch=$("injectSel").value||null;
-  if(S.patch)log("run","🧪 已注入网站改版（"+$("injectSel").selectedOptions[0].text+"）——下一次运行将触发自愈链路");
-  else log("run","已取消改版注入");};
-
-/* ---------- 重置 ---------- */
-$("btnReset").onclick=()=>{
-  if(S.busy)return;
-  S={sc:0,mode:S.mode,ver:1.0,built:false,runs:0,llm:0,patch:null,healing:false,failedStep:-1,busy:false};
-  $("inp").value="";$("injectSel").value="";
-  $("planSteps").style.display="none";$("planEmpty").style.display="block";
-  $("codeBox").style.display="none";$("codeEmpty").style.display="block";$("langPill").style.display="none";
-  $("verTag").style.display="none";$("bannerFail").classList.remove("show");$("bannerOk").classList.remove("show");
-  $("logBox").innerHTML='<span class="t">'+now()+'</span><span style="color:#5b6b9d">已重置 —— 等待新需求</span>';
-  $("btnBuild").disabled=true;$("btnRun").disabled=true;$("btnReset").disabled=false;stat();};
-
-stat();
+// 恢复上次保存
+if(saved && saved.req){
+  $("reqTxt").value = saved.req;
+  compile(saved.req);
+  trace(`↩ 已从本地恢复上次编译的流程：${saved.req.slice(0,24)}…`, "ok");
+}
 </script>
 </body>
 </html>
