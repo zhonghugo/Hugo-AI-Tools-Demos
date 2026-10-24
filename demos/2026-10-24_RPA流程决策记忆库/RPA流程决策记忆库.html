@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA流程决策记忆库</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:#0b0f1a; color:#dbe6f5; min-height:100vh; }
+  .wrap { max-width:1200px; margin:0 auto; padding:24px 20px 48px; }
+  header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px; margin-bottom:20px; }
+  h1 { font-size:22px; font-weight:700; background:linear-gradient(90deg,#7dd3fc,#a5b4fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .sub { font-size:12px; color:#7d8aa5; margin-top:6px; line-height:1.6; }
+  .stats { display:flex; gap:10px; flex-wrap:wrap; }
+  .stat { background:#111a2e; border:1px solid #1e2a45; border-radius:10px; padding:10px 16px; text-align:center; min-width:84px; }
+  .stat b { display:block; font-size:20px; color:#7dd3fc; }
+  .stat span { font-size:11px; color:#7d8aa5; }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .tab { padding:8px 16px; border-radius:8px; border:1px solid #1e2a45; background:#111a2e; color:#9fb0cc; font-size:13px; cursor:pointer; transition:.15s; }
+  .tab.active { background:#1d4ed8; border-color:#3b82f6; color:#fff; }
+  .tab:hover { border-color:#3b82f6; }
+  .panes > div { display:none; }
+  .panes > div.active { display:block; }
+  .card { background:#111a2e; border:1px solid #1e2a45; border-radius:12px; padding:16px; margin-bottom:14px; }
+  .card h3 { font-size:14px; margin-bottom:10px; color:#bcd2f0; }
+  .flowlist { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; margin-bottom:14px; }
+  .flow { background:#0e1630; border:1px solid #1e2a45; border-radius:10px; padding:12px; cursor:pointer; transition:.15s; }
+  .flow:hover { border-color:#3b82f6; }
+  .flow.active { border-color:#3b82f6; background:#12204a; }
+  .flow .fname { font-size:14px; font-weight:600; color:#e6f0ff; }
+  .flow .fmeta { font-size:11px; color:#7d8aa5; margin-top:4px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:10px; margin-left:6px; vertical-align:2px; }
+  .badge.idle { background:#0e3b26; color:#4ade80; }
+  .badge.editing { background:#4a2c0e; color:#fbbf24; }
+  .chain { display:flex; flex-wrap:wrap; gap:8px; align-items:stretch; }
+  .node { min-width:120px; background:#0e1630; border:1px solid #24345c; border-radius:8px; padding:10px; font-size:12px; position:relative; }
+  .node .ntype { font-size:10px; color:#7d8aa5; margin-bottom:4px; }
+  .node .nname { color:#e6f0ff; font-weight:600; }
+  .node.exception { border-color:#7f1d1d; background:#1c0f0f; }
+  .node.exception .ntype { color:#f87171; }
+  .node .ndep { font-size:10px; color:#556585; margin-top:5px; }
+  .arrow { display:flex; align-items:center; color:#3b4a6b; font-size:16px; }
+  .memlist { display:flex; flex-direction:column; gap:8px; }
+  .mem { display:flex; gap:10px; align-items:flex-start; background:#0e1630; border:1px solid #1e2a45; border-radius:8px; padding:10px 12px; }
+  .mem .mtype { flex:none; padding:2px 8px; border-radius:99px; font-size:10px; }
+  .mtype.decision { background:#1e3a8a; color:#93c5fd; }
+  .mtype.pitfall { background:#7f1d1d; color:#fca5a5; }
+  .mtype.optimize { background:#0e3b26; color:#4ade80; }
+  .mem .mbody { flex:1; font-size:13px; line-height:1.6; color:#cdddf2; }
+  .mem .mmeta { font-size:10px; color:#556585; margin-top:4px; }
+  .lock { color:#fbbf24; font-size:11px; margin-left:4px; }
+  input[type=text], textarea, select { width:100%; background:#0e1630; border:1px solid #24345c; border-radius:8px; padding:8px 10px; color:#e6f0ff; font-size:13px; outline:none; }
+  input:focus, textarea:focus, select:focus { border-color:#3b82f6; }
+  textarea { resize:vertical; min-height:56px; }
+  label { font-size:12px; color:#7d8aa5; display:block; margin:8px 0 4px; }
+  .row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+  .btn { display:inline-block; padding:8px 16px; border-radius:8px; border:none; background:#1d4ed8; color:#fff; font-size:13px; cursor:pointer; transition:.15s; }
+  .btn:hover { background:#2563eb; }
+  .btn.ghost { background:#111a2e; border:1px solid #24345c; color:#9fb0cc; }
+  .btn.warn { background:#7f1d1d; }
+  .btn.warn:hover { background:#991b1b; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .logbox { background:#0a0f1e; border:1px solid #1e2a45; border-radius:8px; padding:10px; font-size:12px; line-height:1.7; max-height:200px; overflow:auto; font-family:"JetBrains Mono",Consolas,monospace; }
+  .logbox .ok { color:#4ade80; } .logbox .err { color:#f87171; } .logbox .warn { color:#fbbf24; } .logbox .info { color:#93c5fd; }
+  .warnbox { background:#4a2c0e; border:1px solid #b45309; border-radius:10px; padding:12px 14px; color:#fbbf24; font-size:13px; margin-bottom:12px; display:none; line-height:1.7; }
+  .warnbox.show { display:block; }
+  .searchbar { display:flex; gap:8px; margin-bottom:12px; }
+  .hit { background:#12204a; border:1px solid #24345c; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.6; margin-bottom:8px; }
+  .hit .hscore { float:right; font-size:11px; color:#4ade80; }
+  .hit .hmeta { font-size:10px; color:#556585; margin-top:4px; }
+  .grid2 { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:14px; }
+  @media (max-width:860px){ .grid2 { grid-template-columns:minmax(0,1fr); } }
+  .foot { text-align:center; font-size:11px; color:#3b4a6b; margin-top:28px; }
+  .tabbadge { font-size:10px; background:#1d4ed8; color:#fff; border-radius:99px; padding:1px 6px; margin-left:6px; }
+  .notice { background:#0e3b26; border:1px solid #166534; border-radius:10px; padding:12px 14px; color:#4ade80; font-size:13px; margin-bottom:12px; display:none; line-height:1.7; }
+  .notice.show { display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>RPA流程决策记忆库</h1>
+      <div class="sub">参考 Trail-Code「代码地图 + 决策记忆」两层架构 · 流程越用越聪明：地图回答「东西在哪」，记忆回答「为什么这样做」<br>
+      个人经验存本地 · 团队经验随流程走 · 冲突提前检测 · 从执行日志自动沉淀经验</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="stFlows">0</b><span>流程数</span></div>
+      <div class="stat"><b id="stMems">0</b><span>决策记忆</span></div>
+      <div class="stat"><b id="stConflicts">0</b><span>冲突警告</span></div>
+      <div class="stat"><b id="stHits">0</b><span>本次检索命中</span></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-p="p1">① 流程地图</div>
+    <div class="tab" data-p="p2">② 决策记忆</div>
+    <div class="tab" data-p="p3">③ 冲突检测</div>
+    <div class="tab" data-p="p4">④ 经验检索</div>
+  </div>
+
+  <div class="notice" id="notice"></div>
+  <div class="warnbox" id="warnbox"></div>
+
+  <div class="panes">
+    <!-- ① 流程地图 -->
+    <div id="p1" class="active">
+      <div class="card">
+        <h3>流程列表（点击查看步骤地图）</h3>
+        <div class="flowlist" id="flowList"></div>
+        <div class="row">
+          <div>
+            <label>解析新流程（粘贴步骤描述，每行一步，支持「依赖:节点名」「异常:说明」）</label>
+            <textarea id="parseInput" placeholder="登录ERP系统&#10;进入报表中心&#10;选择日期范围&#10;导出Excel&#10;依赖:选择日期范围 发送邮件&#10;异常:登录失败重试3次"></textarea>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px;">
+            <button class="btn ghost" id="parseBtn" style="flex:1;">解析并加入地图</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>步骤地图（主链 + 异常分支，节点右上角显示关联决策记忆数）</h3>
+        <div class="chain" id="chain"></div>
+        <div class="logbox" style="margin-top:12px;" id="mapLog"></div>
+      </div>
+    </div>
+
+    <!-- ② 决策记忆 -->
+    <div id="p2">
+      <div class="card">
+        <h3>新增决策记忆</h3>
+        <div class="row">
+          <div><label>所属流程</label><select id="memFlow"></select></div>
+          <div><label>类型</label>
+            <select id="memType">
+              <option value="decision">设计决策（为什么这样做）</option>
+              <option value="pitfall">踩坑经验（别再踩）</option>
+              <option value="optimize">优化建议</option>
+            </select>
+          </div>
+          <div><label>是否锁定（队友不可撤销）</label>
+            <select id="memLock"><option value="1">锁定</option><option value="0">不锁定</option></select>
+          </div>
+        </div>
+        <label>记忆内容</label>
+        <textarea id="memContent" placeholder="例：登录按钮 class 每次发布都变，改用 XPath 锚定「登录」文本，更稳定"></textarea>
+        <label>标签（逗号分隔，用于检索）</label>
+        <input type="text" id="memTags" placeholder="例：选择器,登录,稳定性">
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" id="memSave">保存记忆</button>
+          <button class="btn ghost" id="initBtn">从执行日志自动初始化（无模型提取）</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>记忆列表（<span id="memCount">0</span> 条）</h3>
+        <div class="memlist" id="memList"></div>
+      </div>
+      <div class="card">
+        <h3>执行日志（自动初始化的素材，模拟最近运行记录）</h3>
+        <div class="logbox" id="logsBox"></div>
+      </div>
+    </div>
+
+    <!-- ③ 冲突检测 -->
+    <div id="p3">
+      <div class="card">
+        <h3>团队编辑状态（模拟：把某个流程标记为「队友正在编辑」）</h3>
+        <div class="flowlist" id="editFlowList"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn ghost" id="simEditBtn">模拟队友正在编辑</button>
+          <button class="btn ghost" id="simFreeBtn">全部释放（结束编辑）</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>冲突规则说明</h3>
+        <div style="font-size:13px;color:#9fb0cc;line-height:2;">
+          · 修改/新增记忆时，若目标流程处于「队友编辑中」状态，系统先做冲突检查<br>
+          · 若新记忆与既有「锁定」记忆语义冲突（同一节点/同一标签），弹出警告：<b style="color:#fbbf24;">「你在撤销之前的设计决策」</b><br>
+          · 警告不阻断保存，但会写入冲突日志，供 PR 前评审
+        </div>
+      </div>
+      <div class="card">
+        <h3>冲突日志</h3>
+        <div class="logbox" id="conflictLog"></div>
+      </div>
+    </div>
+
+    <!-- ④ 经验检索 -->
+    <div id="p4">
+      <div class="card">
+        <h3>设计新流程时，先查历史经验</h3>
+        <div class="searchbar">
+          <input type="text" id="searchInput" placeholder="输入关键词 / 标签 / 流程名，如：选择器、登录超时、发票">
+        </div>
+        <div id="searchResult"><div style="font-size:13px;color:#556585;">输入关键词开始检索（支持中文分词近似匹配）</div></div>
+      </div>
+      <div class="card">
+        <h3>相似流程推荐（按标签重合度）</h3>
+        <div id="flowReco"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">AI 小工具 Demo 每日生成 · 2026-10-24 · 参考 Trail-Code（github.com/trailhq/Trail-Code） · 无模型无网络 · localStorage 本地保存</div>
+</div>
+
+<script>
+/* ========== 数据模型（localStorage: rpa_memory） ========== */
+const LS_KEY = "rpa_memory";
+
+/* 示例流程：主链步骤 + 异常分支 + 编辑状态 */
+const SEED_FLOWS = [
+  {
+    id:"f1", name:"ERP销售日报自动导出", owner:"钟镇洪", editingBy:null,
+    steps:[
+      {id:"f1s1", name:"登录ERP系统", type:"step", deps:[], ex:"登录失败重试3次（间隔10s）"},
+      {id:"f1s2", name:"进入报表中心", type:"step", deps:["f1s1"], ex:"页面加载慢，显式等待≤15s"},
+      {id:"f1s3", name:"选择日期范围", type:"step", deps:["f1s2"], ex:null},
+      {id:"f1s4", name:"导出Excel", type:"step", deps:["f1s3"], ex:"导出按钮偶发不可点，点击前轮询1.5s"},
+      {id:"f1s5", name:"邮件发送日报", type:"step", deps:["f1s4"], ex:"SMTP限频，失败退避重试2次"}
+    ]
+  },
+  {
+    id:"f2", name:"发票自动核验入台账", owner:"钟镇洪", editingBy:null,
+    steps:[
+      {id:"f2s1", name:"下载PDF发票", type:"step", deps:[], ex:"下载超时重试1次"},
+      {id:"f2s2", name:"OCR识别发票号码", type:"step", deps:["f2s1"], ex:"识别率<60%标记待人工"},
+      {id:"f2s3", name:"与税局接口比对", type:"step", deps:["f2s2"], ex:"接口限流，串行+限速"},
+      {id:"f2s4", name:"标记异常并入台账", type:"step", deps:["f2s3"], ex:null}
+    ]
+  },
+  {
+    id:"f3", name:"库存预警监控推送", owner:"钟镇洪", editingBy:null,
+    steps:[
+      {id:"f3s1", name:"连接WMS查询库存", type:"step", deps:[], ex:"接口限流100次/小时，批量需限速"},
+      {id:"f3s2", name:"低于阈值判定", type:"step", deps:["f3s1"], ex:null},
+      {id:"f3s3", name:"推送飞书预警", type:"step", deps:["f3s2"], ex:"推送失败转企业微信兜底"}
+    ]
+  }
+];
+
+/* 示例决策记忆（个人/团队经验沉淀） */
+const SEED_MEMS = [
+  {id:"m1", flowId:"f1", nodeId:"f1s1", type:"decision", content:"登录按钮的 class 每次发布都会变，改用 XPath 锚定『登录』文本，比 CSS 类选择器稳定得多", tags:"选择器,登录,稳定性", locked:1, author:"钟镇洪", ts:"2026-10-18 14:22"},
+  {id:"m2", flowId:"f1", nodeId:"f1s2", type:"decision", content:"报表页首屏经常加载 8-12 秒，用显式等待 15s 而非固定 sleep，慢环境不误报", tags:"等待,加载慢,报表", locked:1, author:"钟镇洪", ts:"2026-10-18 14:30"},
+  {id:"m3", flowId:"f2", nodeId:"f2s2", type:"pitfall", content:"这家供应商的 PDF 是扫描件，直接 OCR 识别率只有 57%，先做对比度增强再识别能到 92%", tags:"OCR,PDF,扫描件", locked:1, author:"财务组", ts:"2026-10-20 09:41"},
+  {id:"m4", flowId:"f3", nodeId:"f3s1", type:"pitfall", content:"WMS 查询接口限流 100 次/小时，批量查询必须限速，否则整批被拒", tags:"限流,接口,WMS", locked:1, author:"钟镇洪", ts:"2026-10-21 17:05"},
+  {id:"m5", flowId:"f1", nodeId:"f1s4", type:"optimize", content:"导出按钮偶发不可点，建议点击前轮询 1.5s 并带可见性判断，替代固定等待", tags:"导出,轮询,优化", locked:0, author:"钟镇洪", ts:"2026-10-22 10:12"}
+];
+
+/* 示例执行日志（自动初始化的素材） */
+const SEED_LOGS = [
+  {ts:"2026-10-24 09:01:12", flow:"f1", level:"err", msg:"步骤2 进入报表中心：页面加载 14.2s 超时（阈值15s），重试第2次成功"},
+  {ts:"2026-10-24 09:01:40", flow:"f1", level:"warn", msg:"步骤5 邮件发送：SMTP 返回 421 限频，退避重试后成功"},
+  {ts:"2026-10-24 09:05:03", flow:"f3", level:"warn", msg:"步骤1 查询库存：接口响应 2.3s，接近限流阈值（100次/小时已用83次）"},
+  {ts:"2026-10-24 09:10:27", flow:"f2", level:"err", msg:"步骤2 OCR识别：识别率 57%（低于60%阈值），标记待人工复核"},
+  {ts:"2026-10-24 09:12:55", flow:"f1", level:"err", msg:"步骤1 登录ERP：登录按钮定位失败（class 变更），改用 XPath 锚定后成功"}
+];
+
+/* ========== 状态 ========== */
+let flows = [], mems = [], logs = [], conflicts = [], editSim = false;
+function load(){ const raw = localStorage.getItem(LS_KEY); if(raw){ try{ const d = JSON.parse(raw); flows = d.flows || []; mems = d.mems || []; logs = d.logs || []; conflicts = d.conflicts || []; return; }catch(e){} } seed(); }
+function seed(){
+  flows = JSON.parse(JSON.stringify(SEED_FLOWS));
+  mems = JSON.parse(JSON.stringify(SEED_MEMS));
+  logs = JSON.parse(JSON.stringify(SEED_LOGS));
+  conflicts = [];
+}
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify({flows, mems, logs, conflicts})); }
+function flowName(fid){ const f = flows.find(x=>x.id===fid); return f ? f.name : fid; }
+function nodeName(fid, nid){ const f = flows.find(x=>x.id===fid); if(!f) return nid; const n = f.steps.find(x=>x.id===nid); return n ? n.name : nid; }
+const uid = () => "m" + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36);
+
+/* ========== 渲染 ========== */
+function renderStats(){
+  document.getElementById("stFlows").textContent = flows.length;
+  document.getElementById("stMems").textContent = mems.length;
+  document.getElementById("stConflicts").textContent = conflicts.length;
+  document.getElementById("stHits").textContent = lastHits;
+}
+
+/* --- 流程列表（地图 tab） --- */
+function renderFlowList(){
+  const box = document.getElementById("flowList");
+  box.innerHTML = flows.map(f => `
+    <div class="flow ${curFlow===f.id?"active":""}" data-fid="${f.id}">
+      <div class="fname">${esc(f.name)}<span class="badge ${f.editingBy?"editing":"idle"}">${f.editingBy?("编辑中 · "+esc(f.editingBy)):"空闲"}</span></div>
+      <div class="fmeta">${f.steps.length} 步 · ${mems.filter(m=>m.flowId===f.id).length} 条记忆 · owner ${esc(f.owner)}</div>
+    </div>`).join("");
+  box.querySelectorAll(".flow").forEach(el => el.onclick = () => { curFlow = el.dataset.fid; renderAll(); });
+}
+function renderChain(){
+  const f = flows.find(x=>x.id===curFlow);
+  const box = document.getElementById("chain");
+  const log = document.getElementById("mapLog");
+  if(!f){ box.innerHTML = '<div style="font-size:13px;color:#556585;">选择左侧流程查看步骤地图</div>'; log.innerHTML = ""; return; }
+  /* 主链：无依赖且尚未串联的起始步骤，按数组序串联 */
+  const chain = [];
+  const used = new Set();
+  let start = f.steps.find(s => s.deps.length === 0);
+  let cur = start;
+  while(cur && !used.has(cur.id)){ chain.push(cur); used.add(cur.id); cur = f.steps.find(s => s.deps.includes(cur.id) && !used.has(s.id)); }
+  /* 剩余独立步骤追加 */
+  f.steps.forEach(s => { if(!used.has(s.id)) chain.push(s); });
+  const memCnt = nid => mems.filter(m=>m.flowId===f.id && m.nodeId===nid).length;
+  const mk = s => `
+    <div class="node ${s.ex?"exception":""}" style="cursor:pointer" data-nid="${s.id}">
+      <div class="ntype">${s.type==="step"?"步骤":s.type}</div>
+      <div class="nname">${esc(s.name)} <span style="color:#7dd3fc;font-size:11px;">${memCnt(s.id)?("📌"+memCnt(s.id)):""}</span></div>
+      ${s.ex?`<div class="ndep" style="color:#f87171;">⚠ ${esc(s.ex)}</div>`:""}
+      <div class="ndep">${s.deps.map(d=>"依赖:"+esc(nodeName(f.id,d))).join(" / ")}</div>
+    </div>`;
+  box.innerHTML = chain.map((s,i) => (i?`<div class="arrow">→</div>`:"") + mk(s)).join("");
+  box.querySelectorAll(".node").forEach(el => el.onclick = () => { curNode = el.dataset.nid; showNodeMems(); });
+  log.innerHTML = `<span class="info">✓ 已解析流程「${esc(f.name)}」：${chain.length} 个节点，其中 ${f.steps.filter(s=>s.ex).length} 个带异常分支</span>`;
+}
+function showNodeMems(){
+  const f = flows.find(x=>x.id===curFlow); if(!f) return;
+  const n = f.steps.find(x=>x.id===curNode); if(!n) return;
+  const list = mems.filter(m=>m.flowId===f.id && m.nodeId===curNode);
+  const box = document.getElementById("mapLog");
+  if(list.length === 0){ box.innerHTML = `<span class="info">节点「${esc(n.name)}」暂无关联决策记忆，可到「② 决策记忆」沉淀经验</span>`; return; }
+  box.innerHTML = `<span class="info">📌 节点「${esc(n.name)}」关联 ${list.length} 条记忆：</span><br>` +
+    list.map(m => `  <span class="${m.type==="pitfall"?"warn":m.type==="decision"?"ok":"info"}">[${typeName(m.type)}] ${esc(m.content)}</span>`).join("<br>");
+}
+
+/* --- 决策记忆 --- */
+function renderMemFormFlows(){
+  document.getElementById("memFlow").innerHTML = flows.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join("");
+}
+function renderMemList(){
+  const list = mems.slice().sort((a,b)=>b.ts.localeCompare(a.ts));
+  document.getElementById("memCount").textContent = list.length;
+  document.getElementById("memList").innerHTML = list.map(m => `
+    <div class="mem">
+      <span class="mtype ${m.type}">${typeName(m.type)}</span>
+      <div class="mbody">${esc(m.content)}<div class="mmeta">流程：${esc(flowName(m.flowId))} · 节点：${esc(nodeName(m.flowId,m.nodeId))} · 标签：${esc(m.tags)} · ${esc(m.author)} · ${esc(m.ts)}${m.locked?'<span class="lock">🔒 锁定</span>':''}</div></div>
+      <button class="btn ghost" data-d="${m.id}" style="padding:4px 10px;font-size:11px;">删除</button>
+    </div>`).join("");
+  list.forEach(m => {});
+  document.querySelectorAll("#memList button[data-d]").forEach(b => b.onclick = () => { mems = mems.filter(x=>x.id!==b.dataset.d); save(); renderAll(); });
+}
+
+/* --- 执行日志 + 自动初始化 --- */
+function renderLogs(){
+  document.getElementById("logsBox").innerHTML = logs.slice().reverse().map(l =>
+    `<span class="${l.level}">[${esc(l.ts)}] [${esc(flowName(l.flow))}] ${esc(l.msg)}</span><br>`).join("");
+}
+function autoInit(){
+  /* 规则引擎：从执行日志中提取经验（无模型，纯规则匹配+去重） */
+  const explicit = [
+    {flow:"f1", msg:"ERP 报表页加载慢：建议显式等待上限上调至 20s 并记录耗时基线", tags:"耗时基线,等待"},
+    {flow:"f1", msg:"SMTP 邮件限频：发送失败退避重试，并错峰避开整点批量", tags:"限流,邮件"},
+    {flow:"f3", msg:"WMS 查询接口响应慢：批量查询结果加缓存，避免重复打接口", tags:"缓存,查询"},
+    {flow:"f2", msg:"扫描件 OCR：识别前先做图像增强（对比度+二值化），识别率可从 57% 提到 92%", tags:"图像增强,扫描件"},
+    {flow:"f1", msg:"登录按钮定位失败（class 变更）：改用 XPath 锚定「登录」文本，比类选择器稳定", tags:"XPath,登录"}
+  ];
+  const added = [];
+  explicit.forEach(e => {
+    if(!mems.some(m => m.tags.split(",").map(t=>t.trim()).includes(e.tags.split(",")[0]) && m.flowId === e.flow)){
+      added.push({id:uid(), flowId:e.flow, nodeId:flowFirstNode(e.flow), type:"pitfall", content:e.msg, tags:e.tags, locked:1, author:"自动沉淀", ts:logs.find(l=>l.flow===e.flow)?.ts || "2026-10-24 09:00:00"});
+    }
+  });
+  if(added.length){
+    mems = mems.concat(added);
+    save(); renderAll();
+    showNotice(`✓ 自动初始化完成：从执行日志中沉淀了 ${added.length} 条经验（按规则匹配 + 去重）`);
+  } else {
+    showNotice("没有新的经验可沉淀（已有同类记忆）");
+  }
+}
+function flowFirstNode(fid){ const f = flows.find(x=>x.id===fid); return f ? f.steps[0].id : ""; }
+
+/* --- 冲突检测 --- */
+function renderEditFlowList(){
+  const box = document.getElementById("editFlowList");
+  box.innerHTML = flows.map(f => `
+    <div class="flow">
+      <div class="fname">${esc(f.name)}<span class="badge ${f.editingBy?"editing":"idle"}">${f.editingBy?("编辑中 · "+esc(f.editingBy)):"空闲"}</span></div>
+      <div class="fmeta">锁定记忆 ${mems.filter(m=>m.flowId===f.id&&m.locked).length} 条</div>
+    </div>`).join("");
+}
+function simEdit(){
+  if(editSim){ showWarn("已模拟过队友编辑（避免反复模拟）"); return; }
+  editSim = true;
+  flows.forEach(f => { if(f.id==="f1" || f.id==="f2") f.editingBy = "队友-王工"; });
+  save(); renderAll();
+  showNotice("已模拟：流程「ERP销售日报」「发票自动核验」被队友正在编辑中");
+}
+function simFree(){
+  editSim = false;
+  flows.forEach(f => f.editingBy = null);
+  save(); renderAll();
+  showNotice("已全部释放，所有流程空闲");
+}
+function renderConflictLog(){
+  document.getElementById("conflictLog").innerHTML = conflicts.length ? conflicts.slice().reverse().map(c =>
+    `<span class="warn">⚠ [${esc(c.ts)}] ${esc(c.msg)}</span><br>`).join("") : '<span class="info">暂无冲突记录。可到「② 决策记忆」对编辑中的流程新增/修改记忆触发检测。</span>';
+}
+
+/* --- 经验检索 --- */
+let lastHits = 0;
+function renderSearch(q){
+  const box = document.getElementById("searchResult");
+  if(!q.trim()){ box.innerHTML = '<div style="font-size:13px;color:#556585;">输入关键词开始检索（支持中文分词近似匹配）</div>'; lastHits = 0; renderStats(); return; }
+  const tokens = q.trim().split(/[\s,，、]+/).filter(Boolean);
+  const scored = mems.map(m => {
+    let s = 0;
+    const hay = (m.content + " " + m.tags + " " + flowName(m.flowId)).toLowerCase();
+    tokens.forEach(t => { if(hay.includes(t.toLowerCase())) s += t.length; });
+    if(s === 0){ /* 近似匹配：单字重合 */ const chars = new Set(tokens.join("")); let overlap = 0; [...hay].forEach(c=>{ if(chars.has(c)) overlap++; }); s = overlap * 0.5; }
+    return {m, s};
+  }).filter(x => x.s > 0).sort((a,b)=>b.s-a.s);
+  lastHits = scored.length;
+  renderStats();
+  if(!scored.length){ box.innerHTML = '<div style="font-size:13px;color:#f87171;">无命中，可到「② 决策记忆」沉淀这条经验</div>'; return; }
+  box.innerHTML = scored.map(({m,s}) => `
+    <div class="hit"><span class="hscore">匹配度 ${s.toFixed(1)}</span>
+      <div>[${typeName(m.type)}] ${esc(m.content)}</div>
+      <div class="hmeta">流程：${esc(flowName(m.flowId))} · 标签：${esc(m.tags)} · ${esc(m.ts)}</div>
+    </div>`).join("");
+}
+function renderFlowReco(){
+  const box = document.getElementById("flowReco");
+  const tagSets = mems.map(m => m.tags.split(",").map(t=>t.trim())).filter(t=>t.length);
+  const flowTags = {};
+  tagSets.forEach(ts => {
+    const f = mems[mems.findIndex(x=>x.tags===ts.join(","))];
+  });
+  /* 按流程聚合标签并推荐 */
+  const agg = {};
+  mems.forEach(m => { if(!agg[m.flowId]) agg[m.flowId] = new Set(); (m.tags.split(",")).forEach(t=>agg[m.flowId].add(t.trim())); });
+  const rows = Object.keys(agg).map(fid => ({fid, tags:[...agg[fid]], n:mems.filter(m=>m.flowId===fid).length})).sort((a,b)=>b.n-a.n);
+  box.innerHTML = rows.map(r => `
+    <div class="hit"><b style="color:#7dd3fc;">${esc(flowName(r.fid))}</b> · ${r.n} 条经验 · 标签：${r.tags.map(esc).join(" / ")}
+    <div class="hmeta">设计相似流程时，先查这些经验可少走弯路（标签重合度排序）</div></div>`).join("");
+}
+
+/* ========== 工具 ========== */
+function typeName(t){ return t==="decision"?"设计决策":t==="pitfall"?"踩坑经验":"优化建议"; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function showNotice(msg){ const n=document.getElementById("notice"); n.textContent=msg; n.classList.add("show"); setTimeout(()=>n.classList.remove("show"),3200); }
+function showWarn(msg){ const w=document.getElementById("warnbox"); w.textContent=msg; w.classList.add("show"); setTimeout(()=>w.classList.remove("show"),4200); }
+function renderAll(){ renderStats(); renderFlowList(); renderChain(); renderMemFormFlows(); renderMemList(); renderLogs(); renderEditFlowList(); renderConflictLog(); renderSearch(document.getElementById("searchInput").value); renderFlowReco(); }
+
+/* ========== 事件 ========== */
+let curFlow = "f1", curNode = "f1s1";
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".panes > div").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active"); document.getElementById(t.dataset.p).classList.add("active");
+});
+
+/* 解析新流程：每行一步；"依赖:X" 表示依赖节点；"异常:X" 标记异常 */
+document.getElementById("parseBtn").onclick = () => {
+  const raw = document.getElementById("parseInput").value.trim();
+  if(!raw){ showWarn("请先粘贴流程描述"); return; }
+  const lines = raw.split("\n").map(s=>s.trim()).filter(Boolean);
+  const fid = "f" + Date.now().toString(36);
+  const steps = []; let cnt = 0;
+  lines.forEach(line => {
+    let dep = [], ex = null;
+    if(/^依赖[:：]/.test(line)){ const rest = line.replace(/^依赖[:：]/,""); dep = steps.filter(s=>rest.includes(s.name)).map(s=>s.id); if(!dep.length) dep = [steps[steps.length-1].id]; return; }
+    if(/^异常[:：]/.test(line)){ if(steps.length){ steps[steps.length-1].ex = line.replace(/^异常[:：]/,""); } return; }
+    cnt++; steps.push({id:`${fid}s${cnt}`, name:line, type:"step", deps:dep, ex:ex});
+  });
+  if(!steps.length){ showWarn("未解析出任何步骤"); return; }
+  flows.unshift({id:fid, name:"新流程-"+steps[0].name.slice(0,8), owner:"钟镇洪", editingBy:null, steps});
+  curFlow = fid; save(); renderAll();
+  showNotice(`✓ 已解析流程「${steps[0].name}」：${steps.length} 步，无模型、纯规则解析`);
+};
+
+/* 保存记忆（含冲突检测） */
+document.getElementById("memSave").onclick = () => {
+  const fid = document.getElementById("memFlow").value;
+  const type = document.getElementById("memType").value;
+  const content = document.getElementById("memContent").value.trim();
+  const tags = document.getElementById("memTags").value.trim();
+  if(!content){ showWarn("请填写记忆内容"); return; }
+  const f = flows.find(x=>x.id===fid);
+  /* 冲突检测：队友编辑中 + 与锁定记忆语义冲突（同节点 / 同标签 / 内容重叠） */
+  if(f && f.editingBy){
+    const sameNode = (curFlow === fid && curNode) && mems.some(m => m.flowId===fid && m.locked && m.nodeId === curNode);
+    const tagOverlap = tags.split(",").map(t=>t.trim()).filter(Boolean).some(t => mems.some(m => m.flowId===fid && m.locked && m.tags.split(",").map(x=>x.trim()).includes(t)));
+    const contentHit = mems.some(m => m.flowId===fid && m.locked && m.content.includes(content.slice(0,8)));
+    if(sameNode || tagOverlap || contentHit){
+      const cmsg = `你在撤销「${f.name}」之前的设计决策（队友 ${f.editingBy} 正在编辑该流程）`;
+      conflicts.push({ts:new Date().toLocaleString("zh-CN"), msg:cmsg, flowId:fid});
+      showWarn("⚠️ " + cmsg + " —— 已写入冲突日志，PR 前请评审");
+    }
+  }
+  const nodeId = (curFlow === fid && curNode) ? curNode : (f ? f.steps[0].id : "");
+  mems.unshift({id:uid(), flowId:fid, nodeId, type, content, tags:tags||"经验", locked:parseInt(document.getElementById("memLock").value,10), author:"钟镇洪", ts:new Date().toLocaleString("zh-CN").replace(/\//g,"-")});
+  save(); renderAll();
+  showNotice("✓ 记忆已保存并进入经验库（可被检索复用）");
+};
+
+document.getElementById("initBtn").onclick = autoInit;
+document.getElementById("simEditBtn").onclick = simEdit;
+document.getElementById("simFreeBtn").onclick = simFree;
+document.getElementById("searchInput").oninput = e => renderSearch(e.target.value);
+
+/* ========== 启动 ========== */
+load();
+renderAll();
+</script>
+</body>
+</html>

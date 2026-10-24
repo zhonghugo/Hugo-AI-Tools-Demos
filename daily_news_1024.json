@@ -1,0 +1,47 @@
+[
+  {
+    "标题": "Trail-Code：10.6K stars本地代码地图+团队决策记忆，给coding agent用，成本降32%延迟降60%",
+    "机会": "RPA流程决策记忆库：①流程地图自动解析流程结构形成可视化地图②决策记忆记录设计决策与踩坑经验③冲突检测（修改时警告撤销之前的设计决策）④自动初始化（从执行日志提取经验）⑤经验检索（设计新流程时复用相似经验）；无模型无网络，契合RPA+企业信息化隐性知识沉淀",
+    "指数": "4星",
+    "日期": "2026-10-24",
+    "链接": "https://github.com/trailhq/Trail-Code",
+    "来源": "GitHub",
+    "标签": "决策记忆,流程地图,冲突检测"
+  },
+  {
+    "标题": "Headroom：77K stars LLM上下文压缩引擎，工具输出/日志/JSON压缩70-95%，答案不变，MCP/Library/Proxy三形态",
+    "机会": "RPA数据智能压缩预处理层：按内容类型路由压缩器（HTML去样板/JSON去冗余/日志合并重复行）+hash索引检索原文，透明代理，不丢失信息",
+    "指数": "3星",
+    "日期": "2026-10-24",
+    "链接": "https://github.com/headroomlabs-ai/headroom",
+    "来源": "GitHub",
+    "标签": "数据压缩,预处理"
+  },
+  {
+    "标题": "wshobson/agents：41.5K stars跨工具skill管道，一个Markdown源生成7种coding tool格式，94插件202agent1",
+    "机会": "RPA流程模板跨平台生成器：统一YAML/Markdown描述→自动生成UiPath/影刀/Playwright/Python多目标格式，adapter适配+静态验证",
+    "指数": "3星",
+    "日期": "2026-10-24",
+    "链接": "https://github.com/wshobson/agents",
+    "来源": "GitHub",
+    "标签": "模板生成,跨平台"
+  },
+  {
+    "标题": "agent-orchestrator：13.5K stars本地多agent工作台，每任务独立workspace，看板跟随PR/CI状态，CI错误回到原sess",
+    "机会": "RPA多流程编排管理台：真实状态驱动看板（运行中/失败/待人工/已完成来自执行日志）+失败回到原流程保留完整上下文+独立workspace+规划层",
+    "指数": "3星",
+    "日期": "2026-10-24",
+    "链接": "https://github.com/OrchestratorInc/agent-orchestrator",
+    "来源": "GitHub",
+    "标签": "流程编排,状态看板"
+  },
+  {
+    "标题": "RocketRide：17.7K stars高性能AI pipeline引擎，C++核心+50+Python节点，13+模型商8+向量库，可视化IDE+MCP",
+    "机会": "RPA流程高性能执行引擎：C++核心多线程执行+节点化设计（采集/清洗/AI分析/输出可插拔）+可视化编排+可移植JSON",
+    "指数": "3星",
+    "日期": "2026-10-24",
+    "链接": "https://github.com/rocketride-org/rocketride-server",
+    "来源": "GitHub",
+    "标签": "执行引擎,高性能"
+  }
+]
