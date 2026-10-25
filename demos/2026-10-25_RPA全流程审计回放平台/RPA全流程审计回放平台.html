@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA全流程审计回放平台</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; padding:20px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  header h1 { font-size:24px; color:#111827; }
+  header p { color:#6b7280; font-size:13px; margin-top:6px; }
+  .stats { display:flex; gap:16px; margin:16px 0; flex-wrap:wrap; }
+  .stat { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 20px; text-align:center; min-width:150px; flex:1; }
+  .stat b { font-size:22px; color:#2563eb; display:block; }
+  .stat span { font-size:12px; color:#6b7280; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .tab { padding:8px 16px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:14px; color:#374151; user-select:none; }
+  .tab.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:12px; }
+  .card h3 { font-size:15px; margin-bottom:10px; color:#111827; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+  .b-ok { background:#dcfce7; color:#15803d; }
+  .b-fail { background:#fee2e2; color:#b91c1c; }
+  .b-warn { background:#fef3c7; color:#b45309; }
+  .b-run { background:#dbeafe; color:#1d4ed8; }
+  .b-mfa { background:#f3e8ff; color:#7c3aed; }
+  .b-sense { background:#fee2e2; color:#b91c1c; }
+  .btn { padding:6px 14px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:13px; color:#374151; }
+  .btn:hover { background:#f3f4f6; }
+  .btn.primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .btn.sm { padding:4px 10px; font-size:12px; }
+  .sess { border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .sess .meta { font-size:12px; color:#6b7280; }
+  .step { border-left:3px solid #d1d5db; padding:8px 12px; margin:8px 0 8px 4px; background:#f9fafb; border-radius:0 6px 6px 0; font-size:13px; }
+  .step.cur { border-left-color:#2563eb; background:#eff6ff; }
+  .step.fail { border-left-color:#dc2626; background:#fef2f2; }
+  .step .op { font-weight:600; }
+  .step .sub { color:#6b7280; font-size:12px; margin-top:2px; }
+  .bar { height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden; margin-top:6px; }
+  .bar i { display:block; height:100%; background:#2563eb; border-radius:4px; transition:width .3s; }
+  .bar.fail i { background:#dc2626; }
+  .task { border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:10px; }
+  .task .t-head { display:flex; justify-content:space-between; align-items:center; }
+  .log-line { font-size:12px; padding:6px 0; border-bottom:1px dashed #e5e7eb; display:flex; gap:10px; }
+  .log-line .t { color:#6b7280; white-space:nowrap; }
+  textarea { width:100%; min-height:150px; border:1px solid #d1d5db; border-radius:8px; padding:10px; font-size:12px; font-family:ui-monospace,monospace; }
+  .diag { background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:10px; margin-top:8px; font-size:13px; }
+  .diag .why { color:#0369a1; font-weight:600; }
+  .diag ul { margin:6px 0 0 18px; color:#334155; }
+  .tl { display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+  .note { font-size:12px; color:#9ca3af; margin-top:6px; }
+  @media (max-width:480px) { body { padding:12px; } .stats { gap:8px; } .stat { min-width:calc(50% - 8px); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>RPA全流程审计回放平台</h1>
+    <p>参考 BrowserOS「现有登录态 + Session 视频回放 + MCP 驱动」架构：让每一次自动化执行都可追溯、可回放、可审计——回答「RPA 到底干了什么、干得对不对」。</p>
+  </header>
+  <div class="stats">
+    <div class="stat"><b id="stSess">0</b><span>已接管登录态</span></div>
+    <div class="stat"><b id="stExec">0</b><span>执行记录</span></div>
+    <div class="stat"><b id="stTask">0</b><span>并行任务</span></div>
+    <div class="stat"><b id="stAudit">0</b><span>审计日志</span></div>
+  </div>
+  <nav>
+    <div class="tab active" data-p="p1">① 登录态管理</div>
+    <div class="tab" data-p="p2">② 流程回放</div>
+    <div class="tab" data-p="p3">③ 异常诊断</div>
+    <div class="tab" data-p="p4">④ 并行任务</div>
+    <div class="tab" data-p="p5">⑤ 合规审计</div>
+  </nav>
+
+  <!-- ① 登录态管理 -->
+  <div class="panel active" id="p1">
+    <div class="card">
+      <h3>已接管的登录态（真实身份操作，非匿名爬取）</h3>
+      <div id="sessList"></div>
+      <div class="note">说明：会话从 Chrome 导入 Cookie / SSO 授权后，RPA 以真实账号身份执行；遇到 MFA / 验证码时暂停并创建「人工介入点」。</div>
+    </div>
+  </div>
+
+  <!-- ② 流程回放 -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <h3>执行记录（点击记录进入逐步回放）</h3>
+      <div id="execList"></div>
+      <div id="player" style="display:none">
+        <h3 id="plTitle" style="margin-top:14px"></h3>
+        <div class="tl">
+          <button class="btn primary sm" id="playBtn">▶ 播放</button>
+          <button class="btn sm" id="slowBtn">慢放 1x/3x</button>
+          <span id="stepIdx" class="note">0 / 0</span>
+        </div>
+        <div id="timeline"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 异常诊断 -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <h3>失败步骤自动诊断（AI 分析失败原因 + 修复建议）</h3>
+      <div id="diagList"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" id="rediagBtn">重新诊断全部</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 并行任务 -->
+  <div class="panel" id="p4">
+    <div class="card">
+      <h3>多流程独立会话并发执行（统一 Dashboard）</h3>
+      <div id="taskList"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" id="advanceBtn">推进一次（模拟运行）</button>
+      </div>
+      <div class="note">每个 RPA 流程运行在独立浏览器环境中，互不干扰；状态由真实执行日志驱动。</div>
+    </div>
+  </div>
+
+  <!-- ⑤ 合规审计 -->
+  <div class="panel" id="p5">
+    <div class="card">
+      <h3>审计日志（谁、何时、做了什么——敏感操作高亮）</h3>
+      <div id="auditLog"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="exportBtn">导出审计报告</button>
+      </div>
+      <textarea id="reportBox" placeholder="点击「导出审计报告」生成可留档的审计摘要……" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   RPA全流程审计回放平台（单文件 demo）
+   参考资讯：BrowserOS（14K stars，Chromium fork，登录态+Session 回放+MCP 驱动）
+   解决：企业上 RPA 最关心的信任问题——每次自动化干了什么、
+   干得对不对、出了问题怎么定位、是否合规可审计。
+   数据全部本地模拟，localStorage 键 rpa_audit 保存会话标记。
+   ============================================================ */
+const KEY = "rpa_audit";
+
+// ① 登录态：3 个企业系统会话
+const SESSIONS = [
+  { id:"s1", name:"财务共享中心 - ERP", user:"zhong@corp", via:"Chrome Cookie 导入", status:"有效", mfa:false },
+  { id:"s2", name:"供应链 - 供应商门户", user:"purchase@corp", via:"SSO 授权", status:"有效", mfa:false },
+  { id:"s3", name:"客服 - 工单系统", user:"service@corp", via:"账号密码", status:"需人工介入", mfa:true }
+];
+
+// ② 执行记录（含逐步时间线；exec2 第 4 步失败）
+const EXECS = [
+  { id:"e1", name:"ERP销售日报自动导出", flow:"f1", result:"成功", cost:"3分12秒", failStep:-1,
+    steps:[
+      { op:"登录 ERP", sel:"#login-user", cost:"8s", ok:true },
+      { op:"进入报表中心", sel:"#nav-report", cost:"2s", ok:true },
+      { op:"选择日期=昨日", sel:"input[name=date]", cost:"1s", ok:true },
+      { op:"点击生成日报", sel:"#btn-gen", cost:"3s", ok:true },
+      { op:"下载 Excel", sel:"a.download", cost:"2s", ok:true }
+    ]},
+  { id:"e2", name:"发票批量自动核验", flow:"f2", result:"失败", cost:"5分40秒", failStep:3,
+    steps:[
+      { op:"登录发票平台", sel:"#login-user", cost:"8s", ok:true },
+      { op:"上传发票批次", sel:"#upload-batch", cost:"6s", ok:true },
+      { op:"等待 OCR 识别", sel:"#ocr-status", cost:"90s", ok:true },
+      { op:"点击开始核验", sel:"#btn-verify", cost:"3s", ok:false, why:"选择器 #btn-verify 未找到（页面可能改版）" },
+      { op:"下载结果", sel:"a.result", cost:"-", ok:false }
+    ]}
+];
+
+// ③ 诊断规则库（关键词 → 原因 + 建议）
+const DIAG_RULES = [
+  { key:"未找到", cause:"选择器失效——目标页面上一次升级改版，旧的定位表达式不再命中", fix:"打开回放定位到出错步骤，用新页面的元素重新生成选择器；建议改用「语义定位」（按钮文本/表单标签）而非 CSS 路径" },
+  { key:"超时", cause:"页面响应过慢或网络抖动，等待超过预设阈值", fix:"为该步骤增加指数退避重试（2 次、间隔 5s/15s）；若为批量任务建议改异步轮询" },
+  { key:"登录", cause:"会话过期或登录态失效，真实身份验证被重置", fix:"检查登录态管理：重新导入 Cookie / 走 SSO 刷新；确认是否有 MFA 需要人工介入" },
+  { key:"反爬", cause:"目标站点识别到自动化特征，触发人机验证", fix:"降低操作频率、增加随机延迟；优先复用真实浏览器指纹（参考 moli 低检测率方案）" }
+];
+
+// ④ 并行任务
+const TASKS = [
+  { id:"t1", name:"ERP销售日报自动导出", env:"独立会话 e1", status:"已完成", prog:100 },
+  { id:"t2", name:"发票批量自动核验", env:"独立会话 e2", status:"失败", prog:62 },
+  { id:"t3", name:"库存预警邮件推送", env:"独立会话 s2", status:"运行中", prog:45 },
+  { id:"t4", name:"供应商对账单抓取", env:"独立会话 s3", status:"待人工介入", prog:28 }
+];
+const STATUS_SEQ = ["待启动","运行中","已完成","失败","待人工介入"];
+const ST_CLS = { "已完成":"b-ok", "失败":"b-fail", "运行中":"b-run", "待人工介入":"b-mfa", "待启动":"b-warn" };
+
+// ⑤ 审计日志
+const AUDIT = [
+  { t:"2026-10-25 09:12:04", who:"RPA-任务引擎", act:"接管会话 s1（ERP，真实账号 zhong@corp）", sense:false },
+  { t:"2026-10-25 09:12:31", who:"RPA-任务引擎", act:"执行 e1 流程：登录 ERP", sense:false },
+  { t:"2026-10-25 09:15:10", who:"RPA-任务引擎", act:"执行 e2 流程：上传发票批次（含客户发票数据）", sense:true },
+  { t:"2026-10-25 09:17:22", who:"RPA-任务引擎", act:"e2 第 4 步失败：选择器 #btn-verify 未找到", sense:true },
+  { t:"2026-10-25 09:20:55", who:"人工-钟镇洪", act:"为会话 s3 创建人工介入点：输入短信验证码", sense:true }
+];
+
+// 会话人工介入标记（localStorage 持久化）
+let mfaMarked = safeParse(localStorage.getItem(KEY), {});
+function safeParse(s, def){ try { return s ? JSON.parse(s) : def; } catch(e){ return def; } }
+function saveMark(){ localStorage.setItem(KEY, JSON.stringify(mfaMarked)); }
+
+/* ---------- 渲染 ---------- */
+function renderStats(){
+  document.getElementById("stSess").textContent = SESSIONS.length;
+  document.getElementById("stExec").textContent = EXECS.length;
+  document.getElementById("stTask").textContent = TASKS.length;
+  document.getElementById("stAudit").textContent = AUDIT.length;
+}
+function renderSess(){
+  const box = document.getElementById("sessList");
+  box.innerHTML = SESSIONS.map(s => {
+    const marked = mfaMarked[s.id];
+    const badge = s.status === "有效"
+      ? '<span class="badge b-ok">有效</span>'
+      : '<span class="badge b-mfa">需人工介入</span>';
+    return `<div class="sess">
+      <div><b>${s.name}</b><div class="meta">账号 ${s.user} · ${s.via}</div></div>
+      <div class="row">${badge}
+        ${s.mfa && !marked ? `<button class="btn sm primary" data-mfa="${s.id}">标记人工介入点</button>` : ""}
+        ${marked ? '<span class="badge b-warn">已设介入点</span>' : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+function renderExec(){
+  const box = document.getElementById("execList");
+  box.innerHTML = EXECS.map(e => `<div class="task" data-exec="${e.id}" style="cursor:pointer">
+    <div class="t-head"><b>${e.name}</b><span class="badge ${e.result==="成功"?"b-ok":"b-fail"}">${e.result}</span></div>
+    <div class="meta" style="font-size:12px;color:#6b7280;margin-top:4px">流程 ${e.flow} · 耗时 ${e.cost} · 点击回放</div>
+  </div>`).join("");
+}
+function renderPlayer(e){
+  document.getElementById("player").style.display = "block";
+  document.getElementById("plTitle").textContent = "回放：" + e.name;
+  const tl = document.getElementById("timeline");
+  tl.innerHTML = e.steps.map((s, i) => `<div class="step ${s.ok?"":"fail"}" data-step="${i}">
+    <div class="op">${i+1}. ${s.op} <span class="badge ${s.ok?"b-ok":"b-fail"}">${s.ok?"成功":"失败"}</span></div>
+    <div class="sub">选择器 ${s.sel} · ${s.cost}${s.why? " · " + s.why : ""}</div>
+  </div>`).join("");
+  window._curExec = e;
+  window._curIdx = -1;
+  document.getElementById("stepIdx").textContent = "0 / " + e.steps.length;
+}
+function renderDiag(){
+  const box = document.getElementById("diagList");
+  box.innerHTML = EXECS.filter(e => e.result === "失败").map(e => {
+    const f = e.steps[e.failStep];
+    const rule = DIAG_RULES.find(r => (f.why || "").includes(r.key)) || DIAG_RULES[0];
+    return `<div class="task" data-diag="${e.id}">
+      <div class="t-head"><b>${e.name}</b><span class="badge b-fail">失败于第 ${e.failStep+1} 步</span></div>
+      <div class="diag"><span class="why">诊断：</span>${rule.cause}
+        <ul><li>修复建议：${rule.fix}</li><li>现场快照：已保存该步骤 DOM + 网络请求 + 截图（可帧级查看）</li></ul>
+      </div>
+    </div>`;
+  }).join("");
+  if (box.innerHTML === "") box.innerHTML = '<div class="note">当前无失败执行记录。</div>';
+}
+function renderTask(){
+  const box = document.getElementById("taskList");
+  box.innerHTML = TASKS.map(t => `<div class="task">
+    <div class="t-head"><b>${t.name}</b>
+      <span class="badge ${ST_CLS[t.status]}">${t.status}</span></div>
+    <div class="meta" style="font-size:12px;color:#6b7280;margin-top:4px">${t.env}</div>
+    <div class="bar ${t.status==="失败"?"fail":""}"><i style="width:${t.prog}%"></i></div>
+  </div>`).join("");
+}
+function renderAudit(){
+  const box = document.getElementById("auditLog");
+  box.innerHTML = AUDIT.map((a, i) => `<div class="log-line" data-log="${i}">
+    <span class="t">${a.t}</span><span>${a.who}</span><span>${a.act}</span>
+    ${a.sense ? '<span class="badge b-sense">敏感</span>' : ""}
+  </div>`).join("");
+}
+function renderAll(){ renderStats(); renderSess(); renderExec(); renderDiag(); renderTask(); renderAudit(); }
+
+/* ---------- 交互 ---------- */
+// tab 切换
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(t.dataset.p).classList.add("active");
+}));
+
+// ① 人工介入点
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-mfa]");
+  if (b) { mfaMarked[b.dataset.mfa] = true; saveMark(); renderSess(); }
+});
+
+// ② 选择执行记录回放
+document.getElementById("execList").addEventListener("click", e => {
+  const t = e.target.closest("[data-exec]");
+  if (!t) return;
+  renderPlayer(EXECS.find(x => x.id === t.dataset.exec));
+  window._slow = 1;
+});
+// 播放：逐步高亮
+let playTimer = null;
+function stepPlay(){
+  const e = window._curExec; if (!e) return;
+  const steps = document.querySelectorAll("#timeline .step");
+  window._curIdx = (window._curIdx + 1) % e.steps.length;
+  document.querySelectorAll("#timeline .step").forEach(s => s.classList.remove("cur"));
+  steps[window._curIdx].classList.add("cur");
+  document.getElementById("stepIdx").textContent = (window._curIdx+1) + " / " + e.steps.length;
+}
+document.getElementById("playBtn").addEventListener("click", () => {
+  if (playTimer) { clearInterval(playTimer); playTimer = null; document.getElementById("playBtn").textContent = "▶ 播放"; return; }
+  playTimer = setInterval(stepPlay, 800 * (window._slow || 1));
+  document.getElementById("playBtn").textContent = "⏸ 暂停";
+});
+document.getElementById("slowBtn").addEventListener("click", () => {
+  window._slow = window._slow === 1 ? 3 : 1;
+  document.getElementById("slowBtn").textContent = "慢放 " + window._slow + "x/3x";
+});
+
+// ③ 重新诊断（轮换规则模拟 AI 复查）
+document.getElementById("rediagBtn").addEventListener("click", () => {
+  AUDIT.push({ t: ts(), who:"RPA-诊断引擎", act:"重新诊断 e2：确认根因为选择器失效（页面改版），建议语义定位", sense:false });
+  renderDiag(); renderAudit(); renderStats();
+  const d = document.querySelector("[data-diag=e2] .diag");
+  if (d) { d.innerHTML = '<span class="why">复诊结论：</span>已交叉核对 DOM 快照与网络请求，根因确认为页面改版导致选择器失效。<ul><li>修复：改为按按钮文本「开始核验」语义定位</li><li>防护：选择器注册「哨兵检查」，改版即告警</li></ul>'; }
+  flush();
+});
+function ts(){ const d = new Date(); return d.toLocaleString("zh-CN",{hour12:false}).replace(/\//g,"-"); }
+
+// ④ 推进任务
+document.getElementById("advanceBtn").addEventListener("click", () => {
+  TASKS.forEach(t => {
+    if (t.status === "已完成" || t.status === "失败") return;
+    const add = 15 + Math.floor(Math.random() * 20);
+    t.prog = Math.min(100, t.prog + add);
+    if (t.prog >= 100) t.status = "已完成";
+    else if (t.id === "t4" && t.prog > 40) t.status = "待人工介入";
+    else t.status = "运行中";
+  });
+  AUDIT.push({ t: ts(), who:"RPA-任务引擎", act:"推进并行任务：库存预警 45%→" + TASKS[2].prog + "%；对账单抓取需人工介入", sense:false });
+  renderTask(); renderAudit(); renderStats(); flush();
+});
+
+// ⑤ 导出审计报告
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const lines = AUDIT.map(a => `${a.t} | ${a.who} | ${a.act}${a.sense ? " 【敏感操作】" : ""}`).join("\n");
+  const head = "RPA 自动化审计报告（模拟）\n报告期间：2026-10-25 09:00 – 现在\n审计口径：登录态接管、执行记录、异常诊断、并行任务、人工介入点\n========================================\n";
+  const tail = "\n========================================\n结论：e2 流程失败 1 次，已定位根因并记录修复建议；敏感操作 3 次均已在日志留痕，可追溯至具体步骤截图。\n";
+  document.getElementById("reportBox").value = head + lines + tail;
+});
+
+function flush(){ localStorage.setItem(KEY + "_audit", AUDIT.length); }
+
+renderAll();
+</script>
+</body>
+</html>
