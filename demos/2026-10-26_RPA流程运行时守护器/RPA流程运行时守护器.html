@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA流程运行时守护器</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; padding:20px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  header h1 { font-size:24px; color:#111827; }
+  header p { color:#6b7280; font-size:13px; margin-top:6px; }
+  .stats { display:flex; gap:16px; margin:16px 0; flex-wrap:wrap; }
+  .stat { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 20px; text-align:center; min-width:150px; flex:1; }
+  .stat b { font-size:22px; color:#2563eb; display:block; }
+  .stat span { font-size:12px; color:#6b7280; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .tab { padding:8px 16px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:14px; color:#374151; user-select:none; }
+  .tab.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:12px; }
+  .card h3 { font-size:15px; margin-bottom:10px; color:#111827; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+  .b-run { background:#dbeafe; color:#1d4ed8; }
+  .b-blocked { background:#fef3c7; color:#b45309; }
+  .b-idle { background:#f3f4f6; color:#4b5563; }
+  .b-fail { background:#fee2e2; color:#b91c1c; }
+  .b-off { background:#e5e7eb; color:#374151; }
+  .b-ok { background:#dcfce7; color:#15803d; }
+  .b-sense { background:#fee2e2; color:#b91c1c; }
+  .btn { padding:6px 14px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:13px; color:#374151; }
+  .btn:hover { background:#f3f4f6; }
+  .btn.primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .btn.sm { padding:4px 10px; font-size:12px; }
+  .sess { border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-bottom:8px; }
+  .sess .head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .sess .meta { font-size:12px; color:#6b7280; margin-top:4px; }
+  .bar { height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden; margin-top:6px; }
+  .bar i { display:block; height:100%; background:#2563eb; border-radius:4px; transition:width .3s; }
+  .bar.blocked i { background:#d97706; }
+  .bar.fail i { background:#dc2626; }
+  .notify { background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:13px; color:#92400e; display:none; }
+  .step { border-left:3px solid #d1d5db; padding:7px 12px; margin:6px 0 6px 4px; background:#f9fafb; border-radius:0 6px 6px 0; font-size:13px; }
+  .step.fail { border-left-color:#dc2626; background:#fef2f2; }
+  .step .sub { color:#6b7280; font-size:12px; margin-top:2px; }
+  .dag { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; }
+  .dag .node { border:2px solid #d1d5db; border-radius:8px; padding:8px 14px; background:#fff; text-align:center; }
+  .dag .node.run { border-color:#2563eb; background:#eff6ff; }
+  .dag .node.done { border-color:#16a34a; background:#f0fdf4; }
+  .dag .node.blocked { border-color:#d97706; background:#fffbeb; }
+  .dag .arrow { color:#9ca3af; font-weight:700; }
+  .ctx { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px; font-size:12px; font-family:ui-monospace,monospace; color:#334155; }
+  textarea { width:100%; min-height:110px; border:1px solid #d1d5db; border-radius:8px; padding:10px; font-size:12px; font-family:ui-monospace,monospace; }
+  .note { font-size:12px; color:#9ca3af; margin-top:6px; }
+  input[type=text] { border:1px solid #d1d5db; border-radius:8px; padding:6px 10px; font-size:13px; width:180px; }
+  @media (max-width:480px) { body { padding:12px; } .stats { gap:8px; } .stat { min-width:calc(50% - 8px); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>RPA流程运行时守护器</h1>
+    <p>参考 Herdr「session 保活 + 三态状态标记 + 阻塞通知 + agent 间编排」（45.7K stars，Rust 终端运行时）：为每个 RPA 流程配一个「守护层」——跑着跑着断了有人知道、阻塞有人介入、断点能续跑。</p>
+  </header>
+  <div class="stats">
+    <div class="stat"><b id="stAlive">0</b><span>存活 Session</span></div>
+    <div class="stat"><b id="stBlocked">0</b><span>阻塞待介入</span></div>
+    <div class="stat"><b id="stKeep">0</b><span>断线保活时长(s)</span></div>
+    <div class="stat"><b id="stNotify">0</b><span>已发通知</span></div>
+  </div>
+  <div class="notify" id="notifyBar"></div>
+  <nav>
+    <div class="tab active" data-p="p1">① 守护总览</div>
+    <div class="tab" data-p="p2">② 断线保活</div>
+    <div class="tab" data-p="p3">③ 人工介入</div>
+    <div class="tab" data-p="p4">④ 流程编排</div>
+    <div class="tab" data-p="p5">⑤ 执行日志</div>
+  </nav>
+
+  <!-- ① 守护总览 -->
+  <div class="panel active" id="p1">
+    <div class="card">
+      <h3>全部流程 Session（独立后台运行，守护层 3s 心跳）</h3>
+      <div id="sessList"></div>
+      <div class="note">三态口径：<b>运行中</b>=working 正常执行 · <b>阻塞</b>=blocked 等待人工介入（验证码/MFA/异常）· <b>待触发</b>=idle 等待编排调度 · <b>失败</b>=failed 执行中断。</div>
+    </div>
+  </div>
+
+  <!-- ② 断线保活 -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <h3>模拟 SSH 断开 / 客户端关闭 → Session 保活</h3>
+      <p class="note" style="margin-bottom:10px">Herdr 核心能力：后台 server 保持 session 存活，客户端关闭或 SSH 断开后 agent 继续工作。下面模拟断开一条会话，观察它是否仍在推进。</p>
+      <div id="keepList"></div>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">
+        <button class="btn primary" id="cutBtn">模拟断开选中会话</button>
+        <button class="btn" id="reconnBtn">重新连接</button>
+        <span id="keepInfo" class="note"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 人工介入 -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <h3>阻塞流程人工介入（保存上下文 → 处理 → 断点续跑）</h3>
+      <div id="blockList"></div>
+      <div id="intervene" style="display:none;margin-top:12px">
+        <h3 id="ivTitle"></h3>
+        <div class="ctx" id="ivCtx"></div>
+        <div class="row" style="display:flex;gap:10px;align-items:center;margin-top:10px">
+          <input type="text" id="ivInput" placeholder="输入处理结果，如验证码 / 操作说明">
+          <button class="btn primary" id="ivResume">恢复执行（断点续跑）</button>
+        </div>
+      </div>
+      <div class="note">介入点语义：流程阻塞时自动暂停并保存上下文快照（当前步骤/选择器/页面状态），人工处理后从<u>该步骤</u>继续，不从头重跑。</div>
+    </div>
+  </div>
+
+  <!-- ④ 流程编排 -->
+  <div class="panel" id="p4">
+    <div class="card">
+      <h3>流程间编排（依赖链 + 条件分支 + 并行，参考 Herdr spawn/wait 原语）</h3>
+      <div class="dag" id="dagBox"></div>
+      <div class="row" style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn primary" id="schBtn">推进编排（模拟调度）</button>
+        <span class="note">日报导出完成后自动触发发票核验，两者都就绪后触发库存预警；供应商对账单独立并行。</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ 执行日志 -->
+  <div class="panel" id="p5">
+    <div class="card">
+      <h3>执行日志回放（失败精确定位到步骤）</h3>
+      <div id="logSel" class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div id="logList"></div>
+      <div class="note">每条日志含操作/选择器/耗时/状态；失败步骤标红，点击「定位」在上下文中高亮。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   RPA流程运行时守护器（单文件 demo）
+   参考资讯：Herdr（herdrdev/herdr，45.7K stars，Rust 终端运行时）
+   ——「SSH 断了，agent 死了，20 分钟的工作白跑了」：
+   ① session 保活（后台 server 保持会话存活）② working/blocked/idle
+   三态标记 + 阻塞通知 ③ agent 间编排（spawn / wait）。
+   迁移到 RPA：每个流程一个守护 session，断了不丢、阻塞有人管、断点能续。
+   ============================================================ */
+const HEARTBEAT = 1000;
+
+// 5 个流程 session（独立后台运行）
+const SESSIONS = [
+  { id:"s1", name:"ERP销售日报自动导出", env:"守护会话 #1", status:"run", prog:62, steps:[
+      {op:"登录 ERP", sel:"#login-user", cost:"8s", ok:true},
+      {op:"进入报表中心", sel:"#nav-report", cost:"2s", ok:true},
+      {op:"生成日报 Excel", sel:"#btn-gen", cost:"3s", ok:true}
+    ], alive:0 },
+  { id:"s2", name:"发票批量自动核验", env:"守护会话 #2", status:"blocked", prog:48, wait:"等待短信验证码（MFA）", blockStep:3, steps:[
+      {op:"登录发票平台", sel:"#login-user", cost:"8s", ok:true},
+      {op:"上传发票批次", sel:"#upload-batch", cost:"6s", ok:true},
+      {op:"等待 OCR 识别", sel:"#ocr-status", cost:"90s", ok:true},
+      {op:"输入短信验证码", sel:"#mfa-code", cost:"-", ok:false, why:"阻塞：等待人工提供验证码"}
+    ], alive:0 },
+  { id:"s3", name:"库存预警邮件推送", env:"守护会话 #3", status:"idle", prog:100, steps:[
+      {op:"等待编排触发", sel:"-", cost:"-", ok:true}
+    ], alive:0 },
+  { id:"s4", name:"供应商对账单抓取", env:"守护会话 #4", status:"run", prog:35, steps:[
+      {op:"登录供应商门户", sel:"#login-user", cost:"6s", ok:true},
+      {op:"抓取本月对账单", sel:"#bills", cost:"12s", ok:true}
+    ], alive:0 },
+  { id:"s5", name:"工单自动同步", env:"守护会话 #5", status:"fail", prog:87, failStep:2, steps:[
+      {op:"登录工单系统", sel:"#login-user", cost:"5s", ok:true},
+      {op:"拉取新增工单", sel:"#tickets", cost:"9s", ok:true},
+      {op:"回写 CRM", sel:"#crm-sync", cost:"3s", ok:false, why:"失败：登录态过期（会话被重置）"}
+    ], alive:0 }
+];
+const ST = { run:["b-run","运行中"], blocked:["b-blocked","阻塞"], idle:["b-idle","待触发"], fail:["b-fail","失败"] };
+
+// 断线保活状态：disconnected 的 session 仍在后台推进
+let disconnected = null;      // session id
+let cutBaseProg = 0;          // 断开时的进度基准
+let keepSeconds = 0;          // 累计保活秒数
+let lastKeepMsg = "";         // 最近一次重连结论
+let notifyCount = 0;
+
+// 编排 DAG：e1 完成 → 触发 e2；e1+e2 完成 → 触发 e3；e4 并行
+const DAG = [
+  { from:null, to:"s1", label:"定时 08:00" },
+  { from:"s1", to:"s2", label:"完成后触发" },
+  { from:"s1", to:"s4", label:"并行分支" },
+  { from:"s2", to:"s3", label:"完成后触发" },
+  { from:"s4", to:"s3", label:"并行等待" }
+];
+
+/* ---------- 渲染 ---------- */
+function stats(){
+  const alive = SESSIONS.filter(s => s.status !== "fail").length;
+  const blocked = SESSIONS.filter(s => s.status === "blocked").length;
+  document.getElementById("stAlive").textContent = alive;
+  document.getElementById("stBlocked").textContent = blocked;
+  document.getElementById("stKeep").textContent = keepSeconds;
+  document.getElementById("stNotify").textContent = notifyCount;
+}
+function renderSess(){
+  document.getElementById("sessList").innerHTML = SESSIONS.map(s => {
+    const [cls, label] = ST[s.status];
+    const off = disconnected === s.id ? ' <span class="badge b-off">客户端已断开</span>' : "";
+    return `<div class="sess" data-sess="${s.id}">
+      <div class="head"><b>${s.name}</b>
+        <div class="row" style="display:flex;gap:8px;align-items:center">
+          <span class="badge ${cls}">${label}</span>${off}
+        </div>
+      </div>
+      <div class="meta">${s.env} · 存活 ${s.alive}s · ${s.wait || "心跳正常"}</div>
+      <div class="bar ${s.status === "blocked" ? "blocked" : ""} ${s.status === "fail" ? "fail" : ""}"><i style="width:${s.prog}%"></i></div>
+    </div>`;
+  }).join("");
+}
+function renderKeep(){
+  document.getElementById("keepList").innerHTML = SESSIONS.map(s => {
+    const off = disconnected === s.id;
+    return `<div class="sess">
+      <div class="head"><b>${s.name}</b>
+        <span class="badge ${off ? "b-off" : ST[s.status][0]}">${off ? "已断开" : ST[s.status][1]}</span>
+      </div>
+      <div class="meta">${off ? "客户端不可见，但守护层仍在后台推进" : "连接正常 · 心跳 3s"}</div>
+      <div class="bar"><i style="width:${s.prog}%"></i></div>
+    </div>`;
+  }).join("");
+  const keepInfo = disconnected
+    ? `会话 ${disconnected} 已断开 ${keepSeconds}s，进度从 ${cutBaseProg}% 持续推进中……`
+    : (lastKeepMsg || "选择一个会话，点「模拟断开」验证保活。");
+  document.getElementById("keepInfo").textContent = keepInfo;
+}
+function renderBlock(){
+  const box = document.getElementById("blockList");
+  const blocked = SESSIONS.filter(s => s.status === "blocked" || s.status === "fail");
+  if (blocked.length === 0) { box.innerHTML = '<div class="note">当前无阻塞/失败流程。</div>'; return; }
+  box.innerHTML = blocked.map(s => `<div class="sess" data-b="${s.id}" style="cursor:pointer">
+    <div class="head"><b>${s.name}</b>
+      <span class="badge ${ST[s.status][0]}">${s.status === "blocked" ? "阻塞：等待人工介入" : "失败：需要处理"}</span>
+    </div>
+    <div class="meta">${s.wait || "登录态过期（会话被重置）"} · 点击打开介入面板</div>
+  </div>`).join("");
+}
+function openIntervene(id){
+  const s = SESSIONS.find(x => x.id === id);
+  document.getElementById("intervene").style.display = "block";
+  document.getElementById("ivTitle").textContent = s.name + " —— 介入处理";
+  document.getElementById("ivCtx").textContent =
+    "上下文快照（已保存，无需重新登录）\n" +
+    `流程：${s.name}\n阻塞步骤：第 ${(s.blockStep || s.failStep || 0) + 1} 步\n` +
+    `原因：${s.wait || s.steps[s.failStep].why}\n` +
+    "页面状态：已保存 DOM 快照 + 网络请求 + 截图\n" +
+    "恢复方式：从阻塞步骤继续（断点续跑），不从头重跑";
+  document.getElementById("ivInput").value = "";
+  window._ivId = id;
+}
+function renderDag(){
+  const status = s => {
+    const sObj = SESSIONS.find(x => x.id === s);
+    const cls = sObj.status === "run" ? "run" : sObj.status === "blocked" ? "blocked" : sObj.status === "fail" ? "" : "done";
+    return `<div class="node ${cls}">${sObj.name.split("（")[0].slice(0,8)}<br><span style="font-size:11px;color:#6b7280">${ST[sObj.status][1]}</span></div>`;
+  };
+  document.getElementById("dagBox").innerHTML =
+    status("s1") + '<span class="arrow">→</span>' + status("s2") +
+    '<span class="arrow">→</span>' + status("s3") +
+    '<div style="width:100%"></div>' + status("s4") + '<span class="arrow">∥ 并行</span>';
+}
+function renderLog(){
+  const sel = window._logId || "s2";
+  const s = SESSIONS.find(x => x.id === sel);
+  document.getElementById("logSel").innerHTML = SESSIONS.map(x =>
+    `<button class="btn sm ${x.id === sel ? "primary" : ""}" data-log="${x.id}">${x.name.split("（")[0].slice(0,7)}</button>`).join("");
+  document.getElementById("logList").innerHTML = s.steps.map((st, i) => {
+    const isFail = st.ok === false;
+    return `<div class="step ${isFail ? "fail" : ""}" data-step="${i}">
+      <div class="op">${i + 1}. ${st.op} <span class="badge ${isFail ? "b-fail" : "b-ok"}">${isFail ? "失败" : "成功"}</span>
+        ${isFail ? `<button class="btn sm" data-locate="${sel}:${i}">定位</button>` : ""}</div>
+      <div class="sub">选择器 ${st.sel} · ${st.cost}${st.why ? " · " + st.why : ""}</div>
+    </div>`;
+  }).join("");
+}
+function renderAll(){ stats(); renderSess(); renderKeep(); renderBlock(); renderDag(); renderLog(); }
+
+/* ---------- 守护心跳：断开会话仍在后台推进（保活核心） ---------- */
+setInterval(() => {
+  SESSIONS.forEach(s => {
+    if (s.status === "run" || s.status === "blocked") s.alive += 1;
+  });
+  if (disconnected) {
+    keepSeconds += 1;
+    const s = SESSIONS.find(x => x.id === disconnected);
+    if (s && s.status !== "fail" && s.prog < 95) s.prog += 1;   // 后台继续推进
+  }
+  renderAll();
+}, HEARTBEAT);
+
+/* ---------- tab ---------- */
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(t.dataset.p).classList.add("active");
+}));
+
+/* ---------- ② 断线保活 ---------- */
+document.getElementById("cutBtn").addEventListener("click", () => {
+  const running = SESSIONS.find(s => s.status === "run");
+  if (!running) { alert("当前没有运行中会话可断开"); return; }
+  disconnected = running.id;
+  cutBaseProg = running.prog;
+  keepSeconds = 0;
+  notify("已模拟「SSH 断开 / 客户端关闭」：会话 " + disconnected + " 客户端不可见，守护层继续保活推进");
+  renderAll();
+});
+document.getElementById("reconnBtn").addEventListener("click", () => {
+  if (!disconnected) { document.getElementById("keepInfo").textContent = "没有断开的会话。"; return; }
+  const s = SESSIONS.find(x => x.id === disconnected);
+  lastKeepMsg = `会话 ${disconnected} 重新连接：断线期间持续推进 ${s.prog - cutBaseProg}%，任务未丢失`;
+  notify(lastKeepMsg);
+  disconnected = null;
+  keepSeconds = 0;
+  renderAll();
+});
+/* ---------- ③ 人工介入 ---------- */
+document.getElementById("blockList").addEventListener("click", e => {
+  const t = e.target.closest("[data-b]");
+  if (t) openIntervene(t.dataset.b);
+});
+document.getElementById("ivResume").addEventListener("click", () => {
+  const id = window._ivId; if (!id) return;
+  const s = SESSIONS.find(x => x.id === id);
+  if (s.status === "blocked") {
+    s.status = "run"; s.wait = "已介入：" + (document.getElementById("ivInput").value || "人工处理完成");
+    notify(`会话 ${id} 已介入处理，从第 ${(s.blockStep || 0) + 1} 步断点续跑（不从头重跑）`);
+  } else if (s.status === "fail") {
+    s.status = "run"; s.prog = 60; s.wait = "已重新授权登录态，从失败步骤续跑";
+    notify(`会话 ${id} 已重新授权登录态，从失败步骤续跑`);
+  }
+  document.getElementById("intervene").style.display = "none";
+  renderAll();
+});
+
+/* ---------- ④ 流程编排 ---------- */
+document.getElementById("schBtn").addEventListener("click", () => {
+  const s1 = SESSIONS.find(x => x.id === "s1");
+  const s2 = SESSIONS.find(x => x.id === "s2");
+  const s3 = SESSIONS.find(x => x.id === "s3");
+  const s4 = SESSIONS.find(x => x.id === "s4");
+  if (s1.status === "run") { s1.prog = Math.min(100, s1.prog + 22); if (s1.prog >= 100) { s1.status = "idle"; notify("编排触发：日报导出完成 → 自动触发发票核验（s2 已就绪）"); } }
+  if (s4.status === "run") { s4.prog = Math.min(100, s4.prog + 18); if (s4.prog >= 100) s4.status = "idle"; }
+  if (s1.status === "idle" && s4.status === "idle" && s3.status === "idle") { s3.status = "run"; s3.prog = 20; notify("编排触发：库存预警邮件推送开始执行（依赖条件全部满足）"); }
+  renderAll();
+});
+
+/* ---------- ⑤ 日志定位 ---------- */
+document.getElementById("logSel").addEventListener("click", e => {
+  const t = e.target.closest("[data-log]");
+  if (t) { window._logId = t.dataset.log; renderLog(); }
+});
+document.getElementById("logList").addEventListener("click", e => {
+  const t = e.target.closest("[data-locate]");
+  if (t) {
+    const [sid, idx] = t.dataset.locate.split(":");
+    notify(`已定位：${sid} 第 ${+idx + 1} 步失败（${SESSIONS.find(x => x.id === sid).steps[idx].why}）—— 建议重新授权登录态后从该步续跑`);
+  }
+});
+
+/* ---------- 通知横幅 ---------- */
+function notify(msg){
+  notifyCount += 1;
+  const bar = document.getElementById("notifyBar");
+  bar.style.display = "block";
+  bar.innerHTML = "⚠️ " + msg + `（已推送 飞书/邮件/短信 · 第 ${notifyCount} 条）`;
+  setTimeout(() => { bar.style.display = "none"; }, 5000);
+  stats();
+}
+
+renderAll();
+</script>
+</body>
+</html>
