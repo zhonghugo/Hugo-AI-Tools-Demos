@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI热点日报生成器</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; padding:20px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  header h1 { font-size:24px; color:#111827; }
+  header p { color:#6b7280; font-size:13px; margin-top:6px; }
+  .stats { display:flex; gap:16px; margin:16px 0; flex-wrap:wrap; }
+  .stat { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 20px; text-align:center; min-width:140px; flex:1; }
+  .stat b { font-size:22px; color:#dc2626; display:block; }
+  .stat span { font-size:12px; color:#6b7280; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .tab { padding:8px 16px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:14px; color:#374151; user-select:none; }
+  .tab.active { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:12px; }
+  .card h3 { font-size:15px; margin-bottom:10px; color:#111827; }
+  .btn { padding:6px 14px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:13px; color:#374151; }
+  .btn:hover { background:#f3f4f6; }
+  .btn.primary { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .btn.sm { padding:4px 10px; font-size:12px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+  .b-hot { background:#fee2e2; color:#b91c1c; }
+  .b-mid { background:#fef3c7; color:#b45309; }
+  .b-low { background:#f3f4f6; color:#4b5563; }
+  .b-ok { background:#dcfce7; color:#15803d; }
+  .b-src { background:#eff6ff; color:#1d4ed8; }
+  .src { border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .src .meta { font-size:12px; color:#6b7280; margin-top:4px; }
+  .item { border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .item .head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .item .score { display:flex; gap:6px; align-items:center; }
+  .item .sub { font-size:12px; color:#6b7280; margin-top:4px; }
+  .bar { height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden; margin-top:6px; }
+  .bar i { display:block; height:100%; background:#dc2626; border-radius:4px; transition:width .3s; }
+  .cluster { border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .cluster .topic { font-weight:600; font-size:14px; }
+  .cluster .sub { font-size:12px; color:#6b7280; margin-top:4px; }
+  .report { border:1px solid #e5e7eb; border-radius:10px; padding:16px; background:#fff; }
+  .report .headline { border-left:4px solid #dc2626; padding:8px 12px; background:#fef2f2; border-radius:0 8px 8px 0; margin-bottom:10px; }
+  .report .headline b { font-size:16px; }
+  .report .rank { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px dashed #e5e7eb; font-size:14px; }
+  .report .rank .no { width:24px; height:24px; border-radius:50%; background:#f3f4f6; text-align:center; line-height:24px; font-weight:600; font-size:13px; }
+  .report .rank:nth-child(2) .no { background:#fee2e2; color:#b91c1c; }
+  .dist { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .dist .d { background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:6px 12px; font-size:12px; }
+  textarea { width:100%; min-height:120px; border:1px solid #d1d5db; border-radius:8px; padding:10px; font-size:12px; font-family:ui-monospace,monospace; }
+  .notify { background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:13px; color:#92400e; display:none; }
+  .note { font-size:12px; color:#9ca3af; margin-top:6px; }
+  input[type=range] { width:200px; }
+  @media (max-width:480px) { body { padding:12px; } .stats { gap:8px; } .stat { min-width:calc(50% - 8px); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AI热点日报生成器</h1>
+    <p>参考 AIHOT（KKKKhazix/AIHOT，8.6K stars）自动化热点日报框架：自动收集信源 → LLM 筛选双评分 → 事件聚簇 → 每日 08:00 出日报。迁移到「运营人每天早上 10 分钟读完行业发生了什么」。</p>
+  </header>
+  <div class="stats">
+    <div class="stat"><b id="stSrc">0</b><span>信源</span></div>
+    <div class="stat"><b id="stItem">0</b><span>采集资讯</span></div>
+    <div class="stat"><b id="stCluster">0</b><span>事件簇</span></div>
+    <div class="stat"><b id="stTop">0</b><span>入选日报</span></div>
+  </div>
+  <div class="notify" id="notifyBar"></div>
+  <nav>
+    <div class="tab active" data-p="p1">① 信源采集</div>
+    <div class="tab" data-p="p2">② 双评分筛选</div>
+    <div class="tab" data-p="p3">③ 事件聚簇</div>
+    <div class="tab" data-p="p4">④ 日报生成</div>
+    <div class="tab" data-p="p5">⑤ 定时推送</div>
+  </nav>
+
+  <!-- ① 信源采集 -->
+  <div class="panel active" id="p1">
+    <div class="card">
+      <h3>自动信源采集（8 个信源 · 模拟抓取）</h3>
+      <div id="srcList"></div>
+      <div class="row" style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+        <button class="btn primary" id="collectBtn">重新采集</button>
+        <span class="note" id="collectInfo">上次采集：08:00 前自动执行 · 平均耗时 26s</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 双评分筛选 -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <h3>LLM 双评分（热度 × 相关度 → 综合分）</h3>
+      <div class="row" style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <label style="font-size:13px">入选阈值（综合分 ≥ <span id="thVal">6.0</span>）
+          <input type="range" id="thSlider" min="0" max="10" step="0.5" value="6">
+        </label>
+        <button class="btn sm" id="reScoreBtn">重新评分</button>
+        <span class="note">相关度按用户画像词库加权：RPA / AI落地 / 数字化运营 / 数据分析 / 效率工具</span>
+      </div>
+      <div id="itemList"></div>
+    </div>
+  </div>
+
+  <!-- ③ 事件聚簇 -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <h3>事件聚簇（同一事件/主题的资讯自动合并）</h3>
+      <div id="clusterList"></div>
+      <div class="note">聚簇规则：标题关键词匹配（如「Agent」「RPA」「发布」「开源」等）→ 同主题资讯归入同一事件簇，日报按簇输出避免重复刷屏。</div>
+    </div>
+  </div>
+
+  <!-- ④ 日报生成 -->
+  <div class="panel" id="p4">
+    <div class="card">
+      <h3>每日 08:00 日报（今日头条 + 榜单 + 信源分布）</h3>
+      <div class="row" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn primary" id="genBtn">生成今日日报</button>
+        <button class="btn" id="copyBtn">复制日报（Markdown）</button>
+      </div>
+      <div id="reportBox"></div>
+      <textarea id="mdOut" placeholder="点击「复制日报」后这里会显示 Markdown 原文……"></textarea>
+    </div>
+  </div>
+
+  <!-- ⑤ 定时推送 -->
+  <div class="panel" id="p5">
+    <div class="card">
+      <h3>定时出报 + 多渠道推送</h3>
+      <div class="row" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:13px"><input type="checkbox" id="autoOn" checked> 每日 08:00 自动生成</label>
+        <label style="font-size:13px"><input type="checkbox" id="pushFeishu" checked> 推送到飞书</label>
+        <label style="font-size:13px"><input type="checkbox" id="pushMail"> 推送到邮件</label>
+        <label style="font-size:13px"><input type="checkbox" id="pushDing"> 推送到钉钉</label>
+        <button class="btn sm" id="savePushBtn">保存推送配置</button>
+      </div>
+      <div id="pushLog" style="margin-top:12px"></div>
+      <div class="note">定时语义：到达 08:00 自动执行「采集 → 评分 → 聚簇 → 出报 → 推送」全链路（演示中可手动触发），推送目标按勾选渠道模拟。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   AI热点日报生成器（单文件 demo）
+   参考资讯：AIHOT（KKKKhazix/AIHOT，8.6K stars）
+   ——自动化热点日报网站框架：自动收集信源 → LLM 筛选双评分
+   → 事件聚簇 → 每日 08:00 出日报。
+   迁移到运营场景：运营人每天早上 10 分钟读完行业发生了什么。
+   ① 信源采集 ② 双评分筛选 ③ 事件聚簇 ④ 日报生成 ⑤ 定时推送
+   ============================================================ */
+const PROFILE_WORDS = ["RPA", "AI落地", "数字化运营", "数据分析", "效率工具", "自动化"];
+
+// 8 个信源 × 每源 3 条候选资讯（模拟 2026-10-27 抓取）
+const SOURCES = [
+  { name:"Product Hunt", type:"产品发布", items:[
+      { t:"RPA日报机器人：把每日运营数据自动整理成图文日报并推送到群", heat:8.4, rel:9.2, tag:"效率工具" },
+      { t:"AI 会议纪要工具上线，自动生成待办并同步到项目管理", heat:7.1, rel:7.6, tag:"AI落地" }
+  ]},
+  { name:"GitHub Trending", type:"开源项目", items:[
+      { t:"AIHOT 8.6K stars：自动化热点日报网站框架，信源收集+双评分+事件聚簇", heat:8.8, rel:8.9, tag:"自动化" },
+      { t:"RPA 流程运行时守护器框架：session 保活+阻塞通知+断点续跑", heat:7.6, rel:9.5, tag:"RPA" }
+  ]},
+  { name:"36氪", type:"科技媒体", items:[
+      { t:"企业级 RPA 落地报告：2026 年流程自动化渗透率提升至 42%", heat:8.2, rel:9.0, tag:"RPA" },
+      { t:"某零售巨头上线 AI 数字化运营中台，人效提升 31%", heat:7.9, rel:8.4, tag:"数字化运营" }
+  ]},
+  { name:"Hacker News", type:"技术社区", items:[
+      { t:"我们如何用 LLM 筛选 800 条资讯并自动聚簇成 12 个热点", heat:7.4, rel:7.9, tag:"自动化" },
+      { t:"Show HN：本地优先的 AI 数据分析仪表盘", heat:6.8, rel:7.2, tag:"数据分析" }
+  ]},
+  { name:"Reddit r/artificial", type:"社区讨论", items:[
+      { t:"讨论：RPA 会被 AI Agent 取代吗？一线实施者的 5 个观点", heat:8.0, rel:8.6, tag:"RPA" },
+      { t:"分享：非技术背景如何三个月上手 AI 自动化工具链", heat:7.3, rel:8.1, tag:"效率工具" }
+  ]},
+  { name:"量子位", type:"科技媒体", items:[
+      { t:"AI Agent 编排平台融资 1.2 亿美元，企业自动化赛道持续升温", heat:8.6, rel:8.3, tag:"AI落地" },
+      { t:"大模型新版本发布，函数调用能力提升支撑复杂流程自动化", heat:8.1, rel:7.4, tag:"AI落地" }
+  ]},
+  { name:"InfoQ", type:"技术媒体", items:[
+      { t:"实战：用数据中台打通财务-业务数据，月度对账从 3 天缩到 2 小时", heat:7.8, rel:9.3, tag:"数据分析" },
+      { t:"RPA+AI 混合流程架构：机器人处理稳定环节，LLM 处理非结构化输入", heat:7.7, rel:9.1, tag:"RPA" }
+  ]},
+  { name:"少数派", type:"效率社区", items:[
+      { t:"效率工具周报：5 个让重复工作消失的自动化小工具", heat:7.0, rel:8.0, tag:"效率工具" },
+      { t:"用每周自动聚合的行业简报替代人工盯资讯，运营团队这样搭", heat:7.5, rel:8.8, tag:"数字化运营" }
+  ]}
+];
+
+let items = [];        // 采集到的全部资讯（带评分）
+let threshold = 6.0;
+let clusters = [];     // 事件簇
+let dailyCount = 0;    // 已出报次数
+let lastGen = null;    // 最近一次日报 markdown
+let pushLog = [];
+
+/* ---------- 采集 ---------- */
+function collect(){
+  items = [];
+  SOURCES.forEach((s, si) => {
+    s.items.forEach((it, ii) => {
+      // 相关度：按画像词库命中加成
+      let rel = it.rel;
+      PROFILE_WORDS.forEach(w => { if (it.t.includes(w)) rel += 0.6; });
+      rel = Math.min(10, rel);
+      items.push({ id:`i${si}_${ii}`, src:s.name, type:s.type, t:it.t,
+                   heat:it.heat, rel:+rel.toFixed(1), tag:it.tag });
+    });
+  });
+  score();
+}
+function score(){
+  items.forEach(it => { it.total = +(it.heat * 0.5 + it.rel * 0.5).toFixed(1); });
+  items.sort((a, b) => b.total - a.total);
+}
+
+/* ---------- 聚簇 ---------- */
+const CLUSTER_KEYS = ["RPA", "Agent", "日报", "中台", "自动化", "融资", "发布", "开源"];
+function cluster(){
+  clusters = [];
+  const used = new Set();
+  items.forEach(it => {
+    if (used.has(it.id)) return;
+    const members = [it];
+    const key = CLUSTER_KEYS.find(k => it.t.includes(k)) || "其他";
+    items.forEach(other => {
+      if (other.id !== it.id && !used.has(other.id) && other.t.includes(key)) members.push(other);
+    });
+    members.forEach(m => used.add(m.id));
+    clusters.push({ key, topic: members[0].t.slice(0, 26), members: members.sort((a,b) => b.total - a.total),
+                    avg: +(members.reduce((s,m) => s + m.total, 0) / members.length).toFixed(1) });
+  });
+  clusters.sort((a, b) => b.avg - a.avg);
+}
+
+/* ---------- 渲染 ---------- */
+function stats(){
+  document.getElementById("stSrc").textContent = SOURCES.length;
+  document.getElementById("stItem").textContent = items.length;
+  document.getElementById("stCluster").textContent = clusters.length;
+  document.getElementById("stTop").textContent = items.filter(i => i.total >= threshold).length;
+}
+function badge(v){
+  if (v >= 8) return '<span class="badge b-hot">' + v + '</span>';
+  if (v >= 6.5) return '<span class="badge b-mid">' + v + '</span>';
+  return '<span class="badge b-low">' + v + '</span>';
+}
+function renderSrc(){
+  document.getElementById("srcList").innerHTML = SOURCES.map((s, si) => {
+    const ok = s.items.map((it, ii) => items.find(x => x.id === `i${si}_${ii}`)).filter(Boolean).length;
+    return `<div class="src"><div><b>${s.name}</b> <span class="badge b-src">${s.type}</span>
+      <div class="meta">抓取 ${s.items.length} 条 · 完成 ✓</div></div>
+      <div style="text-align:right"><span class="badge b-ok">${ok}/${s.items.length} 条入库</span></div></div>`;
+  }).join("");
+}
+function renderItem(){
+  const list = items.filter(i => i.total >= threshold);
+  document.getElementById("itemList").innerHTML = list.length === 0
+    ? '<div class="note">阈值过高，无资讯入选。调低阈值试试。</div>'
+    : list.map(it => `<div class="item"><div class="head">
+        <b>${it.t}</b>
+        <div class="score">${badge(it.total)} <span class="badge b-src">${it.src}</span></div>
+      </div>
+      <div class="sub">热度 ${it.heat} × 0.5 + 相关度 ${it.rel} × 0.5 = 综合 ${it.total}（入选线 ${threshold}）· 标签 ${it.tag}</div>
+      <div class="bar"><i style="width:${it.total * 10}%"></i></div>
+    </div>`).join("");
+}
+function renderCluster(){
+  document.getElementById("clusterList").innerHTML = clusters.map((c, ci) =>
+    `<div class="cluster"><div class="topic">#${ci + 1} ${c.topic}<span class="badge b-mid" style="margin-left:8px">${c.members.length} 条</span><span class="badge b-src">簇均 ${c.avg}</span></div>
+     <div class="sub">关键词「${c.key}」聚簇 · ${c.members.map(m => m.src).join("、")}</div></div>`).join("");
+}
+function dist(){
+  const map = {};
+  items.forEach(i => { if (i.total >= threshold) map[i.src] = (map[i.src] || 0) + 1; });
+  return Object.entries(map).sort((a,b) => b[1] - a[1]);
+}
+function renderReport(){
+  const pass = items.filter(i => i.total >= threshold);
+  if (pass.length === 0) { document.getElementById("reportBox").innerHTML = '<div class="note">暂无入选资讯，请先到②调低阈值。</div>'; return; }
+  const top = pass[0];
+  const d = dist();
+  lastGen = `# AI 热点日报 · 2026-10-27 08:00\n\n**今日头条**：${top.t}（综合 ${top.total}，来自 ${top.src}）\n\n## 榜单 Top 5\n` +
+    pass.slice(0, 5).map((it, i) => `${i + 1}. ${it.t}（${it.total}分 · ${it.src}）`).join("\n") +
+    `\n\n## 信源分布\n${d.map(([k, v]) => `- ${k}：${v} 条`).join("\n")}\n\n> 由 AI 热点日报生成器自动生成，来源见各条标注。`;
+  document.getElementById("reportBox").innerHTML = `
+    <div class="report">
+      <div class="headline"><b>今日头条：${top.t}</b><br>
+        <span class="badge b-hot">综合 ${top.total}</span> <span class="badge b-src">${top.src}</span> <span class="badge b-low">${top.tag}</span></div>
+      ${pass.slice(0, 5).map((it, i) => `<div class="rank"><span class="no">${i + 1}</span><span style="flex:1">${it.t}</span>${badge(it.total)}<span class="badge b-src" style="font-size:11px">${it.src}</span></div>`).join("")}
+      <div class="dist">${d.map(([k, v]) => `<span class="d">${k} <b>${v}</b></span>`).join("")}</div>
+    </div>`;
+  document.getElementById("mdOut").value = lastGen;
+}
+function renderPush(){
+  document.getElementById("pushLog").innerHTML = pushLog.length === 0
+    ? '<div class="note">暂无推送记录。</div>'
+    : pushLog.map(p => `<div class="item" style="margin-bottom:6px"><b>${p.time}</b> · ${p.msg}</div>`).join("");
+}
+function renderAll(){ stats(); renderSrc(); renderItem(); renderCluster(); renderReport(); renderPush(); }
+
+/* ---------- 交互 ---------- */
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(t.dataset.p).classList.add("active");
+}));
+document.getElementById("collectBtn").addEventListener("click", () => {
+  document.getElementById("collectInfo").textContent = "采集中：逐源抓取（平均 3.2s/源）……";
+  let done = 0;
+  const timer = setInterval(() => {
+    done += 1;
+    if (done >= SOURCES.length) {
+      clearInterval(timer);
+      collect(); renderAll();
+      document.getElementById("collectInfo").textContent = "采集完成：" + items.length + " 条资讯入库 · 平均耗时 26s";
+      notify("信源采集完成，" + items.length + " 条资讯进入评分");
+    } else {
+      document.getElementById("srcList").querySelectorAll(".src")[done - 1].style.opacity = "0.6";
+    }
+  }, 260);
+});
+document.getElementById("thSlider").addEventListener("input", e => {
+  threshold = +e.target.value;
+  document.getElementById("thVal").textContent = threshold.toFixed(1);
+  renderItem(); stats();
+});
+document.getElementById("reScoreBtn").addEventListener("click", () => {
+  score(); renderItem(); renderCluster(); renderReport(); stats();
+  notify("已按画像词库重新评分（相关度加权）");
+});
+document.getElementById("genBtn").addEventListener("click", () => {
+  cluster(); renderReport(); renderCluster(); stats();
+  dailyCount += 1;
+  notify("今日日报已生成（第 " + dailyCount + " 份）：头条「" + items[0].t.slice(0, 12) + "…」");
+});
+document.getElementById("copyBtn").addEventListener("click", () => {
+  if (!lastGen) { document.getElementById("genBtn").click(); }
+  const md = document.getElementById("mdOut").value;
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(md);
+  notify("Markdown 日报已复制（" + md.length + " 字符），可直接粘贴到飞书文档/公众号");
+});
+document.getElementById("savePushBtn").addEventListener("click", () => {
+  const auto = document.getElementById("autoOn").checked;
+  const ch = [["飞书", document.getElementById("pushFeishu").checked],
+              ["邮件", document.getElementById("pushMail").checked],
+              ["钉钉", document.getElementById("pushDing").checked]].filter(x => x[1]).map(x => x[0]);
+  const now = new Date();
+  const time = now.toTimeString().slice(0, 5);
+  if (auto) {
+    pushLog.push({ time, msg: "定时任务已启用：每日 08:00 自动出报并推送至 " + (ch.join("、") || "（未勾选渠道）") });
+    notify("推送配置已保存：08:00 自动推送至 " + ch.join("、"));
+  } else {
+    pushLog.push({ time, msg: "定时任务已停用，仅手动触发出报" });
+    notify("已停用自动出报");
+  }
+  renderPush();
+});
+function notify(msg){
+  const bar = document.getElementById("notifyBar");
+  bar.style.display = "block";
+  bar.innerHTML = "🔔 " + msg;
+  setTimeout(() => { bar.style.display = "none"; }, 4000);
+}
+
+/* 初始化 */
+collect(); cluster(); renderAll();
+// 模拟今日 08:00 已自动出报一次
+dailyCount = 1;
+pushLog.push({ time:"08:00", msg:"定时任务执行：采集 16 条 → 筛选 9 条 → 聚簇 6 簇 → 日报已推送至 飞书 ✓" });
+renderAll();
+</script>
+</body>
+</html>
