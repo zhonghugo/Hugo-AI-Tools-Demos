@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM API 成本监控面板</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; padding:20px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  header h1 { font-size:24px; color:#111827; }
+  header p { color:#6b7280; font-size:13px; margin-top:6px; }
+  .stats { display:flex; gap:16px; margin:16px 0; flex-wrap:wrap; }
+  .stat { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 20px; text-align:center; min-width:140px; flex:1; }
+  .stat b { font-size:22px; color:#2563eb; display:block; }
+  .stat span { font-size:12px; color:#6b7280; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .tab { padding:8px 16px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:14px; color:#374151; user-select:none; }
+  .tab.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:12px; }
+  .card h3 { font-size:15px; margin-bottom:10px; color:#111827; }
+  .btn { padding:6px 14px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:13px; color:#374151; }
+  .btn:hover { background:#f3f4f6; }
+  .btn.primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .btn.sm { padding:4px 10px; font-size:12px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+  .b-up { background:#dcfce7; color:#15803d; }
+  .b-down { background:#fee2e2; color:#b91c1c; }
+  .b-warn { background:#fef3c7; color:#b45309; }
+  .b-src { background:#eff6ff; color:#1d4ed8; }
+  .b-warm { background:#fee2e2; color:#b91c1c; }
+  .prov { border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .prov .meta { font-size:12px; color:#6b7280; margin-top:4px; }
+  .log { border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:13px; }
+  .log .t { color:#6b7280; font-size:12px; margin-right:8px; }
+  .gateway { background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:14px; margin-bottom:12px; }
+  .gateway .key { background:#fff; border:1px dashed #93c5fd; border-radius:6px; padding:6px 10px; font-family:ui-monospace,monospace; font-size:12px; color:#1d4ed8; margin-top:6px; }
+  .bar { height:10px; background:#e5e7eb; border-radius:5px; overflow:hidden; margin-top:6px; }
+  .bar i { display:block; height:100%; background:#2563eb; border-radius:5px; transition:width .4s; }
+  .bar i.warn { background:#f59e0b; }
+  .bar i.danger { background:#ef4444; }
+  .dist { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .dist .d { background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:6px 12px; font-size:12px; }
+  .notify { background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:13px; color:#92400e; display:none; }
+  .note { font-size:12px; color:#9ca3af; margin-top:6px; }
+  svg { width:100%; height:auto; }
+  select, input[type=number] { padding:5px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; }
+  @media (max-width:480px) { body { padding:12px; } .stats { gap:8px; } .stat { min-width:calc(50% - 8px); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>LLM API 成本监控面板</h1>
+    <p>参考 FreeLLMAPI（tashfeenahmed/freellmapi，41K stars——自托管 LLM 路由，聚合 34 家免费 provider 到一个 OpenAI 兼容端点，每月 74 亿免费 token）。公司所有 AI 应用走一个网关：统一端点 → 智能路由 → 故障转移 → 成本监控，每月省下可观的 API 账单。</p>
+  </header>
+  <div class="stats">
+    <div class="stat"><b id="stProv">0</b><span>可用 Provider</span></div>
+    <div class="stat"><b id="stReq">0</b><span>本月请求</span></div>
+    <div class="stat"><b id="stCost">0</b><span>本月成本</span></div>
+    <div class="stat"><b id="stQuota">0%</b><span>免费配额占用</span></div>
+  </div>
+  <div class="notify" id="notifyBar"></div>
+  <nav>
+    <div class="tab active" data-p="p1">① Provider 路由</div>
+    <div class="tab" data-p="p2">② 智能路由</div>
+    <div class="tab" data-p="p3">③ 故障转移</div>
+    <div class="tab" data-p="p4">④ 成本监控</div>
+    <div class="tab" data-p="p5">⑤ 配额预算</div>
+  </nav>
+
+  <!-- ① Provider 路由 -->
+  <div class="panel active" id="p1">
+    <div class="gateway">
+      <b>统一入口（OpenAI 兼容端点）</b>
+      <div class="note">所有 AI 应用（客服机器人 / 文档处理 / 数据分析 / RPA 智能环节）只配这一个端点，路由与故障转移由网关完成，应用无需改代码。</div>
+      <div class="key">https://llm-gateway.internal/v1/chat/completions &nbsp;·&nbsp; API Key: sk-gw-****8f2a</div>
+    </div>
+    <div class="card">
+      <h3>Provider 路由总览（聚合 8 家 · 模拟 34 家免费聚合）</h3>
+      <div id="provList"></div>
+    </div>
+  </div>
+
+  <!-- ② 智能路由 -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <h3>智能路由（按策略自动选 Provider）</h3>
+      <div class="row" style="display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <label style="font-size:13px">路由策略：
+          <select id="routeMode">
+            <option value="price">最低单价优先</option>
+            <option value="latency">最低延迟优先</option>
+            <option value="round">轮询均衡</option>
+          </select>
+        </label>
+        <button class="btn primary" id="sendBtn">发送测试请求（×5）</button>
+        <span class="note" id="routeInfo">本模拟请求：1.2s 完成</span>
+      </div>
+      <div id="routeLog"></div>
+      <div class="note">决策逻辑：网关拿到请求 → 排除故障 provider → 按策略打分（价格 / 延迟 / 轮询）→ 选择最优 → 记录路由日志。</div>
+    </div>
+  </div>
+
+  <!-- ③ 故障转移 -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <h3>故障转移（Provider 挂了自动切换）</h3>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <span class="badge b-down" style="font-size:13px" id="downMark">当前故障：DeepSeek（手动模拟）</span>
+        <button class="btn sm" id="toggleDown">切换故障 Provider</button>
+        <button class="btn sm" id="resetDown">恢复全部</button>
+      </div>
+      <div id="failLog"></div>
+      <div class="note">转移链示例：DeepSeek 故障 → 自动切换至 Gemini Flash（价格次优但可用）→ 请求全部完成，0 失败；故障恢复后自动回迁。</div>
+    </div>
+  </div>
+
+  <!-- ④ 成本监控 -->
+  <div class="panel" id="p4">
+    <div class="card">
+      <h3>月度成本趋势（近 12 天 · 百万 tokens）</h3>
+      <div id="trendChart"></div>
+    </div>
+    <div class="card">
+      <h3>成本分布与预警</h3>
+      <div id="costDist"></div>
+      <div class="note" id="costTip"></div>
+    </div>
+  </div>
+
+  <!-- ⑤ 配额预算 -->
+  <div class="panel" id="p5">
+    <div class="card">
+      <h3>免费配额与预算</h3>
+      <div style="font-size:13px;margin-bottom:8px">本月免费 token 配额（参考 74 亿/月）：<b id="quotaText">0 / 74.0 亿</b></div>
+      <div class="bar"><i id="quotaBar" style="width:0%"></i></div>
+      <div class="row" style="display:flex;gap:14px;align-items:center;margin-top:14px;flex-wrap:wrap">
+        <label style="font-size:13px">月度预算上限（$）：<input type="number" id="budgetInput" value="500" min="10" step="10" style="width:100px"></label>
+        <button class="btn sm" id="saveBudget">保存预算</button>
+        <span class="badge b-warn" id="budgetState">预算：$500/月</span>
+      </div>
+      <div id="quotaLog" style="margin-top:12px"></div>
+      <div class="note">超限行为：免费配额占用 &gt; 80% 预警（橙色），&gt; 95% 强制降级至低耗模型并通知管理员；月度成本 &gt; 预算 100% 发告警。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   LLM API 成本监控面板（单文件 demo）
+   参考资讯：FreeLLMAPI（tashfeenahmed/freellmapi，41K stars）
+   ——自托管 LLM 路由：聚合 34 家免费 provider 到一个 OpenAI
+   兼容端点，每月 74 亿免费 token。
+   迁移到企业内部场景：统一端点 → 智能路由 → 故障转移 →
+   成本监控 → 配额预算，把 AI 应用的 API 成本管起来。
+   ============================================================ */
+
+// Provider 池（单价 $/M tokens、延迟 ms、免费配额 M tokens/月）
+const PROVIDERS = [
+  { id:"openai",   name:"OpenAI GPT-4o-mini",  price:0.15,  latency:420,  quota:300,  down:false },
+  { id:"deepseek", name:"DeepSeek-V3",         price:0.27,  latency:510,  quota:900,  down:true  },
+  { id:"gemini",   name:"Gemini Flash",        price:0.075, latency:380,  quota:1200, down:false },
+  { id:"qwen",     name:"通义千问 Qwen-Turbo",  price:0.10,  latency:450,  quota:800,  down:false },
+  { id:"kimi",     name:"Kimi Moonshot",       price:0.20,  latency:560,  quota:600,  down:false },
+  { id:"claude",   name:"Claude Haiku",        price:0.25,  latency:470,  quota:400,  down:false },
+  { id:"zhipu",    name:"智谱 GLM-4-Flash",     price:0.05,  latency:610,  quota:1000, down:false },
+  { id:"wenxin",   name:"文心 ERNIE-Speed",     price:0.06,  latency:590,  quota:1100, down:false }
+];
+
+let usedQuota = 328;            // 已用免费配额（M tokens）
+let monthReq = 84213;           // 本月请求数
+let monthCost = 186.4;          // 本月成本 $
+let routeMode = "price";
+let routes = [];                // 路由日志
+let fails = [];                 // 故障转移日志
+let downTarget = "deepseek";
+let budget = 500;
+const dailyTokens = [18.2,21.4,19.8,24.1,22.6,26.3,25.7,28.9,27.4,30.2,29.5,32.1]; // 近12天 百万tokens
+
+/* ---------- 路由决策 ---------- */
+function pickProvider(){
+  const avail = PROVIDERS.filter(p => !p.down);
+  if (avail.length === 0) return null;
+  if (routeMode === "price")  return avail.sort((a,b) => a.price - b.price)[0];
+  if (routeMode === "latency")return avail.sort((a,b) => a.latency - b.latency)[0];
+  return avail[Math.floor(Math.random() * avail.length)]; // round
+}
+function sendReq(n){
+  for (let i = 0; i < n; i++) {
+    const p = pickProvider();
+    const reason = routeMode === "price" ? `单价最低 $${p.price}/M` :
+                   routeMode === "latency" ? `延迟最低 ${p.latency}ms` : "轮询均衡";
+    routes.push({ t: new Date().toTimeString().slice(0,8), p: p.name, reason, ok: !!p });
+    monthReq += 1;
+    monthCost += p.price * 0.01; // 每次约 0.01M tokens
+  }
+  const last = routes[routes.length - 1];
+  renderRoutes();
+  notify("5 个测试请求完成，全部路由至 " + (last ? last.p : "（无可用 Provider）"));
+}
+function renderRoutes(){
+  document.getElementById("routeLog").innerHTML = routes.length === 0
+    ? '<div class="note">暂无请求，点「发送测试请求」触发路由。</div>'
+    : routes.slice(-8).reverse().map(r =>
+        `<div class="log"><span class="t">${r.t}</span>→ ${r.p} <span class="badge b-src">${r.reason}</span> <span class="badge ${r.ok ? "b-up":"b-down"}">${r.ok ? "200 OK":"路由失败"}</span></div>`).join("");
+}
+
+/* ---------- 故障转移 ---------- */
+function switchDown(){
+  const cur = downTarget;
+  const ids = PROVIDERS.map(p => p.id).filter(id => id !== cur);
+  downTarget = ids[Math.floor(Math.random() * ids.length)];
+  PROVIDERS.forEach(p => { p.down = (p.id === downTarget); });
+  const t = new Date().toTimeString().slice(0,8);
+  fails.push({ t, msg: `模拟故障切换：${cur} → ${downTarget}（路由自动绕行，请求 0 失败）` });
+  renderProv(); renderFail(); renderDownMark();
+}
+function resetDown(){
+  PROVIDERS.forEach(p => { p.down = (p.id === "deepseek"); });
+  downTarget = "deepseek";
+  const t = new Date().toTimeString().slice(0,8);
+  fails.push({ t, msg: "恢复默认：DeepSeek 故障模拟，其余 Provider 全部可用" });
+  renderProv(); renderFail(); renderDownMark();
+}
+function renderDownMark(){
+  document.getElementById("downMark").textContent = `当前故障：${PROVIDERS.find(p=>p.down).name}（手动模拟）`;
+}
+function renderFail(){
+  document.getElementById("failLog").innerHTML = fails.length === 0
+    ? '<div class="note">暂无转移记录。</div>'
+    : fails.slice(-6).reverse().map(f => `<div class="log"><span class="t">${f.t}</span>${f.msg}</div>`).join("");
+}
+
+/* ---------- 成本图表（SVG 手绘柱状图） ---------- */
+function renderTrend(){
+  const max = Math.max(...dailyTokens);
+  const H = 160, W = 640, bw = W / dailyTokens.length;
+  const bars = dailyTokens.map((v, i) => {
+    const h = (v / max) * 130;
+    const x = i * bw + bw * 0.22;
+    return `<rect x="${x}" y="${H - h}" width="${bw * 0.56}" height="${h}" rx="3" fill="${v >= 28 ? "#ef4444" : "#60a5fa"}">
+      <title>${v}M tokens</title></rect>
+      <text x="${x + bw*0.28}" y="${H - h - 5}" font-size="10" text-anchor="middle" fill="#6b7280">${v}</text>`;
+  }).join("");
+  document.getElementById("trendChart").innerHTML = `
+    <svg viewBox="0 0 ${W} ${H + 24}">
+      <line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="#e5e7eb"/>
+      ${bars}
+      ${dailyTokens.map((v,i)=>`<text x="${i*bw+bw*0.28}" y="${H+16}" font-size="9" text-anchor="middle" fill="#9ca3af">${i+1}日</text>`).join("")}
+    </svg>`;
+}
+function renderDist(){
+  const totalQ = PROVIDERS.reduce((s,p) => s + p.quota, 0);
+  const rows = PROVIDERS.slice().sort((a,b) => b.quota - a.quota)
+    .map(p => {
+      const share = Math.round(p.quota / totalQ * 100);
+      return `<div class="log" style="display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap">
+        <span>${p.name} <span class="badge b-src">配额 ${p.quota}M/月</span></span>
+        <span style="flex:1;max-width:300px"><div class="bar"><i style="width:${share}%"></i></div></span>
+        <b>${share}%</b></div>`;
+    }).join("");
+  const tip = monthCost > budget ? `⚠ 本月成本 $${monthCost.toFixed(1)} 已超预算 $${budget}！建议启用路由策略限流。`
+    : `本月成本 $${monthCost.toFixed(1)}，预算剩余 $${(budget - monthCost).toFixed(1)}；单位成本 $${(monthCost / (monthReq / 1000)).toFixed(2)} / 千次请求。`;
+  document.getElementById("costDist").innerHTML = rows;
+  document.getElementById("costTip").innerHTML = tip;
+}
+
+/* ---------- 配额/预算 ---------- */
+function renderQuota(){
+  const pct = Math.min(100, usedQuota / 7400 * 100); // 74亿 = 7400M
+  document.getElementById("quotaText").textContent = `${usedQuota.toFixed(0)} / 7400M（74 亿）`;
+  const bar = document.getElementById("quotaBar");
+  bar.style.width = pct.toFixed(1) + "%";
+  bar.className = pct > 95 ? "danger" : (pct > 80 ? "warn" : "");
+  const state = monthCost > budget ? "danger" : (pct > 80 || monthCost > budget * 0.8 ? "warn" : "ok");
+  document.getElementById("budgetState").textContent = `预算：$${budget}/月 · 已用 $${monthCost.toFixed(1)} (${(monthCost/budget*100).toFixed(0)}%)`;
+  document.getElementById("budgetState").className = "badge " + (state === "danger" ? "b-down" : state === "warn" ? "b-warn" : "b-up");
+}
+
+/* ---------- 渲染 ---------- */
+function renderProv(){
+  document.getElementById("provList").innerHTML = PROVIDERS.map(p => {
+    const use = Math.min(100, (usedQuota / PROVIDERS.length) / p.quota * 100 * 8);
+    return `<div class="prov"><div>
+        <b>${p.name}</b> ${p.down ? '<span class="badge b-down">故障</span>' : '<span class="badge b-up">可用</span>'}
+        <div class="meta">单价 $${p.price}/M tokens · 延迟 ${p.latency}ms · 免费配额 ${p.quota}M/月</div></div>
+      <div style="text-align:right;min-width:130px"><span class="badge ${p.price <= 0.1 ? "b-warm" : "b-src"}">$${p.price}/M</span>
+        <div class="bar"><i style="width:${Math.min(100, use)}%"></i></div></div></div>`;
+  }).join("");
+  document.getElementById("stProv").textContent = PROVIDERS.filter(p => !p.down).length;
+}
+function stats(){
+  document.getElementById("stReq").textContent = monthReq.toLocaleString();
+  document.getElementById("stCost").textContent = "$" + monthCost.toFixed(1);
+  document.getElementById("stQuota").textContent = (usedQuota / 7400 * 100).toFixed(1) + "%";
+}
+function renderQuotaLog(){
+  document.getElementById("quotaLog").innerHTML = [
+    `<div class="log"><span class="t">配置</span>月度免费配额 74 亿 tokens（34 家 provider 免费聚合）· 预算 $${budget}/月</div>`,
+    usedQuota > 7400 * 0.95 ? `<div class="log"><span class="t">告警</span>免费配额占用超 95%，已强制降级至低耗模型并通知管理员</div>`
+      : usedQuota > 7400 * 0.8 ? `<div class="log"><span class="t">预警</span>免费配额占用超 80%（当前 ${(usedQuota/7400*100).toFixed(1)}%），建议扩容 provider 或限流</div>`
+      : `<div class="log"><span class="t">正常</span>免费配额占用 ${(usedQuota/7400*100).toFixed(1)}%，距离预警线还有 ${(7400*0.8-usedQuota).toFixed(0)}M tokens</div>`
+  ].join("");
+}
+function renderAll(){ stats(); renderProv(); renderRoutes(); renderFail(); renderTrend(); renderDist(); renderQuota(); renderQuotaLog(); renderDownMark(); }
+
+/* ---------- 交互 ---------- */
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(t.dataset.p).classList.add("active");
+}));
+document.getElementById("routeMode").addEventListener("change", e => {
+  routeMode = e.target.value;
+  notify("路由策略已切换：" + e.target.options[e.target.selectedIndex].text);
+});
+document.getElementById("sendBtn").addEventListener("click", () => sendReq(5));
+document.getElementById("toggleDown").addEventListener("click", () => { switchDown(); notify("已切换故障 Provider，路由自动绕行"); });
+document.getElementById("resetDown").addEventListener("click", () => { resetDown(); notify("已恢复默认故障设置"); });
+document.getElementById("saveBudget").addEventListener("click", () => {
+  const v = parseFloat(document.getElementById("budgetInput").value);
+  if (isNaN(v) || v < 10) { notify("预算需 ≥ $10"); return; }
+  budget = v;
+  renderAll();
+  notify("预算已更新为 $" + v + "/月，超限自动告警");
+});
+function notify(msg){
+  const bar = document.getElementById("notifyBar");
+  bar.style.display = "block";
+  bar.innerHTML = "🔔 " + msg;
+  setTimeout(() => { bar.style.display = "none"; }, 4000);
+}
+
+/* 初始化 */
+renderAll();
+// 模拟本日 08:00 网关例行巡检完成
+fails.push({ t:"08:00", msg:"例行巡检：DeepSeek 延迟抖动 510ms，已标记观察；其余 Provider 健康" });
+renderFail();
+</script>
+</body>
+</html>

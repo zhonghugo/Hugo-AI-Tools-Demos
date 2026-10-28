@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>43</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/27</b><span>持续产出</span></div>
+      <div><b>44</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/28</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-28", name:"LLM API成本监控面板",
+    desc:"参考 FreeLLMAPI（tashfeenahmed/freellmapi，41K stars——自托管 LLM 路由，聚合 34 家免费 provider 到一个 OpenAI 兼容端点，每月 74 亿免费 token）演示『LLM API 成本监控面板』，把公司 AI 应用的 API 成本管起来：①统一端点——所有 AI 应用（客服机器人/文档处理/数据分析/RPA 智能环节）只配一个 OpenAI 兼容端点，路由与故障转移由网关完成、应用零改动；②Provider 路由总览——8 家 provider（OpenAI/DeepSeek/Gemini/通义/Kimi/Claude/智谱/文心）单价、延迟、免费配额、可用状态可视化；③智能路由——按策略（最低单价/最低延迟/轮询均衡）自动选 Provider，测试请求日志记录每次决策理由；④故障转移——Provider 故障自动绕行切换、请求 0 失败，支持手动模拟故障与一键恢复；⑤成本监控——近 12 天 token 用量趋势图（SVG 柱状）、按 Provider 配额分布、月度成本与预算实时比对；⑥配额预算——74 亿免费 token 配额进度条（占用>80% 预警、>95% 强制降级），月度预算上限+超限告警。承接「AI 落地」方向：AI 应用能跑起来之后，把基础设施成本管起来。",
+    src:"10/28 资讯 · FreeLLMAPI 34家免费provider聚合+智能路由+故障转移（4星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-28_LLM%20API%E6%88%90%E6%9C%AC%E7%9B%91%E6%8E%A7%E9%9D%A2%E6%9D%BF/LLM%20API%E6%88%90%E6%9C%AC%E7%9B%91%E6%8E%A7%E9%9D%A2%E6%9D%BF.html"
+  },
   {
     date:"10-27", name:"AI热点日报生成器",
     desc:"参考 AIHOT（KKKKhazix/AIHOT，8.6K stars——自动化热点日报网站框架「信源收集→LLM 筛选双评分→事件聚簇→每日 08:00 出日报」）演示『AI 热点日报生成器』，让运营人每天早上 10 分钟读完行业热点：①信源采集——8 个信源（Product Hunt/GitHub Trending/36氪/Hacker News/Reddit/量子位/InfoQ/少数派）自动抓取入库，模拟逐源采集耗时与进度；②双评分筛选——热度×0.5+相关度×0.5（相关度按用户画像词库加权：RPA/AI落地/数字化运营/数据分析/效率工具），阈值滑块实时调节入选线；③事件聚簇——标题关键词匹配（Agent/RPA/日报/中台/融资等）自动合并同主题资讯，避免日报重复刷屏；④日报生成——每日 08:00 自动出报：今日头条+榜单 Top5+信源分布统计，一键复制 Markdown 可直接粘贴到飞书文档/公众号；⑤定时推送——自动出报开关+飞书/邮件/钉钉渠道配置+推送日志。承接 RPA 叙事线，开「内容自动化」分支——把「自动采集→筛选→聚簇→出报」的内容生产链路做成可复用小工具。",
