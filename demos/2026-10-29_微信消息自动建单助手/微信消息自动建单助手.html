@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微信消息自动建单助手</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; padding:20px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  header h1 { font-size:24px; color:#111827; }
+  header p { color:#6b7280; font-size:13px; margin-top:6px; }
+  .stats { display:flex; gap:16px; margin:16px 0; flex-wrap:wrap; }
+  .stat { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 20px; text-align:center; min-width:140px; flex:1; }
+  .stat b { font-size:22px; color:#16a34a; display:block; }
+  .stat span { font-size:12px; color:#6b7280; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:12px; }
+  .card h3 { font-size:15px; margin-bottom:10px; color:#111827; }
+  .btn { padding:6px 14px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; font-size:13px; color:#374151; }
+  .btn:hover { background:#f3f4f6; }
+  .btn.primary { background:#16a34a; color:#fff; border-color:#16a34a; }
+  .btn.sm { padding:4px 10px; font-size:12px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+  .b-up { background:#dcfce7; color:#15803d; }
+  .b-warn { background:#fef3c7; color:#b45309; }
+  .b-src { background:#eff6ff; color:#1d4ed8; }
+  .b-gray { background:#f3f4f6; color:#4b5563; }
+  .msg { border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:13px; cursor:pointer; }
+  .msg:hover { background:#f9fafb; }
+  .msg .who { color:#2563eb; font-weight:600; margin-right:6px; }
+  .msg .t { color:#9ca3af; font-size:12px; margin-left:8px; }
+  .fieldgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .fld { border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; background:#f9fafb; }
+  .fld .k { font-size:12px; color:#6b7280; }
+  .fld .v { font-size:14px; font-weight:600; color:#111827; margin-top:2px; }
+  .fld .v.missing { color:#b45309; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { border:1px solid #e5e7eb; padding:6px 10px; text-align:left; }
+  th { background:#f9fafb; color:#374151; }
+  .log { border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:13px; }
+  .log .t { color:#6b7280; font-size:12px; margin-right:8px; }
+  .notify { background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:13px; color:#92400e; display:none; }
+  textarea { width:100%; border:1px solid #d1d5db; border-radius:8px; padding:10px; font-size:13px; font-family:inherit; min-height:64px; resize:vertical; }
+  .note { font-size:12px; color:#9ca3af; margin-top:6px; }
+  .tagrow { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  @media (max-width:480px) { body { padding:12px; } .stats { gap:8px; } .stat { min-width:calc(50% - 8px); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>微信消息自动建单助手</h1>
+    <p>参考 EntryFilter（Product Hunt 新上线 AI 现场数据采集层——把语音笔记 / 照片 / 聊天自动清洗成 ERP 结构化数据）。销售在群里发一条消息，自动提取客户 / 商品 / 数量 / 目的地，生成销售出库单草稿——把『聊天 → 手工抄单 → ERP 录入』三步压成一步。</p>
+  </header>
+  <div class="stats">
+    <div class="stat"><b id="stMsg">0</b><span>已处理消息</span></div>
+    <div class="stat"><b id="stOk">0</b><span>成功建单</span></div>
+    <div class="stat"><b id="stWarn">0</b><span>待补全</span></div>
+    <div class="stat"><b id="stRate">0%</b><span>抽取成功率</span></div>
+  </div>
+  <div class="notify" id="notifyBar"></div>
+
+  <div class="card">
+    <h3>① 消息输入（支持文字 / 语音转写 / 拍照 OCR 三种来源）</h3>
+    <div class="tagrow">
+      <button class="btn sm" data-src="text">+ 文字消息</button>
+      <button class="btn sm" data-src="voice">+ 语音转写</button>
+      <button class="btn sm" data-src="photo">+ 拍照 OCR</button>
+      <button class="btn sm" id="loadSample">载入示例消息</button>
+      <button class="btn sm" id="clearMsg">清空</button>
+    </div>
+    <textarea id="msgInput" placeholder="粘贴或输入消息内容，例如：客户王老板要了10箱可乐，送到A仓库，今天下午前送到"></textarea>
+    <div id="msgList" style="margin-top:10px"></div>
+    <div class="note">点一条历史消息可重新解析；消息支持：文字（直接文本）、语音（转写文本）、照片（OCR 文本，标注来源）。</div>
+  </div>
+
+  <div class="card">
+    <h3>② AI 字段抽取（模拟 LLM：客户 / 商品 / 数量 / 单位 / 目的地 / 时间）</h3>
+    <div class="fieldgrid" id="fldGrid"></div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn primary" id="parseBtn">解析并生成单据</button>
+      <span class="badge b-src" id="confBadge">置信度 --</span>
+      <span class="note">抽取规则：关键词库 + 数量/单位/时间正则 + 客户名单，模拟 LLM 抽取；缺失字段标黄。</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>③ 销售出库单草稿（可编辑，校验后提交入库）</h3>
+    <table id="orderTbl">
+      <thead><tr><th>客户名</th><th>商品</th><th>数量</th><th>单位</th><th>目的地</th><th>送达时间</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn primary" id="submitAll">提交全部草稿</button>
+      <span class="note" id="orderTip"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   微信消息自动建单助手（单文件 demo）
+   参考资讯：EntryFilter（Product Hunt 新上线 AI 现场数据采集层，
+   把语音笔记/照片/WhatsApp 聊天自动清洗成 ERP 结构化数据）
+   场景迁移：销售群消息 → AI 抽取客户/商品/数量/目的地 → 自动建单
+   ============================================================ */
+
+const CUSTOMERS = ["王老板","李总","张经理","赵店长","刘姐","陈先生"];
+const PRODUCTS = ["可乐","矿泉水","牛奶","啤酒","方便面","纸巾","酸奶","果汁"];
+const UNITS = ["箱","瓶","件","提","桶","袋"];
+
+let messages = [];          // 已处理消息
+let current = null;          // 当前解析字段
+let drafts = [];             // 单据草稿
+let totalMsg = 0, okCnt = 0, warnCnt = 0;
+
+const SAMPLE = [
+  { src:"text",  who:"销售-阿强", text:"客户王老板要了10箱可乐，送到A仓库，今天下午前送到" },
+  { src:"voice", who:"销售-小李", text:"语音转写：李总那边再加5箱牛奶，明天送到B仓" },
+  { src:"photo", who:"仓库-老周", text:"OCR识别：收货单照片——赵店长，方便面20箱，送C仓库，11月2日" }
+];
+
+/* ---------- 字段抽取（模拟 LLM） ---------- */
+function extract(text, src){
+  const f = { 客户名:"", 商品:"", 数量:"", 单位:"", 目的地:"", 送达时间:"" };
+  // 客户名：客户名单匹配
+  for (const c of CUSTOMERS) if (text.includes(c)) { f["客户名"] = c; break; }
+  // 商品：商品词库
+  for (const p of PRODUCTS) if (text.includes(p)) { f["商品"] = p; break; }
+  // 数量+单位：数字+单位组合
+  const mNum = text.match(/(\d+)\s*(箱|瓶|件|提|桶|袋)/);
+  if (mNum) { f["数量"] = mNum[1]; f["单位"] = mNum[2]; }
+  // 目的地：A/B/C 仓、X仓库
+  const mDest = text.match(/([A-Z一二三])\s*仓|([^，。、\s]{1,4}仓库)/);
+  if (mDest) f["目的地"] = mDest[1] ? mDest[1] + "仓" : mDest[2];
+  // 送达时间：今天/明天/日期/时刻
+  const mTime = text.match(/(今天|明天|后天|11月\d+日|周[一二三四五六日])|(\d{1,2}点)/);
+  if (mTime) f["送达时间"] = (mTime[1] || mTime[2] || "");
+  // 置信度 = 已填字段数 / 6
+  const filled = Object.values(f).filter(v => v !== "").length;
+  f._conf = Math.round(filled / 6 * 100);
+  f._src = src;
+  return f;
+}
+
+/* ---------- 渲染 ---------- */
+function renderMsgList(){
+  document.getElementById("msgList").innerHTML = messages.length === 0
+    ? '<div class="note">暂无消息，点上方按钮添加。</div>'
+    : messages.slice().reverse().map((m, i) =>
+      `<div class="msg" data-i="${messages.length - 1 - i}">
+        <span class="who">${m.who}</span>${m.text}<span class="t">[${m.srcLabel}]</span>
+        <span class="badge ${m.ok ? "b-up" : "b-warn"}">${m.ok ? "已建单" : "待补全"}</span>
+      </div>`).join("");
+  document.querySelectorAll(".msg").forEach(el => el.addEventListener("click", () => {
+    const m = messages[+el.dataset.i];
+    document.getElementById("msgInput").value = m.text;
+    parseFrom(m.text, m.src, m.who);
+  }));
+}
+function renderFields(){
+  if (!current) {
+    document.getElementById("fldGrid").innerHTML = '<div class="note">解析后字段显示在这里。</div>';
+    return;
+  }
+  const keys = ["客户名","商品","数量","单位","目的地","送达时间"];
+  document.getElementById("fldGrid").innerHTML = keys.map(k =>
+    `<div class="fld"><div class="k">${k}</div><div class="v ${current[k] ? "" : "missing"}">${current[k] || "（缺失）"}</div></div>`).join("");
+  document.getElementById("confBadge").textContent = `置信度 ${current._conf}%`;
+}
+function renderDrafts(){
+  const tb = document.querySelector("#orderTbl tbody");
+  if (drafts.length === 0) {
+    tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9ca3af">暂无草稿，解析消息后自动生成。</td></tr>';
+  } else {
+    tb.innerHTML = drafts.map((d, i) => {
+      const miss = Object.values(d.f).filter(v => v === "").length;
+      return `<tr>
+        <td>${d.f["客户名"] || '<span style="color:#b45309">缺失</span>'}</td>
+        <td>${d.f["商品"] || '<span style="color:#b45309">缺失</span>'}</td>
+        <td>${d.f["数量"] || '<span style="color:#b45309">缺失</span>'}</td>
+        <td>${d.f["单位"] || '-'}</td>
+        <td>${d.f["目的地"] || '<span style="color:#b45309">缺失</span>'}</td>
+        <td>${d.f["送达时间"] || '-'}</td>
+        <td><span class="badge ${d.status === "已提交" ? "b-up" : d.status === "已驳回" ? "b-gray" : "b-warn"}">${d.status}</span></td>
+        <td>
+          <button class="btn sm sub1" data-i="${i}">提交</button>
+          <button class="btn sm rej1" data-i="${i}">驳回</button>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+  document.querySelectorAll(".sub1").forEach(b => b.addEventListener("click", () => { drafts[+b.dataset.i].status = "已提交"; refresh(); }));
+  document.querySelectorAll(".rej1").forEach(b => b.addEventListener("click", () => { drafts[+b.dataset.i].status = "已驳回"; refresh(); }));
+  const pending = drafts.filter(d => d.status === "草稿").length;
+  document.getElementById("orderTip").textContent = pending > 0 ? `还有 ${pending} 张草稿待提交（缺字段的草稿建议驳回补全后重发）` : "全部草稿已处理";
+}
+function stats(){
+  document.getElementById("stMsg").textContent = totalMsg;
+  document.getElementById("stOk").textContent = okCnt;
+  document.getElementById("stWarn").textContent = warnCnt;
+  document.getElementById("stRate").textContent = totalMsg === 0 ? "0%" : Math.round(okCnt / totalMsg * 100) + "%";
+}
+function refresh(){ renderMsgList(); renderFields(); renderDrafts(); stats(); }
+
+/* ---------- 解析与建单 ---------- */
+function parseFrom(text, src, who){
+  const f = extract(text, src);
+  current = f;
+  totalMsg += 1;
+  const miss = Object.values(f).filter(v => v === "").length;
+  const ok = miss === 0;
+  ok ? okCnt++ : warnCnt++;
+  const srcLabel = src === "text" ? "文字" : src === "voice" ? "语音转写" : "拍照OCR";
+  const d = { f, srcLabel, who, status: ok ? "草稿" : "草稿（缺字段）" };
+  drafts.push(d);
+  messages.push({ text, src, srcLabel, who, ok });
+  refresh();
+  if (ok) notify(`已从「${who}」的消息生成单据草稿（置信度 ${f._conf}%）`);
+  else notify(`消息字段不全（缺 ${miss} 项），草稿已标黄，请补全后提交`);
+}
+function parseCurrent(){
+  const text = document.getElementById("msgInput").value.trim();
+  if (!text) { notify("请先输入或粘贴消息内容"); return; }
+  parseFrom(text, "text", "手动录入");
+}
+
+/* ---------- 提交全部 ---------- */
+function submitAll(){
+  const pend = drafts.filter(d => d.status.includes("草稿"));
+  if (pend.length === 0) { notify("没有待提交的草稿"); return; }
+  const withMiss = pend.filter(d => Object.values(d.f).some(v => v === ""));
+  if (withMiss.length > 0) { notify(`${withMiss.length} 张草稿缺字段，请先补全再提交（或驳回）`); return; }
+  pend.forEach(d => d.status = "已提交");
+  refresh();
+  notify(`已提交 ${pend.length} 张出库单到 ERP 草稿箱，等待仓库确认`);
+}
+
+/* ---------- 交互 ---------- */
+document.querySelectorAll(".btn[data-src]").forEach(b => b.addEventListener("click", () => {
+  const src = b.dataset.src;
+  const who = src === "text" ? "销售-阿强" : src === "voice" ? "销售-小李" : "仓库-老周";
+  const text = document.getElementById("msgInput").value.trim();
+  if (!text) { notify("请先在输入框填写消息内容，再点添加"); return; }
+  parseFrom(text, src, who);
+  document.getElementById("msgInput").value = "";
+}));
+document.getElementById("loadSample").addEventListener("click", () => {
+  SAMPLE.forEach(s => parseFrom(s.text, s.src, s.who));
+  notify("已载入 3 条示例消息（文字 / 语音 / 拍照）并自动解析建单");
+});
+document.getElementById("clearMsg").addEventListener("click", () => {
+  messages = []; drafts = []; current = null; totalMsg = 0; okCnt = 0; warnCnt = 0;
+  refresh(); notify("已清空全部消息与草稿");
+});
+document.getElementById("parseBtn").addEventListener("click", parseCurrent);
+document.getElementById("submitAll").addEventListener("click", submitAll);
+function notify(msg){
+  const bar = document.getElementById("notifyBar");
+  bar.style.display = "block";
+  bar.innerHTML = "🔔 " + msg;
+  setTimeout(() => { bar.style.display = "none"; }, 4000);
+}
+
+/* 初始化 */
+refresh();
+notify("示例场景：销售在群里发消息 → 自动提取字段 → 生成出库单草稿");
+</script>
+</body>
+</html>

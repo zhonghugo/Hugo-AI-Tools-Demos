@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>44</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 10/28</b><span>持续产出</span></div>
+      <div><b>45</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 10/29</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"10-29", name:"微信消息自动建单助手",
+    desc:"参考 EntryFilter（Product Hunt 新上线 AI 现场数据采集层——把语音笔记/照片/聊天自动清洗成 ERP 结构化数据）演示『微信消息自动建单助手』：销售在群里发一条消息，自动提取客户/商品/数量/目的地，生成销售出库单草稿——把『聊天→手工抄单→ERP录入』三步压成一步。①消息输入——支持文字/语音转写/拍照OCR三种来源模拟群消息；②AI字段抽取——模拟LLM提取客户名/商品/数量/单位/目的地/送达时间6字段，缺失项标黄；③销售出库单草稿——自动组装成出库单（客户/商品明细/数量/目的地/送达时间），支持提交/驳回流转，缺字段草稿拦截提交；④状态管理——已处理消息/成功建单/待补全/抽取成功率四维统计。销售与仓库实时联动，正是『聊天消息→结构化业务数据』的数字化运营典型场景。",
+    src:"10/29 资讯 · EntryFilter AI现场数据采集：语音/照片/聊天→ERP结构化数据（4星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-10-29_%E5%BE%AE%E4%BF%A1%E6%B6%88%E6%81%AF%E8%87%AA%E5%8A%A8%E5%BB%BA%E5%8D%95%E5%8A%A9%E6%89%8B/%E5%BE%AE%E4%BF%A1%E6%B6%88%E6%81%AF%E8%87%AA%E5%8A%A8%E5%BB%BA%E5%8D%95%E5%8A%A9%E6%89%8B.html"
+  },
   {
     date:"10-28", name:"LLM API成本监控面板",
     desc:"参考 FreeLLMAPI（tashfeenahmed/freellmapi，41K stars——自托管 LLM 路由，聚合 34 家免费 provider 到一个 OpenAI 兼容端点，每月 74 亿免费 token）演示『LLM API 成本监控面板』，把公司 AI 应用的 API 成本管起来：①统一端点——所有 AI 应用（客服机器人/文档处理/数据分析/RPA 智能环节）只配一个 OpenAI 兼容端点，路由与故障转移由网关完成、应用零改动；②Provider 路由总览——8 家 provider（OpenAI/DeepSeek/Gemini/通义/Kimi/Claude/智谱/文心）单价、延迟、免费配额、可用状态可视化；③智能路由——按策略（最低单价/最低延迟/轮询均衡）自动选 Provider，测试请求日志记录每次决策理由；④故障转移——Provider 故障自动绕行切换、请求 0 失败，支持手动模拟故障与一键恢复；⑤成本监控——近 12 天 token 用量趋势图（SVG 柱状）、按 Provider 配额分布、月度成本与预算实时比对；⑥配额预算——74 亿免费 token 配额进度条（占用>80% 预警、>95% 强制降级），月度预算上限+超限告警。承接「AI 落地」方向：AI 应用能跑起来之后，把基础设施成本管起来。",
