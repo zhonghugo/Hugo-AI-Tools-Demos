@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>门店一键操作助手</title>
+<!--
+============================================================
+门店一键操作助手（Demo）
+============================================================
+参考来源：OmniGlass（Rust/Tauri 开源，把 MCP 工具变成一线工人
+一键点击的 OS 级按钮，不用对话）——HN 4星资讯，当日选材。
+
+解决什么问题：
+  餐饮连锁门店店长每天要在 ERP 系统里反复打开页面、手工填
+  表：今日收货、盘点提交、报损登记、交接班。传统流程步骤多、
+  易漏填、新人上手慢。
+  本工具参考 OmniGlass 的「截屏→OCR→LLM」架构，把 4 个高频
+  业务动作做成大按钮面板：
+    ① 大按钮面板——店长不用面对复杂 ERP，只看 4 个大按钮
+    ② 截屏理解——点按钮后自动识别当前表单哪些字段已填、哪些为空
+    ③ AI 自动填——按业务规则自动填入默认值（收货数量、供应商、
+       金额自动计算等），带置信度提示
+    ④ 提交流转——字段齐全才能提交，缺字段拦截，提交后任务状态更新
+
+怎么运行：
+  单文件 HTML，无需服务器。双击用浏览器打开即可。
+  - 点左侧大按钮切换任务表单
+  - 点「AI 一键填充」模拟截屏理解 + 自动填表
+  - 点「提交」完成该任务（缺字段会被拦截）
+============================================================
+-->
+<style>
+  :root{
+    --bg:#f2f4f7; --card:#ffffff; --ink:#1f2937; --sub:#6b7280;
+    --line:#e5e7eb; --brand:#2563eb; --brand-d:#1d4ed8;
+    --ok:#16a34a; --warn:#d97706; --warn-bg:#fef3c7; --miss:#fca5a5;
+    --miss-bg:#fee2e2; --done-bg:#dcfce7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px}
+  header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+  h1{font-size:24px}
+  .src{font-size:12px;color:var(--sub);background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:6px 10px}
+  .statbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .stat{flex:1;min-width:130px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .stat b{display:block;font-size:20px;color:var(--brand)}
+  .stat span{font-size:12px;color:var(--sub)}
+  .main{display:grid;grid-template-columns:230px 1fr;gap:16px;align-items:start}
+  @media(max-width:860px){.main{grid-template-columns:1fr}}
+  /* 大按钮面板 */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .panel h2{font-size:14px;margin-bottom:10px;color:var(--sub)}
+  .bigbtn{width:100%;display:flex;align-items:center;gap:10px;padding:14px 12px;margin-bottom:10px;
+    border:2px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;text-align:left;
+    font-size:15px;font-weight:600;color:var(--ink);transition:.15s}
+  .bigbtn:hover{border-color:var(--brand);transform:translateY(-1px)}
+  .bigbtn.active{border-color:var(--brand);background:#eff6ff;box-shadow:0 0 0 3px #bfdbfe}
+  .bigbtn .ico{font-size:22px;line-height:1}
+  .bigbtn .st{margin-left:auto;font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;background:#f3f4f6;color:var(--sub);white-space:nowrap}
+  .bigbtn .st.done{background:var(--done-bg);color:var(--ok)}
+  .bigbtn .st.run{background:var(--warn-bg);color:var(--warn)}
+  /* ERP 模拟表单 */
+  .erp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .erp h2{font-size:16px;margin-bottom:4px}
+  .erp .sub{font-size:12px;color:var(--sub);margin-bottom:14px}
+  .fldgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:640px){.fldgrid{grid-template-columns:1fr 1fr}}
+  .fld label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
+  .fld input,.fld .val{width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;background:#f9fafb}
+  .fld input:focus{outline:none;border-color:var(--brand);background:#fff}
+  .fld.miss input,.fld.miss .val{border-color:var(--miss);background:var(--miss-bg)}
+  .fld .val{min-height:38px;display:flex;align-items:center;justify-content:space-between}
+  .fld .conf{font-size:10px;color:var(--ok);font-weight:600}
+  .fld .flag{font-size:10px;color:var(--miss);font-weight:600}
+  .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .btn{padding:10px 18px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn.primary{background:var(--brand);color:#fff}
+  .btn.primary:hover{background:var(--brand-d)}
+  .btn.ghost{background:#f3f4f6;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{background:#e5e7eb}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  /* 操作日志 */
+  .logwrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:16px}
+  .logwrap h2{font-size:14px;color:var(--sub);margin-bottom:10px}
+  #logBox{font-size:12.5px;color:var(--sub);max-height:180px;overflow:auto;line-height:1.8}
+  .logline{padding:2px 0;border-bottom:1px dashed #f0f0f0}
+  .logline b{color:var(--brand)}
+  .logline .ok{color:var(--ok)}
+  .logline .warn{color:var(--warn)}
+  #notifyBar{position:fixed;top:16px;right:16px;background:#111827;color:#fff;border-radius:8px;
+    padding:10px 16px;font-size:13px;opacity:0;transform:translateY(-8px);transition:.25s;z-index:99;max-width:360px}
+  #notifyBar.show{opacity:1;transform:translateY(0)}
+  #notifyBar.ok{background:var(--ok)}
+  #notifyBar.warn{background:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>门店一键操作助手</h1>
+    <div class="src">参考 OmniGlass · 把 ERP 操作变成一线工人一键点击的大按钮</div>
+  </header>
+
+  <div class="statbar">
+    <div class="stat"><b id="stDone">0/4</b><span>今日已完成任务</span></div>
+    <div class="stat"><b id="stAuto">0</b><span>AI 自动填充字段</span></div>
+    <div class="stat"><b id="stSave">0</b><span>节省时间（分钟）</span></div>
+    <div class="stat"><b id="stWarn">0</b><span>空字段拦截次数</span></div>
+  </div>
+
+  <div class="main">
+    <!-- 大按钮面板 -->
+    <div class="panel">
+      <h2>今日高频操作 · 点一下就行</h2>
+      <div id="btnPanel"></div>
+      <p style="font-size:11px;color:var(--sub);line-height:1.6;margin-top:6px">
+        不用再翻 ERP 菜单：点击大按钮 → 助手截屏理解当前表单 → AI 自动填好 → 一键提交。
+      </p>
+    </div>
+
+    <!-- ERP 模拟表单 -->
+    <div class="erp">
+      <h2 id="formTitle">今日收货</h2>
+      <div class="sub" id="formDesc">模拟 ERP「采购收货」页面 —— 助手已截屏理解：<b id="scanInfo">检测中…</b></div>
+      <div class="fldgrid" id="fldGrid"></div>
+      <div class="actions">
+        <button class="btn primary" id="btnAi">AI 一键填充</button>
+        <button class="btn ghost" id="btnSubmit">提交</button>
+        <button class="btn ghost" id="btnReset">重置表单</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 操作日志 -->
+  <div class="logwrap">
+    <h2>操作日志（截屏理解 → OCR → AI 自动填 → 提交）</h2>
+    <div id="logBox"></div>
+  </div>
+</div>
+<div id="notifyBar"></div>
+
+<script>
+/* ========== 业务数据（模拟 ERP 字段与 AI 规则库） ========== */
+// 4 个高频业务动作：每个动作对应一张 ERP 表单与一组字段
+var TASKS = [
+  {
+    id:"receive", name:"今日收货", ico:"📦", desc:"采购收货单 —— 供应商送货到店，录入实收数量",
+    fields:[
+      {k:"date",     label:"收货日期", pre:"2026-10-31", auto:null, conf:"已填"},
+      {k:"store",    label:"门店",     pre:"南山店（A001）", auto:null, conf:"已填"},
+      {k:"supplier", label:"供应商",   pre:"", auto:"美菜网（生鲜）", conf:"98%"},
+      {k:"goods",    label:"商品",     pre:"土豆 / 西红柿 / 猪肉", auto:null, conf:"已填"},
+      {k:"qty",      label:"实收数量", pre:"", auto:"58 件", conf:"93%"},
+      {k:"amount",   label:"收货金额", pre:"", auto:"¥ 3,864.00", conf:"96%"},
+      {k:"op",       label:"操作人",   pre:"", auto:"张店长", conf:"99%"}
+    ]
+  },
+  {
+    id:"stock", name:"盘点提交", ico:"📋", desc:"库存盘点表 —— 核对系统库存与实物数量",
+    fields:[
+      {k:"date",     label:"盘点日期", pre:"2026-10-31", auto:null, conf:"已填"},
+      {k:"store",    label:"门店",     pre:"南山店（A001）", auto:null, conf:"已填"},
+      {k:"sku",      label:"盘点项数", pre:"", auto:"46 项", conf:"95%"},
+      {k:"diff",     label:"盘盈/盘亏", pre:"", auto:"盘亏 3 项（-¥212.00）", conf:"88%"},
+      {k:"reason",   label:"差异原因", pre:"", auto:"临期报废 2 项 + 散称损耗 1 项", conf:"85%"},
+      {k:"op",       label:"操作人",   pre:"", auto:"张店长", conf:"99%"}
+    ]
+  },
+  {
+    id:"loss", name:"报损登记", ico:"🗑️", desc:"商品报损单 —— 临期/破损商品登记报损",
+    fields:[
+      {k:"date",     label:"报损日期", pre:"2026-10-31", auto:null, conf:"已填"},
+      {k:"store",    label:"门店",     pre:"南山店（A001）", auto:null, conf:"已填"},
+      {k:"goods",    label:"报损商品", pre:"", auto:"鲜奶 12 瓶 / 面包 8 个", conf:"97%"},
+      {k:"amount",   label:"报损金额", pre:"", auto:"¥ 186.00", conf:"96%"},
+      {k:"reason",   label:"报损原因", pre:"", auto:"临期（效期≤1天）+ 包装破损", conf:"90%"},
+      {k:"op",       label:"操作人",   pre:"", auto:"张店长", conf:"99%"}
+    ]
+  },
+  {
+    id:"shift", name:"交接班", ico:"🔄", desc:"交接班单 —— 交班事项与待办交接",
+    fields:[
+      {k:"date",     label:"交接日期", pre:"2026-10-31", auto:null, conf:"已填"},
+      {k:"from",     label:"交班人",   pre:"", auto:"张店长（白班）", conf:"99%"},
+      {k:"to",       label:"接班人",   pre:"", auto:"李副店（晚班）", conf:"97%"},
+      {k:"todo",     label:"待办交接", pre:"", auto:"① 冰柜 B 需补货② 明日 8:00 供应商送货③ 会员卡机故障已报修", conf:"89%"},
+      {k:"cash",     label:"现金交接", pre:"", auto:"¥ 2,350.00（已清点）", conf:"95%"},
+      {k:"sign",     label:"签字确认", pre:"", auto:"张店长 / 李副店", conf:"98%"}
+    ]
+  }
+];
+
+/* ========== 状态 ========== */
+var cur = 0;                 // 当前任务下标
+var doneCount = 0;           // 已完成任务数
+var autoFilled = 0;          // AI 自动填充字段累计
+var savedMin = 0;            // 节省时间累计
+var blockCount = 0;          // 拦截次数
+var filled = [];             // 当前表单字段填充状态（null=人工已填/待填, 'ai'=AI填, 'miss'=空）
+
+/* ========== 工具函数 ========== */
+function $(id){ return document.getElementById(id); }
+function notify(msg, type){
+  var bar = $("notifyBar");
+  bar.textContent = msg;
+  bar.className = type ? "show "+type : "show";
+  clearTimeout(bar._t);
+  bar._t = setTimeout(function(){ bar.className = ""; }, 3600);
+}
+function log(html){
+  var box = $("logBox");
+  var line = document.createElement("div");
+  line.className = "logline";
+  line.innerHTML = "<span>"+nowTime()+"</span> "+html;
+  box.insertBefore(line, box.firstChild);
+  while(box.children.length > 60) box.removeChild(box.lastChild);
+}
+function nowTime(){
+  var d = new Date();
+  return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+":"+("0"+d.getSeconds()).slice(-2);
+}
+function esc(s){ return String(s).replace(/</g,"&lt;"); }
+
+/* ========== 渲染 ========== */
+// 渲染大按钮面板
+function renderPanel(){
+  var p = $("btnPanel"); p.innerHTML = "";
+  TASKS.forEach(function(t, i){
+    var b = document.createElement("button");
+    b.className = "bigbtn" + (i===cur ? " active" : "");
+    b.innerHTML = '<span class="ico">'+t.ico+'</span>'+esc(t.name)+
+      '<span class="st" id="st-'+t.id+'">待办</span>';
+    b.onclick = function(){ switchTask(i); };
+    p.appendChild(b);
+  });
+  updateTaskBadge();
+}
+// 更新任务徽章状态
+function updateTaskBadge(){
+  var n = doneCount;
+  TASKS.forEach(function(t, i){
+    var el = $("st-"+t.id);
+    if(!el) return;
+    if(t.done){ el.textContent = "已完成"; el.className = "st done"; }
+    else if(i===cur){ el.textContent = "进行中"; el.className = "st run"; }
+    else { el.textContent = "待办"; el.className = "st"; }
+  });
+}
+// 渲染表单字段
+function renderForm(){
+  var t = TASKS[cur];
+  $("formTitle").textContent = t.name + " · 模拟 ERP 表单";
+  $("formDesc").innerHTML = "模拟 ERP「"+esc(t.desc.split("——")[0])+"」页面 —— 助手已截屏理解：<b id='scanInfo'>—</b>";
+  var g = $("fldGrid"); g.innerHTML = "";
+  filled = [];
+  t.fields.forEach(function(f, i){
+    var div = document.createElement("div");
+    div.className = "fld";
+    var inner;
+    if(f.pre){
+      // 人工已填字段（模拟 ERP 已有值）
+      inner = '<label>'+esc(f.label)+'</label><div class="val">'+esc(f.pre)+
+        '<span class="conf">'+esc(f.conf)+'</span></div>';
+      div.innerHTML = inner; filled.push("pre");
+    } else {
+      // 空字段：等待 AI 填充
+      inner = '<label>'+esc(f.label)+'</label><input type="text" id="f-'+i+'" placeholder="待填写" data-i="'+i+'">';
+      div.innerHTML = inner;
+      div.classList.add("miss"); filled.push("miss");
+    }
+    g.appendChild(div);
+  });
+  // 截屏理解日志：识别已填/空字段
+  var preN = t.fields.filter(function(f){return f.pre;}).length;
+  var missN = t.fields.length - preN;
+  $("scanInfo").textContent = "已填 "+preN+" 项，空字段 "+missN+" 项";
+  log("📸 <b>截屏理解</b> 读取「"+esc(t.name)+"」表单：检测到 <b class='ok'>"+preN+"</b> 项已填，<b class='warn'>"+missN+"</b> 项为空字段");
+  $("btnAi").disabled = false;
+  $("btnSubmit").disabled = false;
+}
+// 切换任务
+function switchTask(i){
+  cur = i; renderPanel(); renderForm();
+  log("👉 切换任务：<b>"+esc(TASKS[i].name)+"</b>");
+}
+
+/* ========== AI 一键填充（模拟 OCR + LLM 按业务规则自动填） ========== */
+$("btnAi").onclick = function(){
+  var t = TASKS[cur];
+  var missIdx = [];
+  t.fields.forEach(function(f, i){ if(!f.pre && filled[i] !== "ai") missIdx.push(i); });
+  if(missIdx.length === 0){
+    log("<span class='ok'>✅ 全部字段已就绪，无需填充</span>");
+    notify("该表单字段已齐全，可直接提交", "ok");
+    return;
+  }
+  // 逐个"自动填"：模拟 LLM 推断，带置信度
+  var n = 0;
+  missIdx.forEach(function(i){
+    var f = t.fields[i];
+    var input = $("f-"+i);
+    if(!input) return;
+    input.value = f.auto;
+    input.disabled = true;
+    var val = input.closest(".fld");
+    val.classList.remove("miss");
+    val.innerHTML = '<label>'+esc(f.label)+'</label><div class="val">'+esc(f.auto)+
+      '<span class="conf">AI · '+esc(f.conf)+'</span></div>';
+    filled[i] = "ai";
+    n++;
+    log("🤖 <b>AI 自动填</b> 「"+esc(f.label)+"」 → <b class='ok'>"+esc(f.auto)+"</b>（置信度 "+esc(f.conf)+"）");
+  });
+  autoFilled += n; savedMin += Math.round(n * 0.5);
+  $("stAuto").textContent = autoFilled;
+  $("stSave").textContent = savedMin;
+  var preN = t.fields.filter(function(f){return f.pre;}).length;
+  log("<span class='ok'>✅ 本轮自动填充 "+n+" 个字段，表单 "+t.fields.length+" 项已全部就绪</span>");
+  notify("AI 已自动填充 "+n+" 个字段，共 "+t.fields.length+" 项就绪", "ok");
+};
+
+/* ========== 提交（缺字段拦截） ========== */
+$("btnSubmit").onclick = function(){
+  var t = TASKS[cur];
+  var missN = 0;
+  t.fields.forEach(function(f, i){
+    if(!f.pre && filled[i] !== "ai") missN++;
+  });
+  if(missN > 0){
+    blockCount++;
+    $("stWarn").textContent = blockCount;
+    // 空字段重新标黄
+    t.fields.forEach(function(f, i){
+      if(!f.pre && filled[i] !== "ai"){
+        var input = $("f-"+i);
+        if(input) input.closest(".fld").classList.add("miss");
+      }
+    });
+    log("<span class='warn'>⛔ 提交被拦截：仍有 "+missN+" 个空字段（"+esc(t.name)+"）</span>");
+    notify("还有 "+missN+" 个空字段未填，请先 AI 一键填充", "warn");
+    return;
+  }
+  // 提交成功
+  t.done = true; doneCount++;
+  $("stDone").textContent = doneCount + "/4";
+  savedMin += 2; $("stSave").textContent = savedMin;
+  log("<span class='ok'>✅ 提交成功：「"+esc(t.name)+"」已流转到总部 ERP（自动带截图凭证）</span>");
+  notify("「"+t.name+"」提交成功", "ok");
+  updateTaskBadge();
+  if(doneCount === TASKS.length){
+    log("<span class='ok'>🏆 今日 4 项门店任务全部完成！共 AI 自动填充 "+autoFilled+" 个字段，约节省 "+savedMin+" 分钟</span>");
+    notify("今日全部任务已完成，共节省约 "+savedMin+" 分钟", "ok");
+  }
+};
+
+/* ========== 重置表单 ========== */
+$("btnReset").onclick = function(){
+  renderForm();
+  log("🔄 重置「"+esc(TASKS[cur].name)+"」表单");
+  notify("表单已重置");
+};
+
+/* ========== 初始化 ========== */
+renderPanel();
+renderForm();
+log("<span class='ok'>✅ 助手已启动：连接 ERP 模拟环境，等待店长一键操作</span>");
+</script>
+</body>
+</html>
