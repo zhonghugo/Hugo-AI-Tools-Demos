@@ -1,6 +1,6 @@
 # HANDOFF — 项目交接说明（给接任 AI）
 
-> 2026-10-15 由 neat-freak 同步后整理。接任 AI 先读本文件 + `CLAUDE.md` + `README.md` 再动手。
+> 2026-10-31 由 neat-freak 同步后整理。接任 AI 先读本文件 + `CLAUDE.md` + `README.md` 再动手。
 > 本文件只写「交接时点的事实与下一步」，日常约定在 CLAUDE.md，对外展示在 README.md。
 
 ## 1. 项目是什么
@@ -27,7 +27,7 @@
 
 - 资讯表：base_token=`S3WFbZfNTaMPn6sjgfkcFG3Cn8g` / table_id=`tbltCHyotV8hdemf`（表「AI工具资讯」）
 - 岗位表：base_token=`MwbkbeUnbaTmyYsNjojcJqWQnPf` / table_id=`tblYoQXSsCLYQr2W`（表「岗位机会」）
-- 台账在线表：https://fes49z7yv9.feishu.cn/sheets/YBJosw8PZhFKkutoXPxca5RTnIe （sheet-id `0eshJB`，当前 31 行，9/14–10/15）
+- 台账在线表：https://fes49z7yv9.feishu.cn/sheets/YBJosw8PZhFKkutoXPxca5RTnIe （sheet-id `0eshJB`，当前 46 行，9/14–10/31）
 - GitHub 公开仓库：`zhonghugo/Hugo-AI-Tools-Demos`（origin 已配 https 免密，gh 已登录 zhonghugo）
 
 ## 3. Demo 生成与交付约定（重点）
@@ -43,8 +43,9 @@
 ## 4. 每日收尾清单（接任 AI 每日必做）
 
 - [ ] 10:30 Demo 任务：选材 → 生成 → 验证 → present_files 交付
+- [ ] **验证脚本独立维护**（主项目目录 `_verify_demoMMDD.py`）：断言文案对齐 UI 实际文案（先跑一遍读真实文案再定断言，10/29、10/31 两轮 FAIL 均为断言与页面文案不一致，demo 本体无 bug）
 - [ ] 更新作品集 HTML（stat 数量 + 新条目）
-- [ ] 更新台账：在线飞书表（+dim-insert 插行 + cells-set 写值 + 改标题/说明行）→ 本地 xlsx 镜像同步 → selfcheck
+- [ ] 更新台账：在线飞书表（+dim-insert 插行 + cells-set 写值 + 改标题/说明行）→ 本地 xlsx 镜像同步（insert_rows）→ selfcheck（`--baseline` 用 `git show HEAD:<xlsx>`、`--scope "Demo台账!A1:I<末行>"`）
 - [ ] README.md 一览表加一行
 - [ ] `git add -A && git commit -m "M/D 工具名 demo" && git push origin main`（push 失败先 `git pull --rebase`）
 - [ ] 交付说明附 GitHub 链接 https://github.com/zhonghugo/Hugo-AI-Tools-Demos
@@ -56,7 +57,11 @@
 - jsDelivr 偶发 ERR_TUNNEL_CONNECTION_FAILED → 页面自带 cdnjs 兜底
 - Chrome 拦截多文件连续下载 → 用单文件下载按钮
 - 台账「状态/链接」列序易错：状态 H 列、链接 I 列，写入前核对
-- lark-cli base record-list 默认 100 条，资讯量超一页用 `--offset/--limit` 翻页
+- lark-cli base record-list 默认返回前 200 条且 has_more=True；总记录已超 319 条，最新写入的记录可能不在前 200 条中，写入后必须用 `+record-get --record-id <id>` 逐条验证
+- Product Hunt 周日榜单不更新，周末搜索注意时效性
+- **Write 覆盖前必须先 Read 既有文件**（否则报 File has not been read）；Python 覆盖写 `daily_news_*.json` 前同样先读
+- **bash cwd 每次被系统重置回主项目目录**（38441779771447554）；git/台账/作品集操作必须 cd 到 repo 根或用绝对路径
+- **当日无 ≥4 星资讯**（如 10/30）→ 仅落快照 + commit「M/D 资讯快照」+ push，台账/作品集/README 不动
 - `lark-cli` 的大 JSON 输出会落盘调试文件：**根目录 `sheets/` 等调试产物不入库**（.gitignore 已配 `/sheets/`、`_shots/`、`*.tmp` 等），发现即删
 - **GitHub 并行冲突**：定时任务同日可能多会话并行提交，push 被拒先 `git pull --rebase origin main`；rebase 冲突时快照保留 record_id 版、作品集/台账/README 取 `.html` 指向条目，`GIT_EDITOR=true git rebase --continue`
 
@@ -67,11 +72,12 @@
 - 复杂问题用 **tracer bullet**（纵向切最窄路径先打通，再扩展）
 - 求职排除：以财务专业知识为核心的岗位（财务信息化经理/财务数字化项目经理等）、纯流程管理岗、猎头代招岗、纯英文岗
 - **每日 demo 完成后自动推送 GitHub**
-- **小红书自动化搜索是硬红线**：账号已因自动化被处罚（2026-09-15 起流量受限），彻底停止 RedNote-MCP 自动化搜索；用户手动分享链接时可用 getNoteContent 单条获取
+- **小红书自动化搜索是硬红线**：账号曾因自动化被处罚（2026-09-15 至 9/22 流量受限），处罚已到期但用户选择"暂时先不用"；彻底停止 RedNote-MCP 自动化搜索，不通过浏览器登录账号浏览；用户手动分享链接时可用 getNoteContent 单条获取
 
-## 7. 交接时点状态（2026-10-15）
+## 7. 交接时点状态（2026-10-31）
 
-- 台账：31 个 demo（9/14–10/15，缺 9/22；9/16、9/17 无目录），在线表与本地 xlsx 已同步，selfcheck CHECK_OK
-- 作品集 HTML：stat=31、9/14–10/15、含 10/15 条目（指向 `*.html`）
-- GitHub：HEAD=`6cf2bc7`（10/15 RPA长任务无损记忆执行器 demo，rebase 后推送）
-- 待办：Demo 任务 10:30 每天自动执行；岗位推送 10:00 每天自动执行；无一次性任务待跑
+- 台账：46 个 demo（9/14–10/31，缺 9/22；9/16、9/17 无目录；10/30 无 demo），在线表与本地 xlsx 已同步
+- 作品集 HTML：stat=46、9/14–10/31、含 10/31 条目（门店一键操作助手）
+- 资讯表：累计约 319+ 条（9/12–10/31），已超 record-list 200 条分页限制
+- GitHub：HEAD=`fc5e549`（10/31 门店一键操作助手 demo）；历史链 10/27 `b755b93` → 10/28 `9fbb3e1` → 10/29 `0b64fdc` → 10/30 `5d1f29e`（无 demo 快照） → 10/31 `fc5e549`；工作区 clean
+- 待办：Demo 任务 10:30 每天自动执行（在「AI小工具demo」会话）；岗位推送 10:00 每天自动执行；资讯日报 8:30 每天自动执行；无一次性任务待跑

@@ -12,7 +12,8 @@
 
 - `daily_news_MMDD.json` — 每日资讯快照（8:30 定时任务落盘，如 daily_news_0929.json，缺 9/22）
 - `demos/YYYY-MM-DD_工具名/` — 每个 demo 一个目录，产物为单文件 HTML（10/14 起命名 `*.html`；早期为 `*_网页版.html`；10/15 起两文件并存时作品集/台账/README 均指向 `*.html`）
-- `demos/作品集总览/` — `AI小工具Demo作品集_总览.html`（对外展示页，DEMOS 数组按日期倒序）+ `AI小工具Demo台账.xlsx`（本地备份）
+- `demos/作品集总览/` — `AI小工具Demo作品集_总览.html`（对外展示页，DEMOS 数组按日期倒序）+ `AI小工具Demo台账.xlsx`（本地备份镜像）
+- 主项目目录 `/home/user/Doubao/chats/38441779771447554` — 会话工作区：Playwright 验证脚本（`_verify_demoMMDD.py`）与中间产物；**bash 每次调用 cwd 被系统重置回此目录**，跨目录操作请用绝对路径或单条命令内 cd
 
 ## 定时任务（Asia/Shanghai）
 
@@ -28,8 +29,8 @@
 
 - 资讯飞书多维表格：base_token=`S3WFbZfNTaMPn6sjgfkcFG3Cn8g`，table_id=`tbltCHyotV8hdemf`（表名「AI工具资讯」）
 - 岗位多维表格：base_token=`MwbkbeUnbaTmyYsNjojcJqWQnPf`，table_id=`tblYoQXSsCLYQr2W`（表名「岗位机会」）
-- Demo 台账（飞书表格）：https://fes49z7yv9.feishu.cn/sheets/YBJosw8PZhFKkutoXPxca5RTnIe （当前 31 行，9/14–10/15，缺 9/22；状态/链接在第 H/I 列）
-- lark-cli base 输出为管道表格文本，直接 grep/wc 处理；record-list 默认 100 条，翻页用 `--offset/--limit`（9/26 起资讯量超过一页）
+- Demo 台账（飞书表格）：https://fes49z7yv9.feishu.cn/sheets/YBJosw8PZhFKkutoXPxca5RTnIe （当前 46 行，9/14–10/31，缺 9/22；状态/链接在第 H/I 列）
+- lark-cli base 输出为管道表格文本，直接 grep/wc 处理；**record-list 默认返回前 200 条且 has_more=True**（总记录已超 319 条），最新写入的记录可能不在前 200 条中，需用 `+record-get --record-id <id>` 逐条确认
 
 ## Demo 生成规则（继承定时任务 query，最新为准）
 
@@ -44,7 +45,8 @@
   `executable_path="/opt/vm/preinstall/ms-playwright/chromium-1169/chrome-linux/chrome"`（默认 headless shell 不存在）
   断言：交互闭环（点击→状态变化）、CSV/下载回读、移动端 390px 视口、无 console error
 - 产物一律 `present_files` 交付；搜索/抓取返回的 URL 不作为交付物
-- 台账表更新后跑 `lark_sheet_selfcheck.py` 自检（带回执）再交付
+- **验证脚本独立维护**（主项目目录 `_verify_demoMMDD.py`）：断言文案必须对齐 UI 实际文案——10/29、10/31 两轮 FAIL 均为脚本断言语义与页面真实文案不一致（置信度显示为「AI · 98%」而非「置信度」、拦截提示为「还有 N 个空字段未填」而非「拦截」），先跑一遍读实际文案再定断言；demo 本体无 bug
+- 台账表更新后跑 `lark_sheet_selfcheck.py` 自检（带回执）再交付；`--baseline` 用 `git show HEAD:<xlsx>` 导上一轮完工版、`--scope "Demo台账!A1:I<末行>"`、回执 6 条写进交付说明
 - 每轮改了作品集/台账/demo，全部重新 present_files，不得复用旧卡片
 
 ## 已知坑（下次遇到直接照做）
@@ -57,7 +59,11 @@
 - 痛点雷达曾修「按提及排序无效」bug（下拉 value=mentions 但字段是 m，加 keyMap）
 - 台账本地 xlsx 是中间产物，在线飞书表才是交付物；生成时「状态/链接」列序易错，写入前核对 H/I 列
 - **GitHub push 冲突**：定时任务可能同日并行触发多个会话，push 被拒时先 `git pull --rebase origin main` 再重推；rebase 冲突时快照 `daily_news_*.json` 保留并行会话的 record_id 版（`checkout --ours`），作品集/台账/README 取我方 `.html` 指向条目；`rebase --continue` 用 `GIT_EDITOR=true` 跳过 message 编辑
-- lark-cli base record-list 默认 100 条，资讯量超过一页时用 `--offset/--limit` 翻页
+- lark-cli base record-list 默认返回前 200 条且 has_more=True；总记录超 200 时最新记录可能不在返回中，写入后用 `+record-get --record-id <id>` 逐条验证
+- **Write 覆盖前必须先 Read 既有文件**（否则报 File has not been read）；Python 覆盖写 `daily_news_*.json` 前同样先读
+- **当日无 ≥4 星资讯**（如 10/30）→ 按任务规则「今日无合适的小工具机会，未生成demo」，仅落快照 + git 提交「M/D 资讯快照」+ push，台账/作品集/README 不动
+- Product Hunt 周日榜单不更新，周末搜索 PH 时注意时效性
+- **小红书**：账号处罚已于 2026-09-22 到期，但用户表示"暂时先不用"，继续只搜 GitHub/HN/PH/Reddit；绝不通过浏览器登录小红书账号浏览
 
 ## 用户偏好（系统层已持久化，此处仅提醒）
 
@@ -70,4 +76,4 @@
 
 ## 小红书（硬红线）
 
-用户小红书账号因自动化搜索被平台处罚（2026-09-15 起流量受限）。**彻底停止 RedNote-MCP 小红书自动化搜索**，不尝试任何模拟浏览；用户手动分享链接时可用 getNoteContent 单条获取。
+用户小红书账号曾因自动化搜索被平台处罚（2026-09-15 至 9/22 流量受限）。处罚已到期，但用户表示"暂时先不用"。**彻底停止 RedNote-MCP 小红书自动化搜索**，不尝试任何模拟浏览；用户手动分享链接时可用 getNoteContent 单条获取。
