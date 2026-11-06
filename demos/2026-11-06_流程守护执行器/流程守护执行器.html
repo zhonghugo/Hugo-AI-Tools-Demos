@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>流程守护执行器 · 每步核对预期，不符即停</title>
+<style>
+  :root{--primary:#1a6dcc;--ok:#128a4d;--warn:#c2620a;--bad:#c2321f;--muted:#6b7280;--line:#e3e6ea;--bg:#f5f6f8}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:#1c2430;padding:18px;min-width:320px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .badge{display:inline-block;background:#e8f1fb;color:var(--primary);font-size:12px;padding:3px 10px;border-radius:20px}
+  h1{font-size:26px;margin:10px 0 6px}
+  .sub{color:var(--muted);font-size:14px;line-height:1.7}
+  .sub a{color:var(--primary)}
+  .stats{display:flex;gap:14px;margin:14px 0;flex-wrap:wrap}
+  .stats div{flex:1;min-width:120px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-align:center}
+  .stats b{font-size:22px;display:block}
+  .stats span{font-size:12px;color:var(--muted)}
+  .cols{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:start}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:15px;margin-bottom:10px;color:#1c2430}
+  .card h2 small{font-weight:normal;color:var(--muted);font-size:12px;margin-left:6px}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  select,input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
+  button{border:none;border-radius:8px;padding:9px 16px;font-size:14px;cursor:pointer;background:var(--primary);color:#fff;margin-top:12px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+  button.green{background:var(--ok)} button.red{background:var(--bad)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .chip{background:#eef2f7;border:1px solid var(--line);color:#39414d;font-size:12px;padding:5px 10px;border-radius:16px;cursor:pointer}
+  .chip:hover{border-color:var(--primary);color:var(--primary)}
+  .flowmeta{font-size:12px;color:var(--muted);background:#f7f9fb;border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin:8px 0}
+  .steps{list-style:none}
+  .steps li{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px;font-size:13px;background:#fff}
+  .steps li .st{flex-shrink:0;width:58px;text-align:center;font-size:12px;padding:2px 0;border-radius:6px;background:#eef2f7;color:#39414d}
+  .steps li.p .st{background:#e2f4ea;color:var(--ok)}
+  .steps li.f .st{background:#fde9e6;color:var(--bad)}
+  .steps li.w .st{background:#fdf1e2;color:var(--warn)}
+  .steps li.r .st{background:#e8f1fb;color:var(--primary)}
+  .steps li b{display:block;font-size:13.5px}
+  .steps li .exp{color:var(--muted);font-size:12px;margin-top:2px}
+  .steps li .act{margin-top:4px;font-size:12.5px}
+  .steps li .act.ok{color:var(--ok)} .steps li .act.bad{color:var(--bad)} .steps li .act.warn{color:var(--warn)}
+  .banner{display:none;border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.7;margin-bottom:12px}
+  .banner.show{display:block}
+  .banner.stop{background:#fdf0ee;border:1px solid #f3c1b8;color:#8f2317}
+  .banner.done{background:#e9f7ef;border:1px solid #bfe5cf;color:#0f6b3c}
+  .banner .btns{margin-top:8px}
+  .banner .btns button{margin:0 8px 0 0;margin-top:6px;padding:7px 14px;font-size:13px}
+  .diff{background:#fff8f7;border:1px solid #f3c1b8;border-radius:9px;padding:10px 12px;font-size:12.5px;margin-top:8px}
+  .diff table{width:100%;border-collapse:collapse;margin-top:4px}
+  .diff td{padding:3px 6px;border-bottom:1px dashed #f0d2ca}
+  .diff td:first-child{color:var(--muted);width:88px}
+  .evi{border:1px solid var(--line);border-radius:9px;margin-bottom:8px;font-size:12.5px;overflow:hidden}
+  .evi summary{padding:8px 12px;cursor:pointer;background:#fafbfc;display:flex;gap:8px;align-items:center}
+  .evi summary .tag{font-size:11px;padding:1px 8px;border-radius:10px;color:#fff;flex-shrink:0}
+  .evi pre{background:#0f1720;color:#cfe3f5;font-size:11.5px;padding:10px 12px;overflow-x:auto;line-height:1.6}
+  .note{font-size:12px;color:var(--muted);line-height:1.8;background:#f7f9fb;border-radius:8px;padding:10px 12px;margin-top:10px}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px 0}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}.stats div{min-width:calc(50% - 7px)}h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="badge">参考 OpenAdapt v1.20.0「演示→编译→确定性执行+效果校验」（MIT 开源 · GitHub 1.8K stars · 5星）</span>
+  <h1>🛡️ 流程守护执行器</h1>
+  <p class="sub">给 RPA 流程加一层<b>保存点校验</b>：每步执行后核对「预期 vs 实际」，<b>不符立即停止</b>，留存逐步证据、输出差异报告，由人工确认放行或中止——不做盲目的自愈重试，特别适合财务/数据录入这类<b>错一步代价很大</b>的场景。</p>
+
+  <div class="stats">
+    <div><b id="stTotal">0</b><span>步骤总数</span></div>
+    <div><b id="stPass" style="color:var(--ok)">0</b><span>校验通过</span></div>
+    <div><b id="stBlock" style="color:var(--bad)">0</b><span>校验拦截</span></div>
+    <div><b id="stWaive" style="color:var(--warn)">0</b><span>人工放行</span></div>
+  </div>
+
+  <div id="banner" class="banner"></div>
+
+  <div class="cols">
+    <div>
+      <div class="card">
+        <h2>① 流程定义 <small>业务表单</small></h2>
+        <label>选择流程</label>
+        <select id="flowSel"></select>
+        <div class="flowmeta" id="flowMeta"></div>
+        <label>金额校验容差（元）——试算平衡/总额核对类保存点用</label>
+        <input id="tolerance" type="number" step="0.01" min="0" value="0.00">
+        <label>异常注入（模拟真实世界的翻车）</label>
+        <select id="injectSel"><option value="">无异常 · 正常执行</option></select>
+        <button id="btnRun">▶ 开始守护执行</button>
+        <button id="btnReset" class="ghost">重置</button>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="card">
+        <h2>③ 审计报告 <small>证据留档可回放</small></h2>
+        <button id="btnExport" class="green" disabled>⬇ 导出审计报告（JSON）</button>
+        <div class="note">审计报告包含：流程信息、逐步保存点校验记录（预期/实际/结论/时间戳）、差异明细与人工放行记录——出错时拿它对账，不再靠回忆。</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>② 执行与保存点校验 <small>每步核对，不符即停</small></h2>
+        <ol class="steps" id="stepList"><li class="empty">选择流程后点击「开始守护执行」</li></ol>
+      </div>
+      <div class="card">
+        <h2>④ 证据留存 <small>点击展开完整记录</small></h2>
+        <div id="eviList"><div class="empty">暂无证据记录</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card note" style="margin-top:0">
+    <b>为什么要「不符即停」而不是「自愈重试」？</b><br>
+    OpenAdapt 的思路是保守稳健：每个保存点核对实际结果（元素存在 / 数值在容差内 / 文件生成），不符立即暂停——错误不会扩散到下游；配合逐步证据留存与差异报告，人工一眼判断该放行还是该中止。适合 ERP/政务门户这类没有 API、只能 UI 自动化、且错一步就很麻烦的企业内部系统。
+  </div>
+</div>
+
+<script>
+const FLOWS = [
+  {
+    id:"f1", name:"财务月结流程（金蝶 EAS · 总账）", sys:"金蝶 EAS · 总账模块 · 2026-10 期",
+    steps:[
+      {name:"登录 ERP 系统", act:"账号+密码登录，进入工作台", exp:"页面出现「工作台」入口", ok:"工作台加载成功（1.2s）"},
+      {name:"打开月结任务", act:"进入 总账 → 期末处理 → 月结", exp:"任务状态 = 待月结", ok:"状态 = 待月结 ✓"},
+      {name:"抓取科目余额表", act:"读入当期科目余额表", exp:"行数 > 0", ok:"1,284 行 · 用时 2.8s"},
+      {name:"核对试算平衡", act:"计算 借方合计 − 贷方合计", exp:"借贷差 ≤ 容差（见左侧表单）", tol:true},
+      {name:"生成本地报表", act:"汇总生成 月结报表_2026-10.xlsx", exp:"文件生成且 ≥ 10KB", ok:"86.4KB ✓"},
+      {name:"上传归档", act:"上传至共享盘 /财务/2026-10/月结", exp:"返回码 = 200", ok:"200 OK ✓"}
+    ],
+    injects:[
+      {label:"步骤④ 数值越界（借贷差 3,280.50 元）", step:3, val:3280.50, txt:"借贷差 3,280.50 元"},
+      {label:"步骤④ 小额差异（12.50 元，容差内可通过）", step:3, val:12.50, txt:"借贷差 12.50 元"},
+      {label:"步骤⑤ 文件未生成（磁盘空间不足）", step:4, txt:"未生成（磁盘空间不足）"}
+    ]
+  },
+  {
+    id:"f2", name:"供应商对账流程（供应商门户）", sys:"供应商门户 · 采购对账 · 11 月上旬",
+    steps:[
+      {name:"登录供应商门户", act:"凭据登录门户", exp:"页面出现「对账中心」入口", ok:"对账中心加载成功（0.9s）"},
+      {name:"拉取对账单", act:"下载本期供应商对账单", exp:"对账单状态 = 已出账", ok:"状态 = 已出账 ✓"},
+      {name:"逐笔核对明细", act:"对账单 × 采购订单逐笔比对", exp:"差异笔数 = 0", cnt:true},
+      {name:"核对应付总额", act:"汇总比对应付金额", exp:"总额差 ≤ 容差（见左侧表单）", tol:true},
+      {name:"生成差异报告", act:"输出 对账差异报告_1106.xlsx", exp:"文件生成且 ≥ 10KB", ok:"23.7KB ✓"}
+    ],
+    injects:[
+      {label:"步骤③ 明细不符（3 笔数量差异）", step:2, txt:"差异 3 笔：SKU-1042 少发 2 件 / SKU-2210 多发 1 件 / SKU-3305 单价不符"},
+      {label:"步骤④ 小额差异（8.20 元，容差内可通过）", step:3, val:8.20, txt:"总额差 8.20 元"},
+      {label:"步骤② 接口超时（对账单拉取 504）", step:1, txt:"504 Gateway Timeout"}
+    ]
+  },
+  {
+    id:"f3", name:"发票批量录入流程（税务系统）", sys:"税务综合平台 · 进项发票 · 10 月批次",
+    steps:[
+      {name:"打开批量录入界面", act:"进入 进项管理 → 批量录入", exp:"录入表格控件加载", ok:"控件加载成功（0.7s）"},
+      {name:"OCR 批量识别", act:"识别本批扫描件", exp:"识别张数 > 0", ok:"32 张 · 平均 1.4s/张"},
+      {name:"校验税号合规", act:"逐张校验纳税人识别号", exp:"违规张数 = 0", bad:true},
+      {name:"生成导入模板", act:"输出 发票导入_1106.xlsx", exp:"文件生成且 ≥ 10KB", ok:"41.2KB ✓"},
+      {name:"提交导入", act:"提交至税务平台", exp:"返回码 = 200", ok:"200 OK ✓"}
+    ],
+    injects:[
+      {label:"步骤③ 税号异常（2 张识别乱码）", step:2, txt:"违规 2 张：#17 / #23 税号含乱码字符"},
+      {label:"步骤② 识别张数为 0（扫描件缺页）", step:1, txt:"0 张（扫描件缺页）"},
+      {label:"步骤④ 文件未生成（模板引擎异常）", step:3, txt:"未生成（模板引擎异常）"}
+    ]
+  }
+];
+
+let cur = FLOWS[0], inj = null, running = false, finished = false;
+let evidences = [], st = {total:0, pass:0, block:0, waive:0};
+
+const $ = id => document.getElementById(id);
+const tol = () => parseFloat($("tolerance").value) || 0;
+
+function initSel(){
+  $("flowSel").innerHTML = FLOWS.map(f=>`<option value="${f.id}">${f.name}</option>`).join("");
+  renderFlow();
+}
+function renderFlow(){
+  cur = FLOWS.find(f=>f.id===$("flowSel").value);
+  $("flowMeta").innerHTML = `<b>${cur.name}</b><br>系统：${cur.sys} · 共 ${cur.steps.length} 步 · 每步设保存点校验`;
+  $("injectSel").innerHTML = `<option value="">无异常 · 正常执行</option>` +
+    cur.injects.map((x,i)=>`<option value="${i}">${x.label}</option>`).join("");
+  $("chips").innerHTML = FLOWS.map(f=>`<span class="chip" data-f="${f.id}">${f.name.split("（")[0]}</span>`).join("");
+}
+function reset(){
+  running=false; finished=false; inj=null; evidences=[]; st={total:0,pass:0,block:0,waive:0};
+  $("banner").className="banner"; $("banner").innerHTML="";
+  renderSteps([]); renderEvi(); renderStats();
+  $("btnExport").disabled = true;
+  $("btnRun").disabled = false; $("injectSel").disabled=false; $("flowSel").disabled=false; $("tolerance").disabled=false;
+}
+function renderSteps(list){
+  if(!list.length){ $("stepList").innerHTML = `<li class="empty">选择流程后点击「开始守护执行」</li>`; return; }
+  $("stepList").innerHTML = cur.steps.map((s,i)=>{
+    const r = list[i] || {};
+    const cls = r.v==="pass"?"p":r.v==="fail"?"f":r.v==="waive"?"w":r.v==="run"?"r":"";
+    const stTxt = r.v==="pass"?"✅ 通过":r.v==="fail"?"⛔ 拦截":r.v==="waive"?"✋ 放行":r.v==="run"?"▶ 运行中":r.v==="skip"?"— 未执行":"待执行";
+    const act = r.detail ? `<div class="act ${r.v==="fail"?"bad":r.v==="pass"?"ok":r.v==="waive"?"warn":""}">${r.detail}</div>` : "";
+    return `<li class="${cls}"><span class="st">${stTxt}</span><div style="min-width:0"><b>第${i+1}步 ${s.name}</b><div class="exp">动作：${s.act}｜预期：${s.exp}</div>${act}</div></li>`;
+  }).join("");
+}
+function renderEvi(){
+  if(!evidences.length){ $("eviList").innerHTML = `<div class="empty">暂无证据记录</div>`; return; }
+  $("eviList").innerHTML = evidences.map((e,i)=>{
+    const c = e.v==="pass"?"var(--ok)":e.v==="fail"?"var(--bad)":"var(--warn)";
+    const t = e.v==="pass"?"通过":e.v==="fail"?"拦截":"放行";
+    return `<details class="evi"><summary><span class="tag" style="background:${c}">${t}</span><span>第${e.n}步 ${e.name} · 保存点校验 · ${e.ts}</span></summary><pre>${JSON.stringify(e,null,2)}</pre></details>`;
+  }).join("");
+}
+function renderStats(){
+  $("stTotal").textContent = st.total; $("stPass").textContent = st.pass;
+  $("stBlock").textContent = st.block; $("stWaive").textContent = st.waive;
+}
+const now = () => new Date().toTimeString().slice(0,8);
+const wait = ms => new Promise(r=>setTimeout(r,ms));
+
+async function run(fromIdx, waivedBefore){
+  const list = cur.steps.map(()=>({}));
+  for(let i=0;i<waivedBefore.length;i++) if(waivedBefore[i]) list[i]={v:"waive",detail:"人工核对后放行（放行前已留存差异证据）"};
+  renderSteps(list); renderStats();
+  $("btnRun").disabled = true; $("injectSel").disabled=true; $("flowSel").disabled=true; $("tolerance").disabled=true;
+  running = true;
+  let failedAt = -1;
+  for(let i=fromIdx;i<cur.steps.length;i++){
+    const s = cur.steps[i];
+    list[i] = {v:"run"}; renderSteps(list);
+    await wait(620);
+    st.total = cur.steps.length;
+    // 保存点校验：预期 vs 实际
+    let verdict="pass", detail=s.ok||"实际值符合预期", evi={n:i+1,name:s.name,action:s.act,expect:s.exp};
+    if(inj && inj.step===i){
+      if(inj.val!==undefined && s.tol){
+        if(inj.val <= tol()){ detail = `实际：${inj.txt} ≤ 容差 ${tol().toFixed(2)} 元 → 校验通过`; }
+        else { verdict="fail"; detail = `实际：${inj.txt} ＞ 容差 ${tol().toFixed(2)} 元 → 超出容差`; }
+        evi.actual = inj.txt; evi.tolerance = tol();
+      } else {
+        verdict="fail"; detail = `实际：${inj.txt}`; evi.actual = inj.txt;
+      }
+    } else if(s.tol){ detail = `实际：借贷差 0.00 元 ≤ 容差 ${tol().toFixed(2)} 元 → 校验通过`; evi.actual="0.00 元"; evi.tolerance=tol(); }
+    else if(s.cnt){ detail="实际：差异 0 笔 → 校验通过"; evi.actual="0 笔差异"; }
+    else if(s.bad){ detail="实际：违规 0 张 → 校验通过"; evi.actual="违规 0 张"; }
+    else if(s.ok){ evi.actual = s.ok; }
+    evi.v = verdict; evi.verdict = verdict==="pass"?"校验通过":"校验拦截"; evi.ts = now();
+    list[i] = {v:verdict, detail};
+    evidences.push(evi);
+    if(verdict==="fail"){
+      st.block++; renderEvi(); renderStats(); renderSteps(list);
+      failedAt = i;
+      $("btnExport").disabled = false;
+      showDiff(i, evi);
+      running=false; finished=true;
+      return;
+    }
+    st.pass++; renderEvi(); renderStats(); renderSteps(list);
+  }
+  finished = true; running = false;
+  const b = $("banner");
+  b.className="banner done show";
+  b.innerHTML = `🎉 流程全程通过保存点校验：${st.pass}/${st.total} 步校验通过${st.waive?`，${st.waive} 步人工放行（差异已留证）`:"，无人工干预"}。证据已留存，可导出审计报告。`;
+  $("btnExport").disabled = false;
+}
+function showDiff(i, evi){
+  const s = cur.steps[i];
+  const b = $("banner");
+  b.className="banner stop show";
+  b.innerHTML = `⛔ 第 ${i+1} 步保存点校验<b>拦截</b>：${s.name}——已按「不符即停」规则暂停，后续 ${cur.steps.length-i-1} 步未执行，错误未扩散到下游。
+    <div class="diff"><b>差异报告（预期 vs 实际）</b>
+      <table>
+        <tr><td>步骤</td><td>第${i+1}步 ${s.name}</td></tr>
+        <tr><td>预期</td><td>${s.exp}</td></tr>
+        <tr><td>实际</td><td>${evi.actual}</td></tr>
+        <tr><td>证据</td><td>第${i+1}步校验记录已留存（时间戳 ${evi.ts}），可在④区展开查看</td></tr>
+      </table>
+    </div>
+    <div class="btns">
+      <button class="warn" id="btnWaive" style="background:var(--warn)">✋ 人工核对后放行，继续执行</button>
+      <button class="red" id="btnAbort">⛔ 中止流程</button>
+      <span style="font-size:12px;color:var(--muted)">放行将计入审计记录（谁放行的、为什么差异可接受），中止则保留现场待排查。</span>
+    </div>`;
+  $("btnWaive").onclick = () => {
+    st.waive++;
+    const waived = cur.steps.map((_,idx)=>evidences.some(e=>e.n===idx+1&&e.v==="fail"));
+    // 放行的步骤：其失败证据改为放行口径
+    evidences.forEach(e=>{ if(e.v==="fail") e.verdict="人工放行（差异留证）"; e.v = e.v==="fail"?"waive":e.v; });
+    b.className="banner"; b.innerHTML="";
+    renderEvi();
+    run(i+1, waived).then(()=>{
+      if(finished && st.block===0 && st.waive>0){
+        $("banner").className="banner done show";
+        $("banner").innerHTML = `🎉 流程继续执行完毕：${st.pass} 步校验通过、${st.waive} 步人工放行（差异证据已留存）。可导出含放行记录的审计报告。`;
+        $("btnExport").disabled=false;
+      }
+    });
+    $("btnRun").disabled = true;
+  };
+  $("btnAbort").onclick = () => {
+    b.className="banner stop show";
+    b.innerHTML = `流程已中止于第 ${i+1} 步（共 ${st.pass} 步通过、1 步拦截）。现场与证据已保留，请排查后重置重新执行。`;
+    $("btnExport").disabled = false;
+    finished = true;
+  };
+}
+
+$("flowSel").onchange = () => { renderFlow(); reset(); };
+$("injectSel").onchange = () => { inj = $("injectSel").value===""?null:cur.injects[+$("injectSel").value]; };
+$("chips").onclick = e => {
+  const f = e.target.dataset.f; if(!f) return;
+  $("flowSel").value = f; renderFlow(); reset();
+};
+$("btnRun").onclick = () => { inj = $("injectSel").value===""?null:cur.injects[+$("injectSel").value]; run(0, cur.steps.map(()=>false)); };
+$("btnReset").onclick = () => { reset(); renderFlow(); };
+$("btnExport").onclick = () => {
+  const report = {
+    tool:"流程守护执行器", ref:"OpenAdapt v1.20.0 effect verification",
+    exported_at:new Date().toISOString(),
+    flow:{name:cur.name, sys:cur.sys, total_steps:cur.steps.length},
+    policy:{checkpoint:"每步执行后核对预期，不符立即停止", tolerance:tol()},
+    summary:{steps:st.total, pass:st.pass, blocked:st.block, waived:st.waive},
+    evidences:evidences
+  };
+  const blob = new Blob([JSON.stringify(report,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "审计报告_流程守护执行器.json";
+  a.click(); URL.revokeObjectURL(a.href);
+};
+initSel(); reset();
+</script>
+</body>
+</html>
