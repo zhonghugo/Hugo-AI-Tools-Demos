@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月度流水一键体检器</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#faf7f2; color:#2d2a24; min-height:100vh; padding:24px 16px 48px;
+  }
+  .wrap { max-width:960px; margin:0 auto; }
+  header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  h1 { font-size:26px; letter-spacing:1px; }
+  .badge {
+    font-size:12px; padding:4px 10px; border-radius:999px; font-weight:600;
+    background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7;
+  }
+  .sub { color:#8a8378; font-size:13px; margin-bottom:22px; }
+  .card {
+    background:#fff; border:1px solid #eae4da; border-radius:14px;
+    padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(80,70,50,.05);
+  }
+  .card h2 { font-size:15px; margin-bottom:12px; color:#4a443a; display:flex; align-items:center; gap:8px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  .field { display:flex; flex-direction:column; gap:5px; }
+  .field label { font-size:12px; color:#8a8378; font-weight:600; }
+  .field input[type=number], .field input[type=text] {
+    padding:8px 10px; border:1px solid #d8d1c5; border-radius:8px; font-size:14px;
+    width:130px; background:#fffdf9; color:#2d2a24;
+  }
+  input[type=file] { font-size:13px; color:#6b6458; max-width:300px; }
+  .btn {
+    padding:9px 18px; border:none; border-radius:9px; font-size:14px; font-weight:600;
+    cursor:pointer; transition:opacity .15s;
+  }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .btn-primary { background:#c05621; color:#fff; }
+  .btn-ghost { background:#f3ede3; color:#6b5d49; border:1px solid #e0d7c8; }
+  .btn-csv { background:#2f855a; color:#fff; }
+  .hint { font-size:12px; color:#a39a8b; margin-top:8px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:#8a8378; font-weight:600; padding:7px 8px; border-bottom:2px solid #efe9de; font-size:12px; }
+  td { padding:7px 8px; border-bottom:1px solid #f3efe7; }
+  .scroll { max-height:320px; overflow:auto; }
+  .chip { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:600; }
+  .c-food { background:#fff1e0; color:#b45309; }
+  .c-transport { background:#e0edff; color:#1d4ed8; }
+  .c-sub { background:#f0e6ff; color:#7c3aed; }
+  .c-shop { background:#ffe4e6; color:#be123c; }
+  .c-transfer { background:#eee9df; color:#7a7264; }
+  .c-income { background:#dcfce7; color:#15803d; }
+  .c-other { background:#eceae6; color:#57534e; }
+  .amt-in { color:#15803d; font-weight:600; }
+  .amt-out { color:#b91c1c; font-weight:600; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .stat { background:#fffdf9; border:1px solid #eae4da; border-radius:12px; padding:14px 16px; }
+  .stat .k { font-size:12px; color:#8a8378; margin-bottom:6px; }
+  .stat .v { font-size:20px; font-weight:700; }
+  .v.warn { color:#b45309; }
+  .bar-track { background:#f3efe7; border-radius:6px; height:18px; flex:1; min-width:0; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:6px; }
+  .bar-line { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:13px; }
+  .bar-line .name { width:56px; text-align:right; color:#57534e; flex-shrink:0; }
+  .bar-line .val { width:88px; font-weight:600; color:#4a443a; flex-shrink:0; }
+  .finding { display:flex; gap:12px; padding:12px 14px; border-radius:10px; margin-bottom:10px; align-items:flex-start; }
+  .f-red { background:#fef2f2; border:1px solid #fecaca; }
+  .f-orange { background:#fff7ed; border:1px solid #fed7aa; }
+  .f-blue { background:#eff6ff; border:1px solid #bfdbfe; }
+  .f-icon { font-size:20px; line-height:1.2; }
+  .f-body .t { font-weight:700; font-size:14px; margin-bottom:3px; }
+  .f-body .d { font-size:13px; color:#57534e; line-height:1.55; }
+  .f-body .adv { font-size:12px; color:#8a8378; margin-top:4px; }
+  .empty { text-align:center; color:#a39a8b; font-size:13px; padding:22px 0; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  footer { text-align:center; color:#a39a8b; font-size:12px; margin-top:26px; line-height:1.7; }
+  @media (max-width:600px) {
+    .stats { grid-template-columns:repeat(2,1fr); }
+    h1 { font-size:21px; }
+    .field input[type=number] { width:110px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💳 月度流水一键体检器</h1>
+    <span class="badge">🔒 只读 · 纯本地运行</span>
+  </header>
+  <div class="sub">导入银行/信用卡流水 CSV → 自动分类 → 识别重复扣款、涨价订阅、大额支出 → 输出体检报告。数据不出浏览器，对齐「只读不动账」的安全原则。</div>
+
+  <div class="card">
+    <h2>📥 导入流水</h2>
+    <div class="row">
+      <div class="field">
+        <label>流水 CSV（列：日期,商户,金额,类型）</label>
+        <input type="file" id="fileInput" accept=".csv,.txt">
+      </div>
+      <button class="btn btn-ghost" id="btnSample">载入示例流水</button>
+      <button class="btn btn-primary" id="btnRun" disabled>开始体检</button>
+    </div>
+    <div class="hint">没有现成流水？点「载入示例流水」即可体验完整体检闭环（9–10 月共 25 笔，含 1 组重复扣款与 1 个涨价订阅）。</div>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ 体检参数</h2>
+    <div class="row">
+      <div class="field"><label>重复扣款判定间隔（天）</label><input type="number" id="dupDays" value="3" min="1" max="30"></div>
+      <div class="field"><label>订阅涨幅预警（%）</label><input type="number" id="subPct" value="10" min="1" max="200"></div>
+      <div class="field"><label>大额支出阈值（¥）</label><input type="number" id="bigAmt" value="1000" min="100" step="100"></div>
+    </div>
+  </div>
+
+  <div class="card" id="statCard" style="display:none">
+    <h2>📊 收支总览（<span id="monthLabel"></span>）</h2>
+    <div class="stats">
+      <div class="stat"><div class="k">月支出</div><div class="v amt-out" id="stOut">-</div></div>
+      <div class="stat"><div class="k">月收入</div><div class="v amt-in" id="stIn">-</div></div>
+      <div class="stat"><div class="k">体检笔数</div><div class="v" id="stCnt">-</div></div>
+      <div class="stat"><div class="k">可疑项</div><div class="v warn" id="stRisk">-</div></div>
+    </div>
+  </div>
+
+  <div class="card" id="catCard" style="display:none">
+    <h2>🧾 支出分类占比（<span id="catMonthLabel"></span>）</h2>
+    <div id="catBars"></div>
+  </div>
+
+  <div class="card" id="findCard" style="display:none">
+    <h2>🩺 体检发现</h2>
+    <div id="findings"></div>
+  </div>
+
+  <div class="card" id="txCard" style="display:none">
+    <h2>📄 流水明细（已自动分类）</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>日期</th><th>商户</th><th>分类</th><th style="text-align:right">金额</th></tr></thead>
+        <tbody id="txBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="reportCard" style="display:none">
+    <h2>📤 导出</h2>
+    <div class="actions">
+      <button class="btn btn-csv" id="btnCsv">下载体检报告 (CSV)</button>
+      <span class="hint">CSV 带 BOM，Excel 双击直接打开不乱码。</span>
+    </div>
+  </div>
+
+  <footer>月度流水一键体检器 · 灵感来自 Claude Personal Finance「只读 + 异常检测」产品设计<br>纯前端本地运行，不上传任何数据 · 2026-11-07</footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- 分类规则（关键词 → 分类） ---------- */
+const RULES = [
+  ["c-food",     "餐饮", ["外卖","美团","饿了么","肯德基","麦当劳","餐饮"," Starbucks","星巴克"]],
+  ["c-transport","交通", ["地铁","滴滴","公交","加油","打车","出行","高铁","机票"]],
+  ["c-sub",      "订阅", ["爱奇艺","腾讯视频","iCloud","Netflix","会员","订阅","云存储","网盘","APP"]],
+  ["c-shop",     "购物", ["京东","淘宝","天猫","盒马","拼多多","苹果","超市","商城","商店"]],
+  ["c-transfer", "转账", ["还款","转账","余额宝","理财","提现"]],
+  ["c-income",   "收入", ["工资","入账","奖金","利息","退款","报销"]]
+];
+function classify(merchant) {
+  for (const [cls, name, kws] of RULES) {
+    for (const kw of kws) if (merchant.includes(kw.trim())) return { cls, name };
+  }
+  return { cls: "c-other", name: "其他" };
+}
+
+/* ---------- 示例流水（固化进 JS，25 笔） ---------- */
+const SAMPLE = [
+  ["2026-09-05","工资入账",12000,"收入"],
+  ["2026-09-06","美团外卖",32.5,"支出"],
+  ["2026-09-08","爱奇艺会员",25,"支出"],
+  ["2026-09-10","地铁出行",6,"支出"],
+  ["2026-09-12","盒马鲜生",156.8,"支出"],
+  ["2026-09-15","腾讯视频VIP",25,"支出"],
+  ["2026-09-18","美团外卖",28.9,"支出"],
+  ["2026-09-20","iCloud存储",21,"支出"],
+  ["2026-09-25","滴滴出行",23.4,"支出"],
+  ["2026-09-28","京东商城",199,"支出"],
+  ["2026-10-05","工资入账",12000,"收入"],
+  ["2026-10-06","美团外卖",35.2,"支出"],
+  ["2026-10-07","招商银行信用卡还款",2000,"支出"],
+  ["2026-10-08","京东商城",199,"支出"],
+  ["2026-10-09","京东商城",199,"支出"],
+  ["2026-10-10","爱奇艺会员",30,"支出"],
+  ["2026-10-11","地铁出行",6,"支出"],
+  ["2026-10-13","盒马鲜生",142.3,"支出"],
+  ["2026-10-15","腾讯视频VIP",25,"支出"],
+  ["2026-10-16","美团外卖",41.7,"支出"],
+  ["2026-10-18","iCloud存储",21,"支出"],
+  ["2026-10-20","美团外卖",35,"支出"],
+  ["2026-10-22","苹果专卖店",4999,"支出"],
+  ["2026-10-24","美团外卖",35,"支出"],
+  ["2026-10-25","滴滴出行",45.6,"支出"]
+];
+
+/* ---------- 状态 ---------- */
+let TXS = [];   // {date, merchant, amount, type, cat:{cls,name}}
+window.__state = {};
+
+/* ---------- 工具 ---------- */
+const fmt = n => "¥" + n.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const monthOf = d => d.slice(0, 7);
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const out = [];
+  for (const line of lines) {
+    if (/日期|商户/.test(line) && out.length === 0) continue; // 跳过表头
+    const p = line.split(",").map(s => s.trim());
+    if (p.length < 3) continue;
+    const amt = parseFloat(p[2]);
+    if (isNaN(amt)) continue;
+    const type = p[3] === "收入" ? "收入" : "支出";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(p[0])) continue;
+    out.push({ date: p[0], merchant: p[1], amount: Math.abs(amt), type });
+  }
+  return out;
+}
+
+/* ---------- 渲染 ---------- */
+function renderTable() {
+  const body = document.getElementById("txBody");
+  body.innerHTML = TXS.map(t => {
+    const sign = t.type === "收入" ? "+" : "-";
+    return `<tr><td>${esc(t.date)}</td><td>${esc(t.merchant)}</td>
+      <td><span class="chip ${t.cat.cls}">${esc(t.cat.name)}</span></td>
+      <td style="text-align:right" class="${t.type === "收入" ? "amt-in" : "amt-out"}">${sign}${fmt(t.amount)}</td></tr>`;
+  }).join("");
+}
+
+function runCheck() {
+  const dupDays = Math.max(1, parseInt(document.getElementById("dupDays").value) || 3);
+  const subPct = Math.max(1, parseInt(document.getElementById("subPct").value) || 10);
+  const bigAmt = Math.max(100, parseFloat(document.getElementById("bigAmt").value) || 1000);
+
+  // 月度统计
+  const months = [...new Set(TXS.map(t => monthOf(t.date)))].sort();
+  const lastM = months[months.length - 1];
+  const prevM = months.length > 1 ? months[months.length - 2] : null;
+  const inM = TXS.filter(t => monthOf(t.date) === lastM);
+  const outSum = inM.filter(t => t.type === "支出").reduce((s, t) => s + t.amount, 0);
+  const inSum = inM.filter(t => t.type === "收入").reduce((s, t) => s + t.amount, 0);
+
+  // 分类占比（最新月支出）
+  const byCat = {};
+  inM.filter(t => t.type === "支出").forEach(t => { byCat[t.cat.name] = (byCat[t.cat.name] || 0) + t.amount; });
+  const catRows = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+
+  // 发现 1：重复扣款（同商户同金额，间隔 ≤ dupDays）
+  const findings = [];
+  const groups = {};
+  TXS.filter(t => t.type === "支出").forEach(t => {
+    const key = t.merchant + "|" + t.amount.toFixed(2);
+    (groups[key] = groups[key] || []).push(t);
+  });
+  for (const key of Object.keys(groups)) {
+    const g = groups[key].sort((a, b) => a.date < b.date ? -1 : 1);
+    for (let i = 1; i < g.length; i++) {
+      const gap = Math.round((new Date(g[i].date) - new Date(g[i - 1].date)) / 86400000);
+      if (gap >= 1 && gap <= dupDays) {
+        findings.push({
+          level: "red", icon: "🔴", title: `疑似重复扣款：${g[i].merchant}`,
+          detail: `${g[i - 1].date} 与 ${g[i].date}（间隔 ${gap} 天）各被扣 ${fmt(g[i].amount)}，商户与金额完全相同。`,
+          adv: `建议核对账单确认是否被重复扣款，保留凭证联系商户或银行追回。`,
+          csv: ["重复扣款", "高", g[i].merchant, `${g[i - 1].date} 与 ${g[i].date} 各扣 ${g[i].amount}（间隔${gap}天）`, "核对账单并联系商户/银行"]
+        });
+        break;
+      }
+    }
+  }
+
+  // 发现 2：订阅涨价（相邻月份同商户涨幅 ≥ subPct）
+  if (prevM) {
+    const subMerchants = new Set(TXS.filter(t => t.cat.name === "订阅").map(t => t.merchant));
+    for (const m of subMerchants) {
+      const last = TXS.filter(t => t.merchant === m && t.type === "支出" && monthOf(t.date) === lastM).pop();
+      const prev = TXS.filter(t => t.merchant === m && t.type === "支出" && monthOf(t.date) === prevM).pop();
+      if (last && prev && prev.amount > 0) {
+        const pct = Math.round((last.amount - prev.amount) / prev.amount * 100);
+        if (pct >= subPct) {
+          findings.push({
+            level: "orange", icon: "🟠", title: `订阅涨价：${m} +${pct}%`,
+            detail: `${prevM} 为 ${fmt(prev.amount)}，${lastM} 涨至 ${fmt(last.amount)}，涨幅 ${pct}%，超过你设置的 ${subPct}% 预警线。`,
+            adv: `逐月上涨的订阅费最容易被忽略，建议评估是否继续续费或换更低价套餐。`,
+            csv: ["订阅涨价", "中", m, `${prevM} ${prev.amount} → ${lastM} ${last.amount}（+${pct}%）`, "评估是否续费"]
+          });
+        }
+      }
+    }
+  }
+
+  // 发现 3：大额支出（≥ bigAmt，转账/还款除外）
+  TXS.filter(t => t.type === "支出" && t.amount >= bigAmt && t.cat.name !== "转账")
+    .sort((a, b) => b.amount - a.amount)
+    .forEach(t => {
+      findings.push({
+        level: "blue", icon: "🔵", title: `大额支出：${t.merchant} ${fmt(t.amount)}`,
+        detail: `${t.date} 单笔支出 ${fmt(t.amount)}（${t.cat.name}），达到你设置的 ¥${bigAmt} 大额提醒线。`,
+        adv: `大额消费建议留痕：确认订单、发票与售后渠道齐全。`,
+        csv: ["大额支出", "提示", t.merchant, `${t.date} 支出 ${t.amount}`, "确认订单与发票"]
+      });
+    });
+
+  const order = { red: 0, orange: 1, blue: 2 };
+  findings.sort((a, b) => order[a.level] - order[b.level]);
+
+  // 渲染
+  document.getElementById("monthLabel").textContent = lastM.replace("-", " 年 ") + " 月";
+  document.getElementById("catMonthLabel").textContent = lastM.replace("-", " 年 ") + " 月";
+  document.getElementById("stOut").textContent = fmt(outSum);
+  document.getElementById("stIn").textContent = fmt(inSum);
+  document.getElementById("stCnt").textContent = TXS.length + " 笔";
+  document.getElementById("stRisk").textContent = findings.length + " 项";
+  document.getElementById("statCard").style.display = "";
+  document.getElementById("catCard").style.display = "";
+  document.getElementById("findCard").style.display = "";
+  document.getElementById("txCard").style.display = "";
+  document.getElementById("reportCard").style.display = "";
+
+  const catColors = { "餐饮": "#f59e0b", "交通": "#3b82f6", "订阅": "#8b5cf6", "购物": "#f43f5e", "转账": "#a8a29e", "其他": "#78716c", "收入": "#22c55e" };
+  document.getElementById("catBars").innerHTML = catRows.map(([name, val]) => {
+    const pct = outSum > 0 ? (val / outSum * 100) : 0;
+    return `<div class="bar-line"><span class="name">${esc(name)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${catColors[name] || "#78716c"}"></div></div>
+      <span class="val">${fmt(val)} · ${pct.toFixed(0)}%</span></div>`;
+  }).join("");
+
+  document.getElementById("findings").innerHTML = findings.length
+    ? findings.map(f => `<div class="finding f-${f.level}"><div class="f-icon">${f.icon}</div>
+        <div class="f-body"><div class="t">${esc(f.title)}</div><div class="d">${esc(f.detail)}</div>
+        <div class="adv">💡 ${esc(f.adv)}</div></div></div>`).join("")
+    : `<div class="empty">✅ 未发现可疑项，本月光明正大。</div>`;
+
+  window.__state = {
+    months, lastMonth: lastM, prevMonth: prevM,
+    txCount: TXS.length, outSum: +outSum.toFixed(2), inSum: +inSum.toFixed(2),
+    findings: findings.map(f => ({ level: f.level, title: f.title })),
+    byCat: Object.fromEntries(catRows.map(([k, v]) => [k, +v.toFixed(2)]))
+  };
+}
+
+/* ---------- 报告导出 ---------- */
+function downloadCsv() {
+  const s = window.__state;
+  const rows = [["类型", "级别", "事项", "明细", "建议"]];
+  rows.push(["月度总览", "-", `最新月 ${s.lastMonth}`, `支出 ${s.outSum} / 收入 ${s.inSum} / 共 ${s.txCount} 笔`, ""]);
+  (window.__state._csv || []).forEach(r => rows.push(r));
+  const csv = "\uFEFF" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "流水体检报告.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+const _origRunCheck = runCheck;
+runCheck = function () {
+  _origRunCheck();
+  // 重新收集 CSV 行（含发现明细）
+  window.__state._csv = [];
+  const dupDays = Math.max(1, parseInt(document.getElementById("dupDays").value) || 3);
+  const groups = {};
+  TXS.filter(t => t.type === "支出").forEach(t => {
+    const key = t.merchant + "|" + t.amount.toFixed(2);
+    (groups[key] = groups[key] || []).push(t);
+  });
+  for (const key of Object.keys(groups)) {
+    const g = groups[key].sort((a, b) => a.date < b.date ? -1 : 1);
+    for (let i = 1; i < g.length; i++) {
+      const gap = Math.round((new Date(g[i].date) - new Date(g[i - 1].date)) / 86400000);
+      if (gap >= 1 && gap <= dupDays) {
+        window.__state._csv.push(["重复扣款", "高", g[i].merchant, `${g[i - 1].date} 与 ${g[i].date} 各扣 ${g[i].amount}（间隔${gap}天）`, "核对账单并联系商户/银行"]);
+        break;
+      }
+    }
+  }
+  if (window.__state.prevMonth) {
+    const subMerchants = new Set(TXS.filter(t => t.cat.name === "订阅").map(t => t.merchant));
+    for (const m of subMerchants) {
+      const last = TXS.filter(t => t.merchant === m && t.type === "支出" && monthOf(t.date) === window.__state.lastMonth).pop();
+      const prev = TXS.filter(t => t.merchant === m && t.type === "支出" && monthOf(t.date) === window.__state.prevMonth).pop();
+      if (last && prev && prev.amount > 0) {
+        const pct = Math.round((last.amount - prev.amount) / prev.amount * 100);
+        if (pct >= (parseInt(document.getElementById("subPct").value) || 10))
+          window.__state._csv.push(["订阅涨价", "中", m, `${window.__state.prevMonth} ${prev.amount} → ${window.__state.lastMonth} ${last.amount}（+${pct}%）`, "评估是否续费"]);
+      }
+    }
+  }
+  TXS.filter(t => t.type === "支出" && t.amount >= (parseFloat(document.getElementById("bigAmt").value) || 1000) && t.cat.name !== "转账")
+    .forEach(t => window.__state._csv.push(["大额支出", "提示", t.merchant, `${t.date} 支出 ${t.amount}`, "确认订单与发票"]));
+};
+
+/* ---------- 事件绑定 ---------- */
+document.getElementById("btnSample").addEventListener("click", () => {
+  TXS = SAMPLE.map(([date, merchant, amount, type]) => ({ date, merchant, amount, type, cat: classify(merchant) }));
+  document.getElementById("btnRun").disabled = false;
+  renderTable();
+  document.getElementById("txCard").style.display = "";
+  runCheck();
+});
+document.getElementById("fileInput").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const rows = parseCsv(reader.result);
+    if (!rows.length) { alert("未解析到有效流水，请确认 CSV 列为：日期,商户,金额,类型"); return; }
+    TXS = rows.map(r => ({ ...r, cat: classify(r.merchant) }));
+    document.getElementById("btnRun").disabled = false;
+    renderTable();
+    document.getElementById("txCard").style.display = "";
+    runCheck();
+  };
+  reader.readAsText(f, "utf-8");
+});
+document.getElementById("btnRun").addEventListener("click", runCheck);
+document.getElementById("btnCsv").addEventListener("click", downloadCsv);
+</script>
+</body>
+</html>
