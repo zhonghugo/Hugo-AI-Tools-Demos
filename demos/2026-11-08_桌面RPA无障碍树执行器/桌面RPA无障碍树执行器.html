@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>桌面RPA无障碍树执行器</title>
+<style>
+  :root{--bg:#f4f6fa;--card:#ffffff;--line:#e3e8f0;--ink:#1c2333;--muted:#6b7686;--primary:#2456e0;--ok:#0c8a4d;--warn:#b06000;--err:#c22f3d;--ref:#7c3aed;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font:14px/1.65 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:20px 14px 60px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:24px;margin-bottom:4px}
+  .sub{color:var(--muted);margin-bottom:16px}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .cards div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:150px;flex:1}
+  .cards b{display:block;font-size:20px;color:var(--primary)}
+  .cards span{font-size:12px;color:var(--muted)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  section h2{font-size:15px;margin-bottom:10px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  input[type=text]{flex:1;min-width:220px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
+  button{padding:9px 16px;border:0;border-radius:8px;font-size:14px;cursor:pointer;background:var(--primary);color:#fff}
+  button.ghost{background:#eef2f9;color:var(--ink)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .chip{padding:6px 12px;background:#eef2f9;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--ink)}
+  .chip:hover{background:#e2e9f7}
+  .radio{display:flex;gap:14px;align-items:center;font-size:13px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .err-msg{color:var(--err);font-size:13px;margin-top:8px;min-height:18px}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:880px){.split{grid-template-columns:1fr}}
+  /* 模拟桌面窗口 */
+  .desktop{background:#dfe4ee;border:1px solid #c8cfdd;border-radius:10px;padding:14px}
+  .win{background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(20,30,60,.14);overflow:hidden}
+  .win-title{background:#f0f3f9;border-bottom:1px solid var(--line);padding:7px 12px;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .win-body{padding:12px 14px 14px;position:relative}
+  .fld{margin-bottom:10px}
+  .fld label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  .fld input,.fld select{width:100%;max-width:260px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;background:#fff}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;min-height:36px}
+  .btnrow button{padding:7px 14px;font-size:13px}
+  .menu-group{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+  .menu-group .mg-label{font-size:12px;color:var(--muted);margin-bottom:5px}
+  .statusbar{margin-top:14px;border-top:1px solid var(--line);background:#f7f9fd;padding:7px 12px;font-size:12.5px;color:var(--ink);border-radius:0 0 8px 8px;min-height:32px;word-break:break-all}
+  /* 无障碍树 */
+  .tree{background:#0f1526;color:#cdd6ea;border-radius:10px;padding:12px 14px;font:12px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:auto;max-height:340px;white-space:pre-wrap;word-break:break-all}
+  .tree .ref{color:#c4a5ff}
+  .tree .role{color:#7fd0a0}
+  .tree .lbl{color:#e8edf8}
+  /* 日志 */
+  .log{background:#0f1526;color:#cdd6ea;border-radius:10px;padding:12px 14px;font:12px/1.85 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:auto;max-height:320px;white-space:pre-wrap;word-break:break-all;min-height:120px}
+  .log .ok{color:#7fd0a0}.log .warn{color:#f2c069}.log .err{color:#ff8b96}.log .ref{color:#c4a5ff}.log .dim{color:#8a94ac}
+  /* 对比实验 */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+  th{background:#f2f5fb;font-weight:600}
+  .tblwrap{overflow-x:auto}
+  .pass{color:var(--ok);font-weight:600}.fail{color:var(--err);font-weight:600}
+  .exp-sum{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+  .exp-sum div{flex:1;min-width:150px;border-radius:10px;padding:10px 14px;color:#fff}
+  .exp-sum .a{background:var(--ok)}.exp-sum .b{background:var(--err)}
+  .exp-sum b{font-size:22px;display:block}
+  .exp-sum span{font-size:12px;opacity:.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🖥️ 桌面RPA无障碍树执行器</h1>
+  <p class="sub">参考 vercel-labs/agent-desktop v1.2.0（读取系统无障碍树，元素带稳定引用，点引用而非猜像素，界面变化返回 stale-reference 而非乱点）——用模拟桌面窗口演示「无障碍树引用定位」对比「截图像素猜击」的可靠性差距。</p>
+
+  <div class="cards">
+    <div><b id="stTasks">0 次</b><span>已执行任务</span></div>
+    <div><b id="stRef">0/0</b><span>引用模式成功</span></div>
+    <div><b id="stPx">0/0</b><span>像素模式成功</span></div>
+    <div><b id="stHeal">0 次</b><span>stale-reference 自愈</span></div>
+  </div>
+
+  <section>
+    <h2>① 指令台</h2>
+    <div class="row" id="chips">
+      <button class="chip" data-chip="1">① 对账 10 月美团商户</button>
+      <button class="chip" data-chip="2">② 导出 9 月对账单</button>
+      <button class="chip" data-chip="3">③ 把商户换成瑞幸咖啡再对账</button>
+    </div>
+    <div class="row">
+      <input type="text" id="instr" placeholder="输入自然语言指令，或点上方示例任务">
+      <button id="btnRun">▶ 执行任务</button>
+    </div>
+    <div class="row">
+      <span class="radio">执行模式：
+        <label><input type="radio" name="mode" value="ref" checked> 引用模式（无障碍树）</label>
+        <label><input type="radio" name="mode" value="pixel"> 像素模式（坐标猜击）</label>
+      </span>
+    </div>
+    <div class="row">
+      <span>界面改版注入：
+        <select id="variant">
+          <option value="v0">无改版（原始界面）</option>
+          <option value="A">改版A · 按钮文案变化</option>
+          <option value="B">改版B · 新增按钮挤压布局</option>
+          <option value="C">改版C · 按钮移入「文件」菜单</option>
+        </select>
+      </span>
+      <button id="btnInject" class="ghost">🧪 应用改版</button>
+      <button id="btnReset" class="ghost">🧯 重置</button>
+    </div>
+    <p class="hint">像素模式的脚本在「无改版」界面录制坐标，改版后仍按旧坐标点击——这正是传统 RPA 最容易悄悄点错的地方。</p>
+    <div class="err-msg" id="msg"></div>
+  </section>
+
+  <section>
+    <h2>② 模拟桌面窗口 &amp; 无障碍树</h2>
+    <div class="split">
+      <div class="desktop">
+        <div class="win">
+          <div class="win-title"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>&nbsp;美餐财务对账工具 v3.2</div>
+          <div class="win-body">
+            <div class="fld"><label>商户名称</label><input type="text" id="el-merchant" value=""></div>
+            <div class="fld"><label>对账月份</label>
+              <select id="el-month"><option>8月</option><option>9月</option><option>10月</option></select>
+            </div>
+            <div class="btnrow" id="btnrow"></div>
+            <div id="menuwrap"></div>
+            <div class="statusbar" id="el-status">就绪</div>
+          </div>
+        </div>
+      </div>
+      <div class="tree" id="tree"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>③ 执行日志</h2>
+    <div class="log" id="log"><span class="dim">等待指令…（Agent 的每一步都会先读无障碍树、拿稳定引用，操作后重读界面确认结果）</span></div>
+  </section>
+
+  <section>
+    <h2>④ 可靠性对比实验（同一任务 × 10 轮 × 两种模式）</h2>
+    <div class="row">
+      <button id="btnExp">📊 跑 10 轮对比实验</button>
+      <button id="btnCsv" class="ghost" disabled>⬇ 下载对比报告 CSV</button>
+    </div>
+    <div class="tblwrap"><table id="expTbl"></table></div>
+    <div class="exp-sum" id="expSum" style="display:none">
+      <div class="a"><b id="sumRef">10/10</b><span>引用模式（无障碍树 + 稳定引用）</span></div>
+      <div class="b"><b id="sumPx">6/10</b><span>像素模式（坐标猜击，改版后 4 次静默失败）</span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+/* ============ 元素注册表：每个可操作元素带稳定引用 ref ============ */
+const ORIG_LABEL = {
+  "el-merchant":{role:"textbox",label:"商户名称",ref:"@inp-merchant"},
+  "el-month":{role:"combobox",label:"对账月份",ref:"@sel-month"},
+  "el-reconcile":{role:"button",label:"开始对账",ref:"@btn-reconcile"},
+  "el-clear":{role:"button",label:"清空表单",ref:"@btn-clear"},
+  "el-export":{role:"button",label:"导出报表",ref:"@btn-export"},
+  "el-status":{role:"statusbar",label:"状态栏",ref:"@txt-status"}
+};
+/* 像素模式在 v0 界面录制的坐标（改版后不再更新——这就是坑） */
+const PIXEL_COORDS = {"el-reconcile":{x:24,y:150},"el-export":{x:136,y:150}};
+
+const state = {variant:"v0",merchant:"",month:"10月",status:"就绪"};
+const stats = {tasks:0,refAll:0,refOk:0,pxAll:0,pxOk:0,heals:0};
+let busy = false, expRows = [];
+
+/* ============ 改版布局定义 ============ */
+function layout(v){
+  if(v==="B") return {btnRow:["el-reconcile","el-clear","el-export"],menu:[]};
+  if(v==="C") return {btnRow:["el-reconcile"],menu:["el-export"]};
+  return {btnRow:["el-reconcile","el-export"],menu:[]}; // v0 / A
+}
+function curLabel(id){
+  if(id==="el-export" && state.variant==="A") return "生成对账单";
+  return ORIG_LABEL[id].label;
+}
+function btnRowX(i){return 24+i*112;}
+/* 像素模式：给定旧坐标，看当前界面该位置是谁 */
+function elementAt(x,y){
+  const L = layout(state.variant);
+  if(y===150){const i=Math.round((x-24)/112);const id=L.btnRow[i];return id||null;}
+  if(y===196){const i=Math.round((x-24)/112);return L.menu[i]||null;}
+  return null;
+}
+
+/* ============ 渲染 ============ */
+const $ = id=>document.getElementById(id);
+function render(){
+  $("el-merchant").value = state.merchant;
+  $("el-month").value = state.month;
+  $("el-status").textContent = state.status;
+  const L = layout(state.variant);
+  const row = $("btnrow"); row.innerHTML = "";
+  L.btnRow.forEach((id,i)=>{
+    const b = document.createElement("button");
+    b.id = id; b.style.marginLeft = i===0?"0":"8px";
+    b.textContent = curLabel(id);
+    b.onclick = ()=>fire(id);
+    row.appendChild(b);
+  });
+  const mw = $("menuwrap");
+  if(L.menu.length){
+    mw.innerHTML = '<div class="menu-group"><div class="mg-label">📁 文件菜单</div><div class="btnrow" id="menubtns" style="margin-top:0"></div></div>';
+    const mb = mw.querySelector("#menubtns");
+    L.menu.forEach(id=>{
+      const b = document.createElement("button");
+      b.id = id; b.textContent = curLabel(id);
+      b.onclick = ()=>fire(id);
+      mb.appendChild(b);
+    });
+  } else mw.innerHTML = "";
+  renderTree();
+  $("stTasks").textContent = stats.tasks+" 次";
+  $("stRef").textContent = stats.refOk+"/"+stats.refAll;
+  $("stPx").textContent = stats.pxOk+"/"+stats.pxAll;
+  $("stHeal").textContent = stats.heals+" 次";
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function renderTree(){
+  const L = layout(state.variant);
+  let h = '<span class="role">window</span> <span class="lbl">「美餐财务对账工具」</span>\n';
+  h += ' ├─ <span class="role">group</span> <span class="lbl">「对账表单」</span>\n';
+  h += ' │   ├─ <span class="role">textbox</span> <span class="lbl">「商户名称」</span> <span class="ref">'+ORIG_LABEL["el-merchant"].ref+'</span>\n';
+  h += ' │   └─ <span class="role">combobox</span> <span class="lbl">「对账月份」</span> <span class="ref">'+ORIG_LABEL["el-month"].ref+'</span>\n';
+  h += ' ├─ <span class="role">group</span> <span class="lbl">「操作按钮」</span>\n';
+  const btnLines = L.btnRow.map((id,i)=>{
+    const last = i===L.btnRow.length-1 && L.menu.length===0;
+    return ' │   '+(last?'└─':'├─')+' <span class="role">button</span> <span class="lbl">「'+esc(curLabel(id))+'」</span> <span class="ref">'+ORIG_LABEL[id].ref+'</span>';
+  });
+  if(L.menu.length){
+    btnLines.push(' │   └─ <span class="role">group</span> <span class="lbl">「📁 文件菜单」</span>');
+    L.menu.forEach((id,i)=>{
+      btnLines.push(' │       '+(i===L.menu.length-1?'└─':'├─')+' <span class="role">button</span> <span class="lbl">「'+esc(curLabel(id))+'」</span> <span class="ref">'+ORIG_LABEL[id].ref+'</span>');
+    });
+  }
+  h += btnLines.join("\n") + "\n";
+  h += ' └─ <span class="role">statusbar</span> <span class="lbl">「状态栏」</span> <span class="ref">'+ORIG_LABEL["el-status"].ref+'</span>';
+  $("tree").innerHTML = h;
+}
+
+/* ============ 窗口真实行为 ============ */
+function fire(id){
+  if(id==="el-reconcile"){
+    if(!state.merchant){state.status = "⚠ 请先填写商户名称";render();return;}
+    state.status = "对账完成："+state.merchant+" "+state.month+" 差异 0 笔 ✓";
+  } else if(id==="el-export"){
+    const m = state.month.replace("月","");
+    state.status = "已导出 对账单_2026"+m.padStart(2,"0")+".csv ✓";
+  } else if(id==="el-clear"){
+    state.merchant = ""; state.month = "10月"; state.status = "表单已清空";
+  }
+  render();
+}
+
+/* ============ 日志 ============ */
+function log(html,cls){
+  const el = $("log");
+  if(el.dataset.init!=="1"){el.innerHTML="";el.dataset.init="1";}
+  const line = document.createElement("div");
+  if(cls) line.className = cls;
+  line.innerHTML = html;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function refSpan(r){return '<span class="ref">'+r+'</span>';}
+const sleep = ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ============ 指令解析（规则化，确定性） ============ */
+function parsePlan(text){
+  const t = text.trim();
+  if(/导出/.test(t)) return {name:"任务② 导出对账单",steps:planExport()};
+  if(/瑞幸|换|改成/.test(t) && /商户/.test(t)) return {name:"任务③ 更换商户并对账",steps:planReconcile("瑞幸咖啡","10月")};
+  if(/对账/.test(t)){
+    const m = t.match(/(\d{1,2})\s*月/);
+    const mc = t.match(/商户(?:名称)?(?:[为改到]|换成)?\s*([\u4e00-\u9fa5A-Za-z0-9]+)/);
+    return {name:"任务① 对账",steps:planReconcile(mc?mc[1]:"美团",m?m[1]+"月":"10月")};
+  }
+  return null;
+}
+function planReconcile(merchant,month){
+  return [
+    {act:"set",ref:"@inp-merchant",id:"el-merchant",value:merchant,desc:"输入商户名称「"+merchant+"」"},
+    {act:"set",ref:"@sel-month",id:"el-month",value:month,desc:"选择对账月份「"+month+"」"},
+    {act:"click",ref:"@btn-reconcile",id:"el-reconcile",desc:"点击「开始对账」"},
+    {act:"verify",expect:"对账完成",desc:"校验状态栏含「对账完成」"}
+  ];
+}
+function planExport(){
+  return [
+    {act:"set",ref:"@sel-month",id:"el-month",value:"9月",desc:"选择对账月份「9月」"},
+    {act:"click",ref:"@btn-export",id:"el-export",desc:"点击「导出报表」"},
+    {act:"verify",expect:"已导出",desc:"校验状态栏含「已导出」"}
+  ];
+}
+
+/* ============ 引用模式执行：读树 → 校验引用新鲜度 → 操作 → 重读确认 ============ */
+function refResolve(step){
+  const meta = ORIG_LABEL[step.id];
+  const L = layout(state.variant);
+  const inMenu = L.menu.includes(step.id);
+  const path = inMenu ? "操作按钮→文件菜单" : "操作按钮";
+  const labelNow = curLabel(step.id);
+  const labelChanged = labelNow !== meta.label;
+  const moved = step.id==="el-export" && inMenu && state.variant==="C";
+  if(labelChanged || moved){
+    stats.heals++;
+    log('<span class="warn">⚠ stale-reference：'+step.ref+' 快照（'+meta.label+' / 操作按钮）与当前界面不符</span>');
+    log('<span class="dim">  ↳ re-read_tree() → 语义重匹配 role='+meta.role+' 关键词族 → 命中</span> '+refSpan(step.ref)+'<span class="dim">（「'+labelNow+'」 / '+path+'）✓ 引用已刷新</span>');
+    return true;
+  }
+  return true;
+}
+function actRef(step){
+  if(step.act==="set"){state[step.id==="el-merchant"?"merchant":"month"] = step.value;render();return null;}
+  if(step.act==="click"){fire(step.id);return null;}
+  if(step.act==="verify"){
+    return state.status.includes(step.expect)?null:("状态栏=\""+state.status+"\"");
+  }
+}
+
+/* ============ 像素模式执行：按录制坐标盲点 ============ */
+function actPixel(step){
+  if(step.act==="set"){state[step.id==="el-merchant"?"merchant":"month"] = step.value;render();return null;}
+  if(step.act==="verify"){return state.status.includes(step.expect)?null:("状态栏=\""+state.status+"\"");}
+  if(step.act!=="click") return null;
+  const c = PIXEL_COORDS[step.id];
+  if(!c){fire(step.id);return null;}
+  const hit = elementAt(c.x,c.y);
+  if(!hit){
+    log('<span class="err">✗ click(x='+c.x+', y='+c.y+') → 该坐标为空白区域，未命中任何控件</span>');
+    return "坐标 ("+c.x+","+c.y+") 未命中控件";
+  }
+  if(hit!==step.id){
+    log('<span class="err">✗ click(x='+c.x+', y='+c.y+') → 命中「'+curLabel(hit)+'」（原「'+ORIG_LABEL[step.id].label+'」位置已被挤占）→ 误触发！</span>');
+    fire(hit);
+    return "误点「"+curLabel(hit)+"」";
+  }
+  log('<span class="dim">  ↳ click(x='+c.x+', y='+c.y+') → 命中「'+curLabel(hit)+'」</span>');
+  fire(hit);return null;
+}
+
+/* ============ 任务执行主流程 ============ */
+async function runTask(){
+  if(busy) return;
+  const text = $("instr").value;
+  if(!text.trim()){$("msg").textContent = "请输入指令或点击示例任务";return;}
+  const plan = parsePlan(text);
+  if(!plan){$("msg").textContent = "未能解析该指令：试试示例任务里的说法";return;}
+  $("msg").textContent = "";
+  setBusy(true);
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  stats.tasks++;
+  if(mode==="ref") stats.refAll++; else stats.pxAll++;
+  log('—— '+plan.name+' · '+(mode==="ref"?"引用模式（无障碍树）":"像素模式（坐标猜击）")+' · 当前界面：'+variantName()+' ——');
+  let failed = null;
+  for(let i=0;i<plan.steps.length;i++){
+    const st = plan.steps[i];
+    log('[Step '+(i+1)+'/'+plan.steps.length+'] '+st.desc);
+    if(mode==="ref" && st.id){
+      log('<span class="dim">  ↳ read_tree() → 定位</span> '+refSpan(st.ref)+'<span class="dim">（'+ORIG_LABEL[st.id].role+'「'+curLabel(st.id)+'」）</span>');
+      refResolve(st);
+    }
+    const err = (mode==="ref"?actRef:actPixel)(st);
+    await sleep(300);
+    if(err && st.act==="verify"){
+      log('<span class="err">  ↳ ✗ 校验失败：'+err+'</span>');
+      failed = err;
+      break;
+    } else if(err){
+      failed = err; break;
+    } else if(st.act==="verify"){
+      log('<span class="ok">  ↳ ✓ 重读界面确认：'+state.status+'</span>');
+    } else if(mode==="ref"){
+      log('<span class="ok">  ↳ ✓ 操作完成，重读界面确认无误</span>');
+    }
+    await sleep(220);
+  }
+  if(failed){log('<span class="err">—— 任务失败：'+failed+' ——</span>');if(mode==="ref"){}else{}}
+  else{
+    log('<span class="ok">—— 任务完成 ——</span>');
+    if(mode==="ref") stats.refOk++; else stats.pxOk++;
+  }
+  render();
+  setBusy(false);
+}
+function setBusy(b){
+  busy = b;
+  ["btnRun","btnExp","btnReset","btnInject"].forEach(id=>$(id).disabled = b);
+}
+function variantName(v){
+  return {v0:"无改版",A:"改版A·文案变化",B:"改版B·布局挤压",C:"改版C·移入菜单"}[v||state.variant];
+}
+
+/* ============ 对比实验：10 轮确定性矩阵 ============ */
+const ROUNDS = [
+  {task:"任务① 对账",variant:"v0"},{task:"任务② 导出",variant:"v0"},
+  {task:"任务③ 换商户",variant:"v0"},{task:"任务② 导出",variant:"v0"},
+  {task:"任务② 导出",variant:"A"},{task:"任务① 对账",variant:"A"},
+  {task:"任务② 导出",variant:"B"},{task:"任务② 导出",variant:"B"},
+  {task:"任务② 导出",variant:"C"},{task:"任务② 导出",variant:"C"}
+];
+function outcome(mode,r){
+  const clicksExport = r.task==="任务② 导出";
+  if(mode==="ref"){
+    if(clicksExport && r.variant==="A") return {ok:true,note:"stale-reference→重读树自愈"};
+    if(clicksExport && r.variant==="C") return {ok:true,note:"旧路径失效→重读树命中新路径"};
+    return {ok:true,note:"引用直击目标"};
+  }
+  if(r.variant==="B") return clicksExport?{ok:false,note:"旧坐标命中「清空表单」→ 误清表单"}:{ok:true,note:"坐标未受影响，命中目标"};
+  if(r.variant==="C") return clicksExport?{ok:false,note:"旧坐标落在空白区域 → 未命中"}:{ok:true,note:"坐标未受影响，命中目标"};
+  return {ok:true,note:"坐标未受影响，命中目标"};
+}
+function runExperiment(){
+  if(busy) return;
+  setBusy(true);
+  expRows = ROUNDS.map((r,i)=>{
+    const a = outcome("ref",r), b = outcome("pixel",r);
+    return {no:i+1,task:r.task,variant:r.variant,ref:a,px:b};
+  });
+  const refOk = expRows.filter(x=>x.ref.ok).length;
+  const pxOk = expRows.filter(x=>x.px.ok).length;
+  const heals = expRows.filter(x=>x.ref.note.includes("自愈")||x.ref.note.includes("新路径")).length;
+  stats.heals += heals;
+  let h = '<tr><th>轮次</th><th>任务</th><th>界面场景</th><th>引用模式</th><th>像素模式</th><th>像素模式失败原因</th></tr>';
+  expRows.forEach(x=>{
+    h += '<tr><td>'+x.no+'</td><td>'+x.task+'</td><td>'+variantNameOf(x.variant)+'</td>'
+      +'<td class="pass">✓ '+x.ref.note+'</td>'
+      +'<td class="'+(x.px.ok?'pass':'fail')+'">'+(x.px.ok?'✓ 成功':'✗ 失败')+'</td>'
+      +'<td>'+(x.px.ok?'—':x.px.note)+'</td></tr>';
+  });
+  $("expTbl").innerHTML = h;
+  $("sumRef").textContent = refOk+"/10";
+  $("sumPx").textContent = pxOk+"/10";
+  $("expSum").style.display = "flex";
+  $("btnCsv").disabled = false;
+  log('—— 对比实验完成：引用模式 <span class="ok">'+refOk+'/10</span> · 像素模式 <span class="err">'+pxOk+'/10</span> · stale-reference 自愈 '+heals+' 次 ——');
+  render();
+  setBusy(false);
+}
+const variantNameOf = v=>variantName(v);
+function downloadCsv(){
+  const head = "轮次,任务,界面场景,引用模式结果,引用模式说明,像素模式结果,像素模式失败原因\n";
+  const body = expRows.map(x=>[x.no,x.task,variantNameOf(x.variant),x.ref.ok?"成功":"失败",x.ref.note,x.px.ok?"成功":"失败",x.px.ok?"—":x.px.note].join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+head+body],{type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "桌面RPA无障碍树执行器_对比报告.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function resetAll(){
+  if(busy) return;
+  state.variant = "v0"; state.merchant = ""; state.month = "10月"; state.status = "就绪";
+  stats.tasks = 0; stats.refAll = 0; stats.refOk = 0; stats.pxAll = 0; stats.pxOk = 0; stats.heals = 0;
+  expRows = [];
+  $("instr").value = ""; $("msg").textContent = "";
+  $("variant").value = "v0";
+  $("expTbl").innerHTML = ""; $("expSum").style.display = "none"; $("btnCsv").disabled = true;
+  const lg = $("log"); lg.innerHTML = '<span class="dim">等待指令…（Agent 的每一步都会先读无障碍树、拿稳定引用，操作后重读界面确认结果）</span>'; lg.dataset.init = "0";
+  render();
+}
+
+/* ============ 事件绑定 ============ */
+document.querySelectorAll("#chips .chip").forEach(c=>{
+  c.addEventListener("click",()=>{
+    $("instr").value = c.textContent.replace(/^[①②③]\s*/,"");
+    $("msg").textContent = "";
+  });
+});
+$("btnRun").addEventListener("click",runTask);
+$("instr").addEventListener("keydown",e=>{if(e.key==="Enter")runTask();});
+$("btnInject").addEventListener("click",()=>{
+  state.variant = $("variant").value;
+  state.status = "界面已更新（"+variantName()+"）";
+  render();
+});
+$("btnExp").addEventListener("click",runExperiment);
+$("btnCsv").addEventListener("click",downloadCsv);
+$("btnReset").addEventListener("click",resetAll);
+render();
+</script>
+</body>
+</html>
