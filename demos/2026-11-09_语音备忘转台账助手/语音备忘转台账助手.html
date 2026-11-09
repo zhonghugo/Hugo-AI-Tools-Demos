@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>语音备忘转台账助手</title>
+<style>
+  :root{--bg:#f4f6fa;--card:#ffffff;--line:#e3e8f0;--ink:#1c2333;--muted:#6b7686;--primary:#2456e0;--ok:#0c8a4d;--warn:#b06000;--err:#c22f3d;--voice:#7c3aed;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font:14px/1.65 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:20px 14px 60px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:24px;margin-bottom:4px}
+  .sub{color:var(--muted);margin-bottom:16px}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .cards div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:150px;flex:1}
+  .cards b{display:block;font-size:20px;color:var(--primary)}
+  .cards span{font-size:12px;color:var(--muted)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  section h2{font-size:15px;margin-bottom:10px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  input[type=text],input[type=date],input[type=number],textarea{padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
+  input[type=text]{flex:1;min-width:180px}
+  textarea{width:100%;min-height:72px;resize:vertical}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
+  button{padding:9px 16px;border:0;border-radius:8px;font-size:14px;cursor:pointer;background:var(--primary);color:#fff}
+  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  button.ok{background:var(--ok)}
+  button.danger{background:#fff;color:var(--err);border:1px solid #f0c9ce}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .chip{display:inline-block;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:13px;cursor:pointer}
+  .chip:hover{border-color:var(--primary);color:var(--primary)}
+  .mic{width:120px;height:120px;border-radius:50%;background:var(--voice);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin:6px auto;user-select:none}
+  .mic.rec{animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.45)}50%{box-shadow:0 0 0 16px rgba(124,58,237,0)}}
+  .wave{display:flex;gap:4px;align-items:center;justify-content:center;height:34px;margin:8px 0}
+  .wave i{width:5px;border-radius:3px;background:var(--voice);height:8px;display:none}
+  .wave.on i{display:block;animation:wv .7s infinite ease-in-out}
+  .wave.on i:nth-child(2n){animation-delay:.15s}.wave.on i:nth-child(3n){animation-delay:.3s}
+  @keyframes wv{0%,100%{height:8px}50%{height:30px}}
+  .tlog{background:#f7f8fc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--muted);margin:8px 0;min-height:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .grid label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+  .grid input,.grid select{width:100%}
+  .field.full{grid-column:1/-1}
+  .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;margin-left:6px;vertical-align:middle}
+  .badge.ok{background:#e3f5ec;color:var(--ok)}
+  .badge.warn{background:#fdf0df;color:var(--warn)}
+  .badge.err{background:#fbe9eb;color:var(--err)}
+  input.miss{border-color:var(--err);background:#fff8f8}
+  .twrap{overflow-x:auto;margin-top:6px}
+  table{border-collapse:collapse;font-size:13px;min-width:760px;width:100%}
+  th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;white-space:nowrap}
+  th{color:var(--muted);font-weight:600;background:#f7f8fc}
+  td.r{text-align:right}
+  .tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px}
+  .tag.t0{background:#ede9fe;color:var(--voice)}
+  .tag.t1{background:#e3efff;color:var(--primary)}
+  .tag.t2{background:#e3f5ec;color:var(--ok)}
+  .tag.t3{background:#fdf0df;color:var(--warn)}
+  .tag.t4{background:#eef1f6;color:var(--muted)}
+  .tag.hi{background:#fbe9eb;color:var(--err)}
+  .tag.st-done{background:#e3f5ec;color:var(--ok)}
+  .bar{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px;color:var(--muted)}
+  .bar .track{flex:1;height:10px;background:#eef1f6;border-radius:5px;overflow:hidden}
+  .bar .fill{height:100%;background:var(--voice);border-radius:5px}
+  .banner{display:none;padding:9px 12px;border-radius:8px;font-size:13px;margin:8px 0}
+  .banner.show{display:block}
+  .banner.okb{background:#e3f5ec;color:var(--ok)}
+  .banner.errb{background:#fbe9eb;color:var(--err)}
+  .tip{font-size:12px;color:var(--muted)}
+  .empty{color:var(--muted);font-size:13px;padding:14px 4px;text-align:center}
+  @media (max-width:600px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>语音备忘转台账助手</h1>
+  <div class="sub">参考 Sage2（Levanto Labs，Product Hunt 当日 201 票）「把实时对话变成结构化数据与即时动作」：说完一段话 → 自动抽取 事项 / 金额 / 期限 / 负责人 → 一键入账成台账，口头布置的事不过夜。本页为纯前端模拟，数据保存在本地浏览器。</div>
+
+  <div class="cards">
+    <div><b id="stMemo">0</b><span>已转写备忘</span></div>
+    <div><b id="stRec">0</b><span>已入账条目</span></div>
+    <div><b id="stAmt">¥0</b><span>涉卡金额合计</span></div>
+    <div><b id="stDue">0</b><span>7 天内到期</span></div>
+  </div>
+
+  <section>
+    <h2>① 语音录入</h2>
+    <div class="row">
+      <span class="tip">选一条示例备忘，或直接在下方粘贴/输入转写文本：</span>
+      <span class="chip" data-i="0">供应商对账差异</span>
+      <span class="chip" data-i="1">经销商回款催收</span>
+      <span class="chip" data-i="2">仓库临期报损</span>
+    </div>
+    <div class="mic" id="mic">🎤 模拟录音</div>
+    <div class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="tlog" id="tlog">点击上方麦克风开始「录音」（演示环境用示例音频代替真实收音）</div>
+    <textarea id="taText" placeholder="转写文本会出现在这里，也可以直接粘贴语音转写结果…"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="btnParse">解析并抽取字段</button>
+      <button class="ghost" id="btnReset">再来一条</button>
+      <span class="tip" id="hintParse">基准日期：2026-11-09（周一），相对日期按此换算</span>
+    </div>
+    <div class="banner" id="banParse"></div>
+  </section>
+
+  <section>
+    <h2>② AI 字段抽取（可人工修正）</h2>
+    <div class="grid">
+      <div class="field"><label>备忘类型<span class="badge ok" id="cfType">类型 95%</span></label>
+        <select id="fType">
+          <option value="0">对账差异</option>
+          <option value="1">回款跟进</option>
+          <option value="3">库存盘点</option>
+          <option value="2">费用报销</option>
+          <option value="4">其他</option>
+        </select>
+      </div>
+      <div class="field"><label>优先级（金额≥1万或2天内到期自动升「高」）</label>
+        <select id="fPri"><option value="高">高</option><option value="普通" selected>普通</option></select>
+      </div>
+      <div class="field full"><label>事项描述<span class="badge ok" id="cfItem">转写原文</span></label>
+        <input type="text" id="fItem" placeholder="AI 从语音里抽出来的事项概括">
+      </div>
+      <div class="field"><label>金额（元）<span class="badge ok" id="cfAmt">金额 98%</span></label>
+        <input type="number" id="fAmt" placeholder="识别不到请手工补填">
+      </div>
+      <div class="field"><label>期限<span class="badge ok" id="cfDue">期限 92%</span></label>
+        <input type="date" id="fDue">
+      </div>
+      <div class="field"><label>负责人<span class="badge ok" id="cfWho">负责人 90%</span></label>
+        <input type="text" id="fWho" placeholder="谁负责跟进">
+      </div>
+      <div class="field"><label>来源备忘</label>
+        <input type="text" id="fSrc" placeholder="关联第几条语音备忘" disabled>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="ok" id="btnSave">确认入账 →</button>
+      <span class="tip">必填：事项 / 金额 / 期限 / 负责人；有缺失会被拦截并标红</span>
+    </div>
+    <div class="banner" id="banSave"></div>
+  </section>
+
+  <section>
+    <h2>③ 备忘台账</h2>
+    <div class="row">
+      <button class="ghost" id="btnCsv">导出台账 CSV</button>
+      <button class="danger" id="btnClear">清空台账</button>
+    </div>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>#</th><th>入账时间</th><th>类型</th><th>事项</th><th class="r">金额</th><th>负责人</th><th>期限</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyTip">还没有入账记录——去上面说一段备忘吧</div>
+  </section>
+
+  <section>
+    <h2>④ 备忘类型分布</h2>
+    <div id="dist"></div>
+  </section>
+</div>
+
+<script>
+var BASE = new Date(2026,10,9); // 2026-11-09 周一
+var TYPE_NAME = {'0':'对账差异','1':'回款跟进','3':'库存盘点','2':'费用报销','4':'其他'};
+var TYPE_CLS  = {'0':'t0','1':'t1','3':'t2','2':'t3','4':'t4'};
+var SAMPLES = [
+  '刚接到华强电子张经理的电话，说11月对账单有一笔12350元的差异，要我在本周五之前跟采购部小林核对清楚。',
+  '经销商恒达商贸上个月8600元回款还没到账，明天上午我要给王总打个电话催一下。',
+  '下午盘点发现仓库B区有3箱临期的牛油果酱，大概值2160块，需要尽快让仓管老周出个报损单。'
+];
+var memoCount = 0, curSrc = '';
+var LEDGER = [];
+try{ LEDGER = JSON.parse(localStorage.getItem('voice_ledger_v1')||'[]'); }catch(e){ LEDGER = []; }
+
+function $id(x){return document.getElementById(x)}
+function pad(n){return (n<10?'0':'')+n}
+function fmt(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function addDays(n){var d=new Date(BASE);d.setDate(d.getDate()+n);return d}
+
+/* ---------- ① 录音模拟 ---------- */
+var recTimer=null, typer=null, busy=false;
+function setBusy(b){
+  busy=b;
+  $id('mic').textContent = b?'● 录音中…':'🎤 模拟录音';
+  $id('mic').classList.toggle('rec',b);
+  $id('wave').classList.toggle('on',b);
+  $id('btnParse').disabled=b;
+}
+function startRec(){
+  if(busy) return;
+  var txt = $id('taText').dataset.pending;
+  if(!txt){ $id('tlog').textContent='请先选一条示例备忘（或直接在文本框粘贴转写文本）；演示环境录音走示例音频。'; return; }
+  setBusy(true);
+  $id('tlog').textContent='正在收音…（波形来自示例音频）';
+  var t0=Date.now();
+  recTimer=setInterval(function(){
+    var s=((Date.now()-t0)/1000).toFixed(1);
+    $id('tlog').textContent='正在收音… '+s+'s（波形来自示例音频）';
+  },120);
+  setTimeout(function(){
+    clearInterval(recTimer);
+    var i=0, full=txt; $id('taText').value='';
+    typer=setInterval(function(){
+      i+=2; $id('taText').value=full.slice(0,i);
+      if(i>=full.length){
+        clearInterval(typer);
+        $id('tlog').textContent='转写完成（本地ASR，约1.6s音频耗时 '+((Date.now()-t0)/1000).toFixed(1)+'s），可直接修正后解析。';
+        memoCount++; $id('stMemo').textContent=memoCount; curSrc='语音备忘 #'+memoCount; $id('fSrc').value=curSrc;
+        setBusy(false);
+      }
+    },24);
+  },1400);
+}
+document.querySelectorAll('.chip').forEach(function(c){
+  c.addEventListener('click',function(){
+    if(busy) return;
+    $id('taText').dataset.pending = SAMPLES[+c.dataset.i];
+    $id('tlog').textContent='已加载示例音频「'+c.textContent+'」，点击麦克风开始模拟录音。';
+  });
+});
+$id('mic').addEventListener('click',startRec);
+$id('taText').addEventListener('input',function(){
+  if($id('taText').value && !$id('taText').dataset.pending && !curSrc){ memoCount++; $id('stMemo').textContent=memoCount; curSrc='语音备忘 #'+memoCount; $id('fSrc').value=curSrc; }
+});
+
+/* ---------- ② 抽取 ---------- */
+function pick(re,s){var m=s.match(re);return m?m[1]:null}
+function extract(txt){
+  var f={};
+  // 金额
+  var amt = pick(/([\d,，]+(?:\.\d+)?)\s*(?:元|块)/, txt.replace(/11月|上个月/g,'X月'));
+  f.amt = amt ? parseFloat(amt.replace(/[,,]/g,'')) : null;
+  // 类型
+  if(/差异|对账/.test(txt)) f.type='0';
+  else if(/回款|欠款|催/.test(txt)) f.type='1';
+  else if(/报损|盘点|临期/.test(txt)) f.type='3';
+  else if(/报销|发票/.test(txt)) f.type='2';
+  else f.type='4';
+  // 期限
+  if(/本周五/.test(txt)) f.due=fmt(addDays(4));
+  else if(/明天/.test(txt)) f.due=fmt(addDays(1));
+  else if(/后天/.test(txt)) f.due=fmt(addDays(2));
+  else if(/尽快|马上|立刻/.test(txt)) f.due=fmt(addDays(3));
+  else { var md=txt.match(/(\d{1,2})月(\d{1,2})[日号]/); f.due = md ? fmt(new Date(2026, +md[1]-1, +md[2])) : null; }
+  // 负责人
+  f.who = pick(/(?:跟|给|让|找)(?:[一-龥]{0,3}[部科组处]|[一-龥]{0,2}管)?([一-龥]{2,3})(?:打个?电话|核对|联系|沟通|出个?报损单|确认|跟进)/, txt);
+  // 事项
+  var head = txt.split(/[，。,]/)[0];
+  f.item = (head.length>26? head.slice(0,26)+'…' : head);
+  // 优先级
+  var dueDays=null;
+  if(f.due){ dueDays=Math.round((new Date(f.due)-BASE)/86400000); }
+  f.pri = ((f.amt&&f.amt>=10000) || (dueDays!==null&&dueDays<=2)) ? '高' : '普通';
+  return f;
+}
+function mark(id,badge,val,auto){
+  $id(id).value = (val===null||val===undefined)?'':val;
+  $id(id).classList.toggle('miss',!auto);
+  if(!badge) return;
+  var b=$id(badge);
+  if(auto){ b.textContent=b.textContent.replace(/(类型|金额|期限|负责人)\s*\d*%.*/,'$1 自动识别'); b.className='badge ok'; }
+  else { b.textContent='未识别 · 请补填'; b.className='badge err'; }
+}
+$id('btnParse').addEventListener('click',function(){
+  var txt=$id('taText').value.trim();
+  var ban=$id('banParse');
+  if(!txt){ ban.textContent='还没有可解析的转写文本——先录音或粘贴一段。'; ban.className='banner errb show'; return; }
+  ban.className='banner';
+  if(!curSrc){ memoCount++; $id('stMemo').textContent=memoCount; curSrc='语音备忘 #'+memoCount; $id('fSrc').value=curSrc; }
+  var f=extract(txt);
+  mark('fType','cfType',f.type,true);
+  mark('fPri',null,f.pri,true);
+  mark('fItem','cfItem',f.item,true);
+  mark('fAmt','cfAmt',f.amt,f.amt!==null);
+  mark('fDue','cfDue',f.due,f.due!==null);
+  mark('fWho','cfWho',f.who,f.who!==null);
+  ban.textContent='抽取完成：类型「'+TYPE_NAME[f.type]+'」'+(f.amt!==null?' / 金额 '+f.amt+' 元':'')+(f.due?' / 期限 '+f.due:'')+(f.who?' / 负责人 '+f.who:'')+'。标红字段请人工补填后再入账。';
+  ban.className='banner okb show';
+});
+
+/* ---------- ③ 入账与台账 ---------- */
+function render(){
+  var tb=$id('tbody'); tb.innerHTML='';
+  var sum=0,due7=0,open=0;
+  LEDGER.forEach(function(r,i){
+    var days=Math.round((new Date(r.due)-BASE)/86400000);
+    if(days<=7) due7++;
+    if(r.status==='待处理') open++;
+    sum+=+r.amt||0;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(i+1)+'</td><td>'+r.time+'</td><td><span class="tag '+TYPE_CLS[r.type]+'">'+TYPE_NAME[r.type]+'</span></td>'
+      +'<td style="white-space:normal;min-width:180px">'+r.item.replace(/</g,'&lt;')+'</td><td class="r">'+(+r.amt).toLocaleString()+'</td>'
+      +'<td>'+r.who+'</td><td>'+r.due+'</td><td>'+(r.pri==='高'?'<span class="tag hi">高</span>':'普通')+'</td>'
+      +'<td>'+(r.status==='待处理'?'待处理':'<span class="tag st-done">已完成</span>')+'</td>'
+      +'<td>'+(r.status==='待处理'?'<button class="ghost" data-done="'+i+'">完成</button> ':'')+'<button class="danger" data-del="'+i+'">删除</button></td>';
+    tb.appendChild(tr);
+  });
+  $id('emptyTip').style.display = LEDGER.length?'none':'block';
+  $id('stRec').textContent=LEDGER.length;
+  $id('stAmt').textContent='¥'+sum.toLocaleString();
+  $id('stDue').textContent=due7;
+  var cnt={}; LEDGER.forEach(function(r){cnt[r.type]=(cnt[r.type]||0)+1});
+  var dist=$id('dist'); dist.innerHTML='';
+  var keys=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]});
+  if(!keys.length){ dist.innerHTML='<div class="empty">暂无数据</div>'; }
+  keys.forEach(function(k){
+    var pc=Math.round(cnt[k]/LEDGER.length*100);
+    dist.insertAdjacentHTML('beforeend','<div class="bar"><span style="width:64px">'+TYPE_NAME[k]+'</span><div class="track"><div class="fill" style="width:'+pc+'%"></div></div><span>'+cnt[k]+' 条 · '+pc+'%</span></div>');
+  });
+  try{ localStorage.setItem('voice_ledger_v1', JSON.stringify(LEDGER)); }catch(e){}
+}
+$id('tbody').addEventListener('click',function(e){
+  var d=e.target.getAttribute('data-done'), x=e.target.getAttribute('data-del');
+  if(d!==null){ LEDGER[+d].status='已完成'; render(); }
+  if(x!==null){ LEDGER.splice(+x,1); render(); }
+});
+$id('btnSave').addEventListener('click',function(){
+  var ban=$id('banSave');
+  var miss=[];
+  ['fItem','fAmt','fDue','fWho'].forEach(function(id){ if(!$id(id).value.trim()){ miss.push(id); $id(id).classList.add('miss'); } });
+  if(miss.length){
+    ban.textContent='还有 '+miss.length+' 个必填字段为空（已标红），补齐后再入账。'; ban.className='banner errb show'; return;
+  }
+  ban.className='banner';
+  var now=new Date();
+  LEDGER.push({
+    time: fmt(now)+' '+pad(now.getHours())+':'+pad(now.getMinutes()),
+    type: $id('fType').value, item:$id('fItem').value.trim(), amt:$id('fAmt').value,
+    who:$id('fWho').value.trim(), due:$id('fDue').value, pri:$id('fPri').value,
+    status:'待处理', src:curSrc||'手动录入'
+  });
+  ban.textContent='已入账：'+$id('fItem').value.trim()+'（'+TYPE_NAME[$id('fType').value]+' · '+$id('fWho').value.trim()+' · 期限 '+$id('fDue').value+'）';
+  ban.className='banner okb show';
+  ['fItem','fAmt','fDue','fWho'].forEach(function(id){ $id(id).value=''; $id(id).classList.remove('miss'); });
+  $id('taText').value=''; $id('taText').dataset.pending=''; curSrc=''; $id('fSrc').value='';
+  render();
+});
+$id('btnReset').addEventListener('click',function(){
+  $id('taText').value=''; $id('taText').dataset.pending='';
+  $id('tlog').textContent='已清空，选一条示例备忘重新开始。';
+  ['fItem','fAmt','fDue','fWho','fSrc'].forEach(function(id){$id(id).value='';$id(id).classList.remove('miss')});
+  $id('banParse').className='banner'; $id('banSave').className='banner';
+});
+$id('btnClear').addEventListener('click',function(){
+  if(!LEDGER.length){ return; }
+  LEDGER=[]; memoCount=0; curSrc='';
+  $id('stMemo').textContent='0'; $id('fSrc').value='';
+  render();
+});
+$id('btnCsv').addEventListener('click',function(){
+  if(!LEDGER.length){ $id('banSave').textContent='台账为空，先入账一条再导出。'; $id('banSave').className='banner errb show'; return; }
+  var head='序号,入账时间,类型,事项,金额,负责人,期限,优先级,状态,来源备忘';
+  var rows=LEDGER.map(function(r,i){return [i+1,r.time,TYPE_NAME[r.type],'"'+r.item.replace(/"/g,'""')+'"',r.amt,r.who,r.due,r.pri,r.status,'"'+r.src+'"'].join(',')});
+  var csv='\uFEFF'+head+'\n'+rows.join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='语音备忘台账_'+fmt(new Date()).replace(/-/g,'')+'.csv';
+  a.click();
+});
+render();
+</script>
+</body>
+</html>
