@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据任务巡检Agent · 每日定时任务体检与自动诊断</title>
+<style>
+  :root{--primary:#0e7490;--primary-d:#155e75;--ok:#15803d;--okbg:#f0fdf4;--warn:#b45309;--warnbg:#fffbeb;--bad:#b91c1c;--badbg:#fef2f2;--bg:#f4f7f9;--card:#fff;--line:#dde5ea;--text:#1f2937;--muted:#64748b;--fix:#7c3aed;--fixbg:#f5f3ff}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;background:var(--bg);color:var(--text);line-height:1.65;font-size:14px}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 14px 34px}
+  header{text-align:center;padding:14px 0 6px}
+  .badge{display:inline-block;font-size:12px;color:var(--primary-d);background:#e0f2fe;border:1px solid #bae6fd;border-radius:20px;padding:2px 14px;margin-bottom:8px}
+  h1{font-size:23px;font-weight:800;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px;max-width:680px;margin-left:auto;margin-right:auto}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:14px}
+  .panel h2{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .panel h2 .num{background:var(--primary);color:#fff;font-size:12px;width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .hint{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .formGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+  .fItem{display:flex;flex-direction:column;gap:3px}
+  .fItem label{font-size:12px;color:var(--muted)}
+  .fItem input,.fItem select{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;background:#fff;color:var(--text)}
+  .fItem input:focus,.fItem select:focus{outline:2px solid #7dd3fc;border-color:#38bdf8}
+  .fNote{grid-column:1/-1;font-size:12px;color:var(--muted);background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:7px 10px}
+  .ctrlRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{cursor:pointer;border:none;border-radius:9px;font-size:13.5px;font-weight:600;padding:9px 18px;transition:opacity .15s}
+  button:disabled{cursor:not-allowed;opacity:.45}
+  .btnMain{background:var(--primary);color:#fff}
+  .btnMain:hover:not(:disabled){background:var(--primary-d)}
+  .btnFix{background:var(--fix);color:#fff;padding:6px 12px;font-size:12.5px}
+  .btnGhost{background:#fff;color:var(--muted);border:1px solid var(--line);padding:7px 14px;font-size:12.5px}
+  .btnGhost:hover{color:var(--text)}
+  .statRow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+  .statRow .sc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center}
+  .sc b{display:block;font-size:21px;color:var(--primary)}
+  .sc span{font-size:11.5px;color:var(--muted)}
+  .sc.okb{border-color:#bbf7d0}.sc.okb b{color:var(--ok)}
+  .sc.badb{border-color:#fecaca}.sc.badb b{color:var(--bad)}
+  .sc.warnb{border-color:#fde68a}.sc.warnb b{color:var(--warn)}
+  .sc.fixb{border-color:#ddd6fe}.sc.fixb b{color:var(--fix)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:#f1f5f9;color:var(--muted);font-weight:600;text-align:left;padding:7px 9px;border:1px solid var(--line);font-size:12px;white-space:nowrap}
+  td{padding:7px 9px;border:1px solid var(--line);vertical-align:top}
+  tr:hover td{background:#f8fafc}
+  .tag{display:inline-block;font-size:11.5px;font-weight:700;border-radius:12px;padding:1px 10px;white-space:nowrap}
+  .tag.idle{background:#f1f5f9;color:var(--muted)}
+  .tag.ok{background:var(--okbg);color:var(--ok)}
+  .tag.bad{background:var(--badbg);color:var(--bad)}
+  .tag.warn{background:var(--warnbg);color:var(--warn)}
+  .tag.fixing{background:var(--fixbg);color:var(--fix)}
+  .chk{font-size:11.5px;color:var(--muted)}
+  .chk .fail{color:var(--bad);font-weight:600}
+  .chk .pass{color:var(--ok)}
+  .diag{margin-top:8px;border-left:3px solid var(--fix);background:var(--fixbg);border-radius:0 8px 8px 0;padding:9px 12px;font-size:12.5px}
+  .diag b{color:var(--fix)}
+  .diag .ev{color:var(--muted);font-size:11.5px;margin:3px 0}
+  .diag .act{margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .diag .human{color:var(--warn);font-weight:600;font-size:12px}
+  .logBox{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;max-height:240px;overflow-y:auto;line-height:1.8}
+  .logBox .t{color:#64748b}
+  .logBox .ok{color:#4ade80}.logBox .bad{color:#f87171}.logBox .warn{color:#fbbf24}.logBox .fix{color:#c4b5fd}.logBox .info{color:#7dd3fc}
+  .footNote{margin-top:16px;font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+  .empty{color:var(--muted);font-size:13px;padding:14px 4px;text-align:center}
+  @media(max-width:700px){
+    .statRow{grid-template-columns:repeat(2,1fr)}
+    .tblWrap{overflow-x:auto}
+    table{min-width:640px}
+    h1{font-size:19px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">监控 → 诊断 → 修复 → 人工拍板 · 运维闭环</span>
+    <h1>数据任务巡检 Agent</h1>
+    <p class="sub">参考 Replit Monitoring Agent「持续监控生产环境，发现问题自动调查、验证修复并代为部署，人只管拍板」：给每日定时任务（资讯采集 / 签到 / 报表汇总 / 数据同步）配一个巡检 Agent——按时产出检查 + 数值校验 + 根因诊断 + 自动修复 + 复检确认。</p>
+  </header>
+
+  <!-- 阈值业务表单 -->
+  <div class="panel">
+    <h2><span class="num">1</span>巡检规则（业务表单）</h2>
+    <div class="formGrid">
+      <div class="fItem">
+        <label for="thWave">金额波动阈值（%）—— 合计环比超过即判异常</label>
+        <input id="thWave" type="number" value="15" min="1" max="100">
+      </div>
+      <div class="fItem">
+        <label for="thLate">迟到宽限（分钟）—— 超过预期产出时间即判迟到</label>
+        <input id="thLate" type="number" value="15" min="0" max="120">
+      </div>
+      <div class="fItem">
+        <label for="thRetry">自动重试次数（修复动作内含）</label>
+        <select id="thRetry"><option>1</option><option selected>2</option><option>3</option></select>
+      </div>
+      <div class="fNote">调整阈值后点「重新校验」即可联动：例如把波动阈值调到 40%，月度费用汇总的 32% 波动就回到正常范围；把迟到宽限调到 30 分钟，迟到 25 分钟的库存同步也会转为正常。</div>
+    </div>
+    <div class="ctrlRow" style="margin-top:10px">
+      <button class="btnMain" id="btnRun">▶ 开始巡检</button>
+      <button class="btnGhost" id="btnRecheck" disabled>↻ 重新校验（按新阈值）</button>
+      <button class="btnGhost" id="btnCsv" disabled>⬇ 下载巡检报告 CSV</button>
+      <button class="btnGhost" id="btnReset">重置演示</button>
+      <span class="hint" id="runHint" style="margin-left:auto">巡检基准时间：2026-11-10 11:30（示例固化）</span>
+    </div>
+  </div>
+
+  <!-- 统计卡 -->
+  <div class="statRow" id="statRow">
+    <div class="sc"><b id="sTotal">6</b><span>巡检任务</span></div>
+    <div class="sc idle"><b id="sIdle">6</b><span>待巡检</span></div>
+    <div class="sc okb"><b id="sOk">0</b><span>正常</span></div>
+    <div class="sc badb"><b id="sAbn">0</b><span>发现异常</span></div>
+    <div class="sc fixb"><b id="sFixed">0</b><span>已自动修复</span></div>
+  </div>
+
+  <!-- 任务清单 -->
+  <div class="panel">
+    <h2><span class="num">2</span>任务清单与巡检结果</h2>
+    <div class="tblWrap">
+      <table id="tbl">
+        <thead><tr><th style="width:170px">定时任务</th><th style="width:90px">预期产出</th><th style="width:150px">产出物</th><th style="width:170px">校验规则</th><th style="width:96px">巡检状态</th><th>巡检详情</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyTip">尚未巡检——点上方「▶ 开始巡检」，Agent 将逐个任务检查产出时间、产出物与数值规则</div>
+  </div>
+
+  <!-- 巡检日志 -->
+  <div class="panel">
+    <h2><span class="num">3</span>巡检与修复日志</h2>
+    <div class="logBox" id="log"><div style="color:#64748b">// 等待巡检指令…</div></div>
+  </div>
+
+  <div class="footNote">
+    <b>演示说明：</b>示例任务与产出数据已固化在页面内（巡检基准时间 2026-11-10 11:30）。根因诊断按规则匹配（上游空表 / 凭证过期 / 重复记录 / 接口超时），可自动修复的任务点「执行修复」后 Agent 重跑并复检确认；标记「需人工处理」的异常 Agent 只给诊断报告，不代为操作——信任机制：验证后才修复，人可回看全过程。参考 Replit Monitoring Agent 产品逻辑，价格与数据均为演示示例。
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 示例数据（固化） ============ */
+// 基准巡检时间 2026-11-10 11:30
+const TASKS = [
+  { id:"T1", name:"AI 资讯日报采集", due:"08:30", out:"daily_news_1110.json（7 条）",
+    rules:"产出条数 ≥ 3", actualTime:"08:31", minutesLate:1,
+    checks:[{n:"按时产出（08:31）",ok:true},{n:"产出物存在",ok:true},{n:"条数 7 ≥ 3",ok:true}],
+    root:null },
+  { id:"T2", name:"每日自动签到", due:"08:00", out:"签到回执（状态 success）",
+    rules:"返回成功", actualTime:"08:00", minutesLate:0,
+    checks:[{n:"按时产出（08:00）",ok:true},{n:"回执状态 success",ok:false},{n:"HTTP 401 凭证过期",ok:false}],
+    root:{ code:"AUTH_EXPIRED", title:"签到凭证过期（HTTP 401）",
+      ev:"签到接口返回 401 unauthorized；凭证上次刷新于 30 天前",
+      act:"refresh_cred", fixLabel:"刷新凭证并重试签到", auto:true } },
+  { id:"T3", name:"月度费用汇总表", due:"09:00", out:"费用汇总_11月.xlsx（214 行）",
+    rules:"行数 ≥ 200 且 金额合计环比波动 ≤ 阈值", actualTime:"09:02", minutesLate:2,
+    checks:[{n:"按时产出（09:02）",ok:true},{n:"行数 214 ≥ 200",ok:true},{n:"金额合计环比 +32%",ok:false}],
+    root:{ code:"DUP_RECORD", title:"金额合计环比 +32%，超出阈值",
+      ev:"检测到 2 笔重复报销记录（R-20261105-007 出现两次，各 ¥3,860）",
+      act:"dedup", fixLabel:"去重并重算汇总", auto:true } },
+  { id:"T4", name:"库存同步（ERP→台账）", due:"11:00", out:"台账库存区域刷新",
+    rules:"产出时间 ≤ 预期+宽限 且 行数 > 0", actualTime:"11:25", minutesLate:25,
+    checks:[{n:"产出时间 11:25（迟到 25 分钟）",ok:false},{n:"台账行数 1,382 > 0",ok:true}],
+    root:{ code:"UPSTREAM_TIMEOUT", title:"产出迟到 25 分钟",
+      ev:"ERP 接口 3 次超时（每次 8 分钟）后第 4 次成功",
+      act:"rerun", fixLabel:"错峰重跑同步", auto:true } },
+  { id:"T5", name:"Demo 每日生成", due:"10:30", out:"demos/2026-11-10_工具名/*.html",
+    rules:"产出文件存在", actualTime:null, minutesLate:null,
+    checks:[{n:"按时产出（10:30）",ok:false},{n:"产出文件存在",ok:false}],
+    root:{ code:"UPSTREAM_EMPTY", title:"未产出：上游资讯表当天 0 条",
+      ev:"资讯多维表 11/10 记录数 = 0，日报任务 08:30 显示成功但写表失败",
+      act:null, human:"Agent 已定位根因但不代写数据——请人工补录当天资讯后重跑" } },
+  { id:"T6", name:"岗位机会推送", due:"10:00", out:"飞书群推送摘要",
+    rules:"推送成功且岗位数 > 0", actualTime:"10:01", minutesLate:1,
+    checks:[{n:"按时产出（10:01）",ok:true},{n:"推送成功",ok:true},{n:"岗位数 12 > 0",ok:true}],
+    root:null }
+];
+// 状态机：idle → checking → ok / abn / fixed / human
+const S = { tasks: TASKS.map(t => ({ ...t, st:"idle", fixed:false })), inspected:false };
+
+/* ============ 工具函数 ============ */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,"0");
+const now = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+function log(msg, cls){
+  const box = $("log");
+  if(box.firstElementChild && box.firstElementChild.textContent.includes("等待巡检指令")) box.innerHTML = "";
+  const div = document.createElement("div");
+  div.innerHTML = `<span class="t">[${now()}]</span> <span class="${cls||"info"}">${msg}</span>`;
+  box.appendChild(div); box.scrollTop = box.scrollHeight;
+}
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function waveTh(){ return Number($("thWave").value) || 15; }
+function lateTh(){ return Number($("thLate").value) || 0; }
+
+/* 数值校验：波动阈值联动（T3 的 +32% 是否超阈值） */
+function checkWave(t){
+  const w = waveTh();
+  const hit = 32 > w;
+  t.checks = t.checks.map(c => c.n.startsWith("金额合计")
+    ? { n:`金额合计环比 +32%（阈值 ≤ ${w}%）`, ok:!hit } : c);
+  return !hit;
+}
+/* 迟到校验：宽限联动（T4 迟到 25 分钟） */
+function checkLate(t){
+  const g = lateTh();
+  const hit = 25 > g;
+  t.checks = t.checks.map(c => c.n.startsWith("产出时间 11:25")
+    ? { n:`产出时间 11:25（迟到 25 分钟，宽限 ${g} 分钟）`, ok:!hit } : c);
+  return !hit;
+}
+
+/* ============ 渲染 ============ */
+const ST_META = {
+  idle:{cls:"idle", txt:"待巡检"},
+  checking:{cls:"fixing", txt:"巡检中…"},
+  ok:{cls:"ok", txt:"✅ 正常"},
+  abn:{cls:"bad", txt:"❌ 异常"},
+  fixed:{cls:"ok", txt:"✅ 已修复"},
+  human:{cls:"warn", txt:"⚠️ 需人工"}
+};
+function badge(st){ const m = ST_META[st]; return `<span class="tag ${m.cls}">${m.txt}</span>`; }
+function render(){
+  const tb = $("tbody"); tb.innerHTML = "";
+  S.tasks.forEach((t, i) => {
+    const tr = document.createElement("tr");
+    const chkHtml = t.st === "idle" ? '<span class="chk">—</span>'
+      : t.checks.map(c => `<div class="chk ${c.ok ? "pass" : "fail"}">${c.ok ? "✓" : "✗"} ${c.n}</div>`).join("");
+    let diagHtml = "";
+    if(t.st === "abn" || t.st === "human"){
+      const r = t.root;
+      diagHtml = `<div class="diag"><b>🔍 根因诊断：${r.title}</b>
+        <div class="ev">证据：${r.ev}</div>
+        ${r.act
+          ? `<div class="act">${t.st === "abn"
+              ? `<button class="btnFix" data-fix="${i}">🔧 ${r.fixLabel}</button><span class="chk">Agent 自动执行 → 复检确认</span>`
+              : `<span class="chk">✓ 修复动作「${r.fixLabel}」已执行，复检通过</span>`}</div>`
+          : `<div class="act"><span class="human">⛔ ${r.human}</span></div>`}
+      </div>`;
+    } else if(t.st === "fixed"){
+      diagHtml = `<div class="diag" style="border-color:var(--ok);background:var(--okbg)"><b style="color:var(--ok)">🔧 修复完成：${t.root.fixLabel} → 复检通过</b></div>`;
+    }
+    tr.innerHTML = `<td><b>${t.name}</b><div class="chk">${t.id}</div></td>
+      <td>${t.due}</td><td class="chk">${t.out}</td>
+      <td class="chk">${t.rules}</td><td>${badge(t.st)}</td>
+      <td>${chkHtml}${diagHtml}</td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("button[data-fix]").forEach(b => b.addEventListener("click", () => fixTask(Number(b.dataset.fix))));
+  updateStats();
+}
+function updateStats(){
+  const st = S.tasks.map(t => t.st);
+  $("sIdle").textContent = st.filter(s => s === "idle" || s === "checking").length;
+  $("sOk").textContent = st.filter(s => s === "ok" || s === "fixed").length;
+  $("sAbn").textContent = st.filter(s => s === "abn" || s === "human").length;
+  $("sFixed").textContent = st.filter(s => s === "fixed").length;
+}
+
+/* ============ 巡检主流程 ============ */
+let busy = false;
+async function runInspection(recheck){
+  if(busy) return; busy = true;
+  $("btnRun").disabled = true; $("btnRecheck").disabled = true; $("btnCsv").disabled = true;
+  const g = lateTh(), w = waveTh();
+  log(recheck ? `↻ 按新阈值重新校验（波动 ≤ ${w}% / 宽限 ${g} 分钟）…` : `▶ 巡检启动：共 ${S.tasks.length} 个定时任务，基准时间 11:30`, "info");
+  for(const t of S.tasks){
+    t.st = "checking"; render();
+    await sleep(350);
+    // 数值规则联动
+    let ruleOk = true;
+    if(t.id === "T3") ruleOk = checkWave(t) && ruleOk;
+    if(t.id === "T4") ruleOk = checkLate(t) && ruleOk;
+    const hard = t.checks.every(c => c.ok);
+    if(t.root && (!hard || !ruleOk)){
+      const autoFix = t.root.act;
+      t.st = autoFix ? "abn" : "human";
+      log(`❌ ${t.name}：${t.checks.filter(c=>!c.ok).map(c=>c.n).join("；")} → ${autoFix ? "进入诊断" : "需人工处理"}`, "bad");
+    } else {
+      // 复检通过：本轮已自动修复的任务保留「已修复」状态，不覆盖回「正常」
+      t.st = (recheck && t.fixed) ? "fixed" : "ok";
+      log(`✅ ${t.name}：全部校验通过（${t.checks.map(c=>c.n).join("；")}）`, "ok");
+    }
+    render();
+    await sleep(200);
+  }
+  const abn = S.tasks.filter(t => t.st === "abn");
+  const hum = S.tasks.filter(t => t.st === "human");
+  log(`📊 巡检完成：${S.tasks.length} 个任务，正常 ${S.tasks.filter(t=>t.st==="ok").length} 个，异常 ${abn.length} 个，需人工 ${hum.length} 个` + (abn.length ? "——异常任务已生成根因诊断，请逐个确认修复" : ""), abn.length ? "warn" : "ok");
+  S.inspected = true;
+  $("btnRun").disabled = true; $("btnRun").textContent = "✓ 本轮巡检已完成";
+  $("btnRecheck").disabled = false; $("btnCsv").disabled = false;
+  busy = false; render();
+}
+
+/* ============ 自动修复 ============ */
+async function fixTask(i){
+  const t = S.tasks[i];
+  if(!t || !t.root || !t.root.act || t.st !== "abn" || busy) return;
+  busy = true;
+  log(`🔧 [${t.name}] 执行修复：${t.root.fixLabel}（重试 ≤ ${$("thRetry").value} 次）…`, "fix");
+  await sleep(700);
+  // 修复后复检：按当前阈值重算
+  if(t.id === "T3") checkWave(t);
+  if(t.id === "T4") checkLate(t);
+  if(t.id === "T2") t.checks = t.checks.map(c => ({ ...c, ok:true }));
+  t.st = "fixed"; t.fixed = true;
+  log(`✅ [${t.name}] 修复完成 → 复检通过：${t.checks.map(c=>c.n).join("；")}`, "ok");
+  const left = S.tasks.filter(x => x.st === "abn").length;
+  if(!left) log("🎉 全部可自动修复的异常已闭环；如有「需人工」项，请处理后重跑", "info");
+  busy = false; render();
+}
+
+/* ============ CSV 报告（BOM） ============ */
+function csvCell(v){ v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
+function downloadCsv(){
+  const rows = [["任务ID","定时任务","预期产出","巡检状态","根因","处理动作","复检结果"]];
+  const stTxt = { ok:"正常", abn:"异常", fixed:"已修复", human:"需人工" };
+  S.tasks.forEach(t => rows.push([
+    t.id, t.name, t.due, stTxt[t.st] || t.st,
+    t.root ? t.root.title : "—",
+    t.root ? (t.root.act ? t.root.fixLabel : "需人工处理") : "—",
+    t.st === "fixed" ? "复检通过" : (t.st === "ok" ? "校验通过" : (t.st === "human" ? "等待人工" : "待处理"))
+  ]));
+  rows.push(["统计", `正常 ${$("sOk").textContent} / 异常 ${$("sAbn").textContent} / 已修复 ${$("sFixed").textContent}`, "", "", "", "", "基准时间 2026-11-10 11:30"]);
+  const csv = "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "数据任务巡检报告_2026-11-10.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  log("⬇ 巡检报告已导出：数据任务巡检报告_2026-11-10.csv", "info");
+}
+
+/* ============ 重置 ============ */
+function resetAll(){
+  if(busy) return;
+  S.tasks = TASKS.map(t => ({ ...t, checks: t.checks.map(c => ({ ...c })), st:"idle", fixed:false }));
+  S.inspected = false;
+  $("thWave").value = 15; $("thLate").value = 15; $("thRetry").value = 2;
+  $("btnRun").disabled = false; $("btnRun").textContent = "▶ 开始巡检";
+  $("btnRecheck").disabled = true; $("btnCsv").disabled = true;
+  $("log").innerHTML = '<div style="color:#64748b">// 等待巡检指令…</div>';
+  render();
+}
+
+/* ============ 事件绑定 ============ */
+$("btnRun").addEventListener("click", () => runInspection(false));
+$("btnRecheck").addEventListener("click", () => { if(S.inspected && !busy) runInspection(true); });
+$("btnCsv").addEventListener("click", downloadCsv);
+$("btnReset").addEventListener("click", resetAll);
+render();
+</script>
+</body>
+</html>
