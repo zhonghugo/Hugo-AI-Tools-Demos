@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI简历初筛评分器 · 决策模型落地演示</title>
+<style>
+:root{--primary:#6d28d9;--primary-d:#4c1d95;--accent:#8b5cf6;--bg:#f5f3ff;--card:#fff;--line:#e2ddec;--text:#1f2937;--muted:#6b7280;--ok:#16a34a;--warn:#d97706;--bad:#dc2626}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;padding:16px 12px 40px}
+.wrap{max-width:1020px;margin:0 auto}
+header{text-align:center;padding:10px 0 14px}
+.badge{display:inline-block;font-size:12px;color:var(--primary-d);background:#ede9fe;border:1px solid #c4b5fd;border-radius:20px;padding:3px 14px;margin-bottom:8px}
+h1{font-size:24px;font-weight:800}
+.sub{color:var(--muted);font-size:13px;margin-top:6px;max-width:680px;margin:8px auto 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(76,29,149,.05)}
+.panel h2{font-size:15.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.panel h2 .stepn{background:var(--primary);color:#fff;font-size:12px;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--accent);color:var(--primary-d);background:#f3efff;border-radius:9px;padding:6px 13px;font-size:13px;cursor:pointer;font-weight:600}
+.chip.on{background:var(--primary);color:#fff}
+.jddesc{font-size:13px;color:#4b5563;margin-top:10px;background:#faf8ff;border:1px dashed #c4b5fd;border-radius:9px;padding:9px 12px}
+.dimrow{display:grid;grid-template-columns:110px 76px 1fr;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed #ece8f5}
+.dimrow:last-of-type{border-bottom:none}
+.dimrow .dn{font-size:13.5px;font-weight:600}
+.dimrow input[type=number]{width:64px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;font-size:13px}
+.dimrow input[type=text]{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;font-family:inherit}
+.wlabel{font-size:11.5px;color:var(--muted)}
+.threshrow{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid #ece8f5}
+.threshrow label{font-size:12.5px;color:#4b5563;display:flex;align-items:center;gap:6px}
+.threshrow input{width:70px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;font-size:13px}
+.resarea{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px}
+.rescard{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fcfbff}
+.rescard .rn{font-weight:700;font-size:14.5px;display:flex;justify-content:space-between;align-items:center}
+.score{font-size:26px;font-weight:800;color:var(--primary)}
+.score small{font-size:12px;color:var(--muted);font-weight:400}
+.dec{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 8px;margin-top:4px}
+.dec.rec{background:#dcfce7;color:var(--ok)}.dec.alt{background:#fef3c7;color:var(--warn)}.dec.rej{background:#fee2e2;color:var(--bad)}
+.human{margin-top:6px;font-size:12px;color:var(--warn);font-weight:700}
+.confbar{height:7px;background:#ede9fe;border-radius:4px;margin-top:8px;overflow:hidden}
+.confbar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.conftext{font-size:11.5px;color:var(--muted);margin-top:3px}
+.judge{margin-top:8px;font-size:11.5px;color:#4b5563;border-top:1px dashed #e2ddec;padding-top:7px}
+.judge b{font-size:11px;color:var(--primary-d)}
+.judge .jy{color:var(--ok)}.judge .jn{color:var(--bad)}
+.detail{display:none;margin-top:8px;font-size:11.5px;background:#f6f4fd;border-radius:8px;padding:8px 10px}
+.detail.show{display:block}
+.detail .dr{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.detail .hit{color:var(--muted)}
+a.toggle{font-size:11.5px;color:var(--primary);cursor:pointer;text-decoration:none;display:inline-block;margin-top:6px}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+button.act{border:none;border-radius:9px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;background:var(--primary)}
+button.act:hover{background:var(--primary-d)}
+button.act:disabled{background:#c4b5fd;cursor:not-allowed}
+button.ghost{background:#fff;color:var(--primary-d);border:1px solid var(--accent)}
+button.ghost:hover{background:#f3efff}
+.cvcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.cvcard label{font-size:12.5px;font-weight:700;display:block;margin-bottom:4px}
+.cvcard textarea{width:100%;height:96px;resize:vertical;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12px;font-family:inherit;line-height:1.5;background:#fcfbff}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.stats div{background:#faf8ff;border:1px solid var(--line);border-radius:10px;padding:8px 16px;text-align:center;flex:1;min-width:110px}
+.stats b{font-size:22px;color:var(--primary);display:block}
+.stats span{font-size:11.5px;color:var(--muted)}
+.log{margin-top:10px;background:#1e1b2e;color:#d8d4f0;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;border-radius:10px;padding:10px 12px;max-height:150px;overflow:auto}
+.log .t{color:#a78bfa}
+@media(max-width:760px){.resarea,.cvcards{grid-template-columns:1fr}.dimrow{grid-template-columns:90px 70px 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="badge">决策模型落地 · 参考 Gemini Decision 1 / Decisions API</span>
+  <h1>AI简历初筛评分器</h1>
+  <p class="sub">把 AI 流水线里的「判断环节」单独拆出来：不逐字生成，而是对预设候选一次评分——一次请求评完所有候选人，每项输出 0-1 置信度，低置信自动转人工复核。示例数据已固化，直接点「开始 AI 初筛」。</p>
+</header>
+
+<div class="panel">
+  <h2><span class="stepn">1</span>选择岗位 JD</h2>
+  <div class="chips" id="jdChips"></div>
+  <div class="jddesc" id="jdDesc"></div>
+</div>
+
+<div class="panel">
+  <h2><span class="stepn">2</span>评分标准（业务表单 · 权重与关键词可调）</h2>
+  <div id="dimRows"></div>
+  <div class="threshrow">
+    <label>推荐线 ≥<input type="number" id="thRec" value="75"></label>
+    <label>备选线 ≥<input type="number" id="thAlt" value="60"></label>
+    <label>置信阈值 ≥<input type="number" id="thConf" value="0.70" step="0.05"></label>
+    <span class="wlabel">低于置信阈值的候选人自动标记「转人工复核」</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2><span class="stepn">3</span>候选人简历（示例已固化，可编辑）</h2>
+  <div class="cvcards" id="cvCards"></div>
+  <div class="btns">
+    <button class="act" id="btnRun">开始 AI 初筛</button>
+    <button class="act ghost" id="btnRe" disabled>重新评分</button>
+    <button class="act ghost" id="btnCsv" disabled>导出 CSV 报告</button>
+    <button class="act ghost" id="btnReset">还原示例</button>
+  </div>
+</div>
+
+<div class="panel" id="resultPanel" style="display:none">
+  <h2><span class="stepn">4</span>初筛结果（决策 = 评分 + 多项选择 + Yes/No 判断一次完成）</h2>
+  <div class="stats" id="statCards"></div>
+  <div class="resarea" id="resArea"></div>
+  <div class="log" id="logBox"></div>
+</div>
+
+</div>
+<script>
+"use strict";
+/* ---------- 示例数据（固化） ---------- */
+const JDS = [
+  { name:"财务信息化经理", desc:"要求：精通 Excel 建模与数据清洗，掌握 SQL；8 年以上财务/业务系统经验；餐饮连锁/SaaS/零售行业背景优先；有大型项目主导经验。",
+    dims:[
+      {name:"技能匹配", w:40, kws:"Excel建模,SQL,ERP,财务系统,数据清洗"},
+      {name:"经验年限", w:25, kws:"", minYears:8},
+      {name:"行业背景", w:20, kws:"餐饮,SaaS,连锁,零售,快消"},
+      {name:"项目经验", w:15, kws:"主导,负责,上线,推广,项目"}
+    ]},
+  { name:"RPA实施工程师", desc:"要求：熟悉 RPA 工具（UiPath/影刀等）与 Python；3 年以上实施交付经验；财务/供应链/制造场景优先；有流程部署落地经验。",
+    dims:[
+      {name:"技能匹配", w:40, kws:"RPA,UiPath,影刀,Python,自动化"},
+      {name:"经验年限", w:25, kws:"", minYears:3},
+      {name:"行业背景", w:20, kws:"财务,供应链,制造,零售"},
+      {name:"项目经验", w:15, kws:"部署,实施,交付,流程,项目"}
+    ]},
+  { name:"AI应用落地运营", desc:"要求：了解 AI/Agent/LLM 与提示词工程；5 年以上互联网/软件运营经验；有 AI 工具落地推广与培训经验。",
+    dims:[
+      {name:"技能匹配", w:40, kws:"AI,Agent,LLM,提示词,工作流"},
+      {name:"经验年限", w:25, kws:"", minYears:5},
+      {name:"行业背景", w:20, kws:"互联网,软件,SaaS,数字化"},
+      {name:"项目经验", w:15, kws:"落地,运营,推广,培训,项目"}
+    ]}
+];
+const CVS = [
+  { name:"李明", text:"11 年餐饮 SaaS 公司业务信息化与财务系统经验。主导全国佣金改革项目（负责建模、试算、上线、推广全链），精通 Excel 建模与数据清洗，掌握 SQL 查询，主导 ERP 财务系统上线与流程整合，连续任职 11 年，多次晋升。" },
+  { name:"王芳", text:"6 年零售连锁企业财务共享中心经验。负责月度对账与费用报销流程，熟练 Excel 数据透视与数据清洗，了解 ERP 系统操作，参与财务系统升级项目上线，主导报销流程标准化推广。" },
+  { name:"张强", text:"3 年行政与后勤支持经验。负责办公用品采购与会议安排，熟悉 Office 办公软件，正在考虑转行，求职意向明确。" }
+];
+/* ---------- 状态 ---------- */
+let curJd = 0, ran = false, lastRes = null;
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const squish = s => s.replace(/\s+/g,"");
+/* ---------- 渲染 ---------- */
+function renderJd(){
+  $("jdChips").innerHTML = JDS.map((j,i)=>`<button class="chip${i===curJd?" on":""}" data-i="${i}">${j.name}</button>`).join("");
+  $("jdDesc").textContent = JDS[curJd].desc;
+  $("dimRows").innerHTML = JDS[curJd].dims.map((d,i)=>{
+    const kw = d.kws ? `<input type="text" data-dim="${i}" value="${d.kws}">` : `<input type="text" data-dim="${i}" value="（按简历中的「N 年」自动计算）" disabled>`;
+    const mn = d.minYears ? `<span class="wlabel">满 ${d.minYears} 年=100</span>` : "";
+    return `<div class="dimrow"><span class="dn">${d.name}</span><span><input type="number" data-w="${i}" value="${d.w}" min="0" max="100"> ${mn}</span><span>${kw}</span></div>`;
+  }).join("");
+  $("jdChips").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{ curJd=+c.dataset.i; ran=false; $("resultPanel").style.display="none"; $("btnRe").disabled=true; $("btnCsv").disabled=true; renderJd(); log("切换岗位 JD → "+JDS[curJd].name+"，评分标准已重置"); });
+}
+function renderCv(){
+  $("cvCards").innerHTML = CVS.map((c,i)=>`<div class="cvcard"><label>候选人 ${c.name}</label><textarea id="cv${i}">${esc(c.text)}</textarea></div>`).join("");
+}
+function log(msg){
+  const box = $("logBox");
+  const time = new Date().toTimeString().slice(0,8);
+  const div = document.createElement("div");
+  div.innerHTML = `<span class="t">[${time}] [决策引擎]</span> ${esc(msg)}`;
+  box.appendChild(div); box.scrollTop = box.scrollHeight;
+}
+/* ---------- 决策引擎（确定性规则模拟） ---------- */
+function scoreOne(dim, text){
+  if(dim.minYears){
+    const m = text.match(/(\d+)\s*年/);
+    const y = m ? +m[1] : 0;
+    const s = y>=dim.minYears?100 : y>=Math.ceil(dim.minYears*0.6)?70 : y>=3?40 : 15;
+    return {s, hits:[`${y} 年`], pass:s>=60};
+  }
+  const q = s => document.querySelector(s);
+  const kws = squish(q(`[data-dim="${JDS[curJd].dims.indexOf(dim)}"]`).value).split(/[,，]/).filter(Boolean);
+  const t = squish(text);
+  const hits = kws.filter(k=>t.includes(k));
+  const s = kws.length? Math.round(hits.length/kws.length*100) : 0;
+  return {s, hits, pass:s>=60};
+}
+function evaluate(cvText){
+  const dims = JDS[curJd].dims.map((d,i)=>{
+    const w = +(document.querySelector(`[data-w="${i}"]`).value||0);
+    return {name:d.name, w, ...scoreOne(d, cvText)};
+  });
+  const wSum = dims.reduce((a,d)=>a+d.w,0)||1;
+  const total = Math.round(dims.reduce((a,d)=>a+d.s*d.w,0)/wSum*10)/10;
+  const thR = +$("thRec").value, thA = +$("thAlt").value, thC = +$("thConf").value;
+  const dist = Math.min(Math.abs(total-thR), Math.abs(total-thA));
+  const conf = Math.max(0.55, Math.min(0.97, 0.55 + dist*0.025));
+  let dec, cls;
+  if(total>=thR){dec="推荐进入面试";cls="rec";} else if(total>=thA){dec="备选观察";cls="alt";} else {dec="淘汰";cls="rej";}
+  const needHuman = conf < thC;
+  return {dims, total, conf, dec, cls, needHuman, thR, thA, thC};
+}
+function runAll(isRerun){
+  if(!ran){
+    for(let i=0;i<CVS.length;i++){ if(!$("cv"+i).value.trim()){ log("候选人 "+CVS[i].name+" 简历为空，跳过（请填写或还原示例）"); } }
+  }
+  lastRes = CVS.map((c,i)=>({name:c.name, ...evaluate($("cv"+i).value)}));
+  ran = true;
+  renderResults(isRerun);
+  $("btnRe").disabled = false; $("btnCsv").disabled = false;
+  $("resultPanel").style.display = "block";
+}
+function renderResults(isRerun){
+  const n = lastRes.length;
+  const nRec = lastRes.filter(r=>r.dec==="推荐进入面试").length;
+  const nHum = lastRes.filter(r=>r.needHuman).length;
+  const nRej = lastRes.filter(r=>r.dec==="淘汰").length;
+  $("statCards").innerHTML = `<div><b>${n}</b><span>候选人数</span></div><div><b>${nRec}</b><span>推荐进入面试</span></div><div><b>${nHum}</b><span>转人工复核</span></div><div><b>${nRej}</b><span>淘汰</span></div>`;
+  $("resArea").innerHTML = lastRes.map((r,ri)=>{
+    const judges = r.dims.map(d=>`<span class="${d.pass?"jy":"jn"}">${d.pass?"Yes":"No"}</span>`).join(" / ");
+    return `<div class="rescard" data-n="${r.name}">
+      <div class="rn"><span>${r.name}</span><span class="score">${r.total}<small>/100</small></span></div>
+      <span class="dec ${r.cls}">${r.dec}</span>
+      ${r.needHuman?'<div class="human">⚠️ 置信度低于阈值 → 转人工复核</div>':""}
+      <div class="confbar"><i style="width:${Math.round(r.conf*100)}%"></i></div>
+      <div class="conftext">置信度 ${r.conf.toFixed(2)}（距最近档线 ${Math.round(Math.min(Math.abs(r.total-r.thR),Math.abs(r.total-r.thA))*10)/10} 分）</div>
+      <div class="judge"><b>Yes/No 判断（维度达标 ≥60）：</b>${judges}</div>
+      <a class="toggle" data-r="${ri}">展开维度明细 ▾</a>
+      <div class="detail" id="dt${ri}">
+        ${r.dims.map(d=>`<div class="dr"><span>${d.name}（权重 ${d.w}）：<b>${d.s}</b> 分</span><span class="hit">命中：${d.hits.length?esc(d.hits.join("、")):"—"}</span></div>`).join("")}
+      </div>
+    </div>`;
+  }).join("");
+  $("resArea").querySelectorAll(".toggle").forEach(a=>a.onclick=()=>{ const d=$("dt"+a.dataset.r); d.classList.toggle("show"); a.textContent = d.classList.contains("show")?"收起维度明细 ▴":"展开维度明细 ▾"; });
+  lastRes.forEach(r=>log(`${r.name} → 总分 ${r.total} · ${r.dec} · 置信度 ${r.conf.toFixed(2)}${r.needHuman?" · ⚠️ 转人工复核":""}`));
+  log(isRerun?"重新评分完成：阈值调整已联动全部决策结果。":"初筛完成：一次请求完成 "+(n*6)+" 项决策（每候选人 4 项 Yes/No + 1 项多项选择 + 1 项评分）。");
+}
+/* ---------- CSV ---------- */
+function csv(){
+  const head = "姓名,总分,决策,置信度,转人工复核," + lastRes[0].dims.map(d=>d.name).join(",") + "\n";
+  const rows = lastRes.map(r=>[r.name,r.total,r.dec,r.conf.toFixed(2),r.needHuman?"是":"否",...r.dims.map(d=>d.s)].join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+head+rows],{type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "简历初筛报告.csv"; a.click();
+  log("CSV 报告已导出：简历初筛报告.csv（含 BOM，Excel 直接打开不乱码）");
+}
+function resetAll(){
+  curJd = 0; ran = false; lastRes = null;
+  $("thRec").value=75; $("thAlt").value=60; $("thConf").value=0.70;
+  $("resultPanel").style.display="none"; $("logBox").innerHTML="";
+  $("btnRe").disabled=true; $("btnCsv").disabled=true;
+  renderJd(); renderCv();
+}
+/* ---------- 绑定 ---------- */
+$("btnRun").onclick = ()=>runAll(false);
+$("btnRe").onclick = ()=>runAll(true);
+$("btnCsv").onclick = csv;
+$("btnReset").onclick = ()=>{ resetAll(); log("已还原示例数据。"); };
+renderJd(); renderCv();
+</script>
+</body>
+</html>
