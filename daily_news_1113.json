@@ -1,0 +1,183 @@
+{
+  "date": "2026-11-13",
+  "source": "WebSearch（AI资讯聚合/GitHub trending/Product Hunt/官方源核实 4轮，链接经搜索核实）",
+  "count": 7,
+  "table_total": 388,
+  "items": [
+    {
+      "资讯标题": "three.dev正式GA：在用户发现之前找出AI Agent会怎么失败，LLM流量自动评分归因失败模式，MCP直接交给Claude Code修",
+      "摘要": "AI Agent生产监控工具three.dev 11/13宣布GA（Product Hunt同日上线）。核心玩法：把一段setup prompt贴进Claude Code/Cursor/Codex，Agent的LLM调用自动路由经three.dev代理评分（并行评分不加延迟），问题自动聚合成按严重度/频率排序的「失败模式」，证据精确到system prompt哪一行导致出错；修复通过MCP服务器把失败模式（含失败请求与原因）交给编码Agent；修复上线后观察该失败模式是否消失来验证效果。支持OpenAI/Anthropic/Gemini/Azure OpenAI/LiteLLM，免费版5万请求/月（5000评分请求），Starter $79/月，11/9-22注册送6个月Starter。",
+      "需求/痛点": "Agent上线后没有崩溃但悄悄出错，团队总是从用户投诉才知道；评测只测「跑通几个样例」，生产环境组合路径失败无人兜底。",
+      "工具建议": "有生产Agent的团队值得接免费层观察一周。个人流水线暂用不上SaaS监控，但其「失败模式分组+证据归因+修复后回归观察」的方法论可直接抄到自己的自动化任务日志设计里。",
+      "VibeCoding小工具机会": "①直接落地：给自己的每日3个定时任务加「失败模式台账」——每次失败记录任务/报错/根因分类/严重度，重跑后标记该模式是否消失，把排障从翻日志变成看看板；②衍生工具：单文件HTML「Agent失败模式归因器」——粘贴报错日志片段，按预设规则（超时/权限/格式解析/幻觉）自动归类并给出排查动作清单，正对口非程序员定位代码根因的痛点。",
+      "推荐原因": "用户实际承担系统维护且不擅长读日志，Agent失败监控的思路与demo化潜力都对口；「先找失败再修」正是自动化流水线最缺的环节。",
+      "推荐指数": 4,
+      "来源平台": [
+        "Product Hunt"
+      ],
+      "主题分类": [
+        "AI Agent/智能体工具"
+      ],
+      "链接": "[https://dev.to/kickingthetv/threedev-is-now-generally-available-find-out-how-your-ai-agent-fails-before-your-users-do-5ddo](https://dev.to/kickingthetv/threedev-is-now-generally-available-find-out-how-your-ai-agent-fails-before-your-users-do-5ddo)",
+      "日期": "2026-11-13T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28Z9KFJswkc",
+      "收录时间": "2026-11-13T19:39-19:43+08:00"
+    },
+    {
+      "资讯标题": "agentes-chat登顶新增LLM仓库榜：自托管Slack替代品，团队和AI Agent同频道协作，Agent有专属电脑/浏览器/例程/预算和审批",
+      "摘要": "开源自托管协作平台agentes-chat（GitHub Trending，AGPL-3.0，TypeScript，3天新增约1200星）：做成「Slack形态」的AI Agent工作台——团队成员和AI Agent在同一个频道/私信里协作；每个Agent带角色、所有者、预算，可跑Claude/Codex/Gemini/Grok或任意OpenRouter模型，配MCP工具、专属电脑和浏览器、定时例程（routines）、长期记忆；敏感动作先请示（approvals）；Web/桌面/手机端齐备，Docker Compose+Postgres自托管，也有托管云版。",
+      "需求/痛点": "多Agent协作现在散落在各CLI和聊天窗口里，任务分配、进度可见、人工审批没有统一入口；SaaS Agent平台又不放心数据。",
+      "工具建议": "与已入库的CopilotKit/OpenBot（11/9，工作台形态）、GitHub Next Ace（11/10）同一赛道但形态不同——用聊天频道当Agent总控台。自托管需Docker，适合先看云版再决定；重点参考它的「Agent带预算+审批闸门」设计。",
+      "VibeCoding小工具机会": "①直接落地：借鉴其「频道+例程+审批」三件套，把自己的Master+Subagent流水线装进一个飞书群/频道——每个定时任务一个「频道」，跑完汇报、关键动作@人审批；②衍生工具：单文件HTML「Agent例程看板」——为3个每日定时任务配置触发时间/成功标准/审批规则，用自然语言定义例程而非写cron。",
+      "推荐原因": "用户的8平台Master+Subagent框架正缺统一总控台和手机端审批入口，Slack形态的Agent工作台是最贴近「聊天即调度」的方案；开源可自托管符合零成本原则。",
+      "推荐指数": 5,
+      "来源平台": [
+        "GitHub"
+      ],
+      "主题分类": [
+        "AI Agent/智能体工具"
+      ],
+      "链接": "[https://github.com/agentes-chat/agentes-chat](https://github.com/agentes-chat/agentes-chat)",
+      "日期": "2026-11-13T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28Z9KN8kSA1",
+      "收录时间": "2026-11-13T19:39-19:43+08:00"
+    },
+    {
+      "资讯标题": "Harness Memory：给Claude Code/Codex/Hermes等Agent Harness加可插拔长期记忆层，跨Harness共享记忆+细粒度访问控制",
+      "摘要": "HarnessRouter开源的Agent记忆层（Product Hunt 11/12-13热榜，Community Edition开源，云版$0/$20/$200/$1000每月）：把长期记忆做成可移植基础设施——Agent建会话时自动配好记忆，无需单独接服务；引擎可选Mem0/Graphiti/Hindsight/ReMe或自带（开放协议），经MCP工具接入；核心亮点是跨Harness共享记忆：Codex里存的计划Claude Code新会话能直接召回；按记忆粒度授权、按终端用户隔离可独立擦除、召回内容以数据而非指令传入（防注入）、人控删除。",
+      "需求/痛点": "Agent记忆被锁死在单个客户端里，换工具/换模型上下文全部重建；共享记忆又怕数据串号和记忆投毒。",
+      "工具建议": "用户多平台（8个AI工具）并行正是「记忆碎片化」典型场景；但该产品面向产品团队构建用户侧Agent，个人工作流可直接借鉴「召回为数据不是指令」的安全设计与跨会话记忆文件规范。",
+      "VibeCoding小工具机会": "①直接落地：给8平台Agent框架建「统一记忆快照」规范——每平台会话结束导出结构化记忆片段（决策/偏好/进行中事项）到共享markdown库，次日各平台开场自动注入；②衍生工具：单文件HTML「跨平台记忆合并器」——粘贴各平台的记忆片段，按主题去重合并、标注来源与日期、标记冲突项待人工裁决。",
+      "推荐原因": "「记忆即基础设施」方向正确且开源可控；用户的多Agent多平台工作流长期被「每个工具各记各的」拖累，该设计是可直接抄的架构模板。",
+      "推荐指数": 4,
+      "来源平台": [
+        "Product Hunt"
+      ],
+      "主题分类": [
+        "AI Agent/智能体工具"
+      ],
+      "链接": "[https://superpowerdaily.com/tools/harness-memory](https://superpowerdaily.com/tools/harness-memory)",
+      "日期": "2026-11-13T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28Z9KN8ioMF",
+      "收录时间": "2026-11-13T19:39-19:43+08:00"
+    },
+    {
+      "资讯标题": "ZhuLinsen/daily_stock_analysis登GitHub趋势榜：70K stars LLM多市场股票分析系统，GitHub Actions零成本定时跑，决策看板推送飞书/企微",
+      "摘要": "LLM驱动的A股/港股/美股（另含日韩台股+ETF）智能分析系统（GitHub Trending，70,162 stars、11/12当日+429星，MIT，Python 3.10+，2026-01创建、月更至v3.34）：多数据源行情（TickFlow/AkShare/Tushare/YFinance）+实时新闻→LLM生成决策仪表盘（买入/观望/卖出评分+风险警报+催化剂）→企业微信/飞书/Telegram/Discord/Slack/邮箱推送；15种内置策略（均线/缠论/波浪/热点等）多轮问股，兼容Gemini/DeepSeek/通义/Claude/Ollama本地模型；GitHub Actions定时跑零成本，附WebUI与Agent策略对话；官方声明仅供学习研究不构成投资建议，有配套arXiv论文。",
+      "需求/痛点": "个人投资者每天看盘读新闻做判断费时费力；现成AI股票工具多是「提示词+行情接口」玩具，建议无法后验。",
+      "工具建议": "与用户财务背景最对口的开源项目之一，架构成熟（证据感知LLM编排+可后验决策信号）；GitHub Actions零成本部署门槛低；需自备数据源token，A股稳定数据建议配Tushare。",
+      "VibeCoding小工具机会": "①直接落地：fork后配GitHub Actions+飞书推送，只盯自选股清单，每天盘后自动收决策看板，验证「LLM+护栏」式财务分析流水线；②衍生工具：借鉴其「评分护栏+证据留存」做「每周岗位市场复盘器」——岗位推送数据沉淀成结构化信号（方向/薪资/技能要求趋势），可后验、可回看，把求职数据资产化。",
+      "推荐原因": "财务信息化背景+求职作品集双对口：既能学「LLM输出护栏与证据链」的落地架构，又能直接部署使用；70K stars+配套论文的工程可信度高。",
+      "推荐指数": 4,
+      "来源平台": [
+        "GitHub"
+      ],
+      "主题分类": [
+        "开源项目"
+      ],
+      "链接": "[https://github.com/ZhuLinsen/daily_stock_analysis](https://github.com/ZhuLinsen/daily_stock_analysis)",
+      "日期": "2026-11-13T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28Z9KN8jEHa",
+      "收录时间": "2026-11-13T19:39-19:43+08:00"
+    },
+    {
+      "资讯标题": "OpenAI开源codex-security：Codex Security CLI+TypeScript SDK，让编码Agent自主查找/验证/修复安全漏洞",
+      "摘要": "OpenAI开源的Codex Security CLI与TypeScript SDK（GitHub Trending，11,962 stars）：把安全漏洞的「查找→验证→修复」闭环交给编码Agent执行——扫描出疑似漏洞后先做可利用性验证（减少误报），再生成修复，经npm包 @openai/codex-security 集成到现有Codex工作流。与已入库的cloudflare/security-audit-skill（10/28，审计技能）定位互补：一个产出机器可读审计报告，一个直接闭环修复。",
+      "需求/痛点": "AI生成的代码上线前没人做安全审查；传统扫描器误报多，开发嫌麻烦直接忽略。",
+      "工具建议": "日常demo多为单文件HTML风险有限；若交付带后端/处理用户输入的项目（如云服务应用、小程序）时值得跑一遍CLI做上线前自查，成本主要是API额度。",
+      "VibeCoding小工具机会": "①直接落地：把codex-security接进Demo发布前自查清单——推GitHub前对含后端的项目跑一轮扫描，输出「安全检查通过/发现项」小结附在交付说明里；②衍生工具：单文件HTML「交付前安全自查清单生成器」——按项目形态（纯HTML/带后端/带登录/带支付）动态生成检查项与命令清单，勾选留痕导出报告。",
+      "推荐原因": "官方出品可信度高且免费；「验证后再修」的误报控制思路对任何自动化质量检查都有借鉴价值；求职作品集若展示安全意识是加分项。",
+      "推荐指数": 4,
+      "来源平台": [
+        "GitHub"
+      ],
+      "主题分类": [
+        "开源项目"
+      ],
+      "链接": "[https://github.com/openai/codex-security](https://github.com/openai/codex-security)",
+      "日期": "2026-11-13T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28Z9KN8jMXc",
+      "收录时间": "2026-11-13T19:39-19:43+08:00"
+    },
+    {
+      "资讯标题": "shadcn开源improve登趋势榜：用最强模型审计代码库写执行计划，交给便宜模型干活，一个仓库两种模型分工",
+      "摘要": "shadcn/improve（GitHub Trending日榜，11,225 stars，+361/日）：核心思路是「贵模型动脑、便宜模型动手」——用你最强的模型对代码库做整体审计并产出结构化执行计划（plans），再由更便宜的模型照计划执行落地，降低日常Agent使用成本。与已入库的microsoft/TokenEconomizer（11/7，token级降本5-40%）思路一致但切入点不同：一个优化调用本身，一个优化「谁干哪段活」的分工。",
+      "需求/痛点": "订阅制Agent重度用户的额度焦虑：每个小任务都烧旗舰模型，月额度快速见底；让便宜模型直接干活又容易跑偏。",
+      "工具建议": "用户每日流水线重度依赖Claude Code订阅，直接可用：把「审计+计划」环节固定用旗舰模型（如每天一次），资讯采集/demo生成等执行环节走便宜模型（Flash类），并观察质量差异。",
+      "VibeCoding小工具机会": "①直接落地：改造自己的3个定时任务prompt——拆成「计划提示词」（旗舰模型出当日执行清单）+「执行提示词」（便宜模型照单干活）两段，对比一周token消耗与产出质量；②衍生工具：单文件HTML「模型分工计算器」——输入任务类型/频率/各模型单价与订阅额度，算出「旗舰只做计划」比「全旗舰」每月省多少、额度撑几天。",
+      "推荐原因": "额度管理是用户真实痛点（11/11刚遇额度重置）且零改造成本；「计划/执行分离」与Master+Subagent范式天然同构，可立刻在自己的流水线验证。",
+      "推荐指数": 4,
+      "来源平台": [
+        "GitHub"
+      ],
+      "主题分类": [
+        "泛AI效率工具"
+      ],
+      "链接": "[https://github.com/shadcn/improve](https://github.com/shadcn/improve)",
+      "日期": "2026-11-13T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28Z9KN8jDex",
+      "收录时间": "2026-11-13T19:39-19:43+08:00"
+    },
+    {
+      "资讯标题": "GoogleChrome/modern-web-guidance：Google官方为编码Agent维护的Web最佳实践技能库，日增2000+星",
+      "摘要": "Google Chrome团队开源的技能仓库（GitHub Trending，5,730 stars，11/12单日+2,038星；另有拆分的modern-web-guidance-src）：把最新的Web开发最佳实践打包成编码Agent可直接加载的技能，让Claude Code/Codex等Agent写前端时跟上最新规范（新API、新特性、反模式），避免用训练数据里的过时写法。与anthropics/skills（194K stars）生态互补：一个管通用工程技能，一个专攻Web领域的「知识保鲜」。",
+      "需求/痛点": "模型训练截止日之后的Web新特性Agent不知道，写出的前端代码用的是过时方案；人肉喂文档又麻烦。",
+      "工具建议": "用户的demo以单文件HTML为主，前端质量直接影响作品集观感；安装成本低（装技能即可），每周demo生成前让Agent先读一遍相关指引即可。",
+      "VibeCoding小工具机会": "①直接落地：装进每日demo生成流程——10:30任务开工先让Agent检查当天demo涉及的API是否有新指引，命中则按新写法实现；②衍生工具：单文件HTML「demo浏览器兼容自查页」——检测生成demo用到的API在主流浏览器的支持情况并给出降级写法提示，交付前一键自检。",
+      "推荐原因": "官方维护、免费、与每日HTML demo生产强相关；对非程序员来说，这是让Agent「少用过时写法」的最低成本手段，暂列3星因对当前demo链路收益偏锦上添花。",
+      "推荐指数": 3,
+      "来源平台": [
+        "GitHub"
+      ],
+      "主题分类": [
+        "泛AI效率工具"
+      ],
+      "链接": "[https://github.com/GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance)",
+      "日期": "2026-11-13T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28Z9KN8hpAR",
+      "收录时间": "2026-11-13T19:39-19:43+08:00"
+    }
+  ]
+}

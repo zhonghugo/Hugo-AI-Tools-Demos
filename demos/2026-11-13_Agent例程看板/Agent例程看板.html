@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent例程看板 — 每日定时任务的频道化总控台</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--chipbg:#eef2ff;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:18px 14px 60px}
+.wrap{max-width:960px;margin:0 auto}
+header{text-align:center;margin-bottom:20px}
+.badge{display:inline-block;background:var(--chipbg);color:var(--primary);font-size:12px;padding:4px 12px;border-radius:999px;margin-bottom:8px}
+h1{font-size:24px;margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;max-width:640px;margin:0 auto}
+.src{color:var(--muted);font-size:12px;margin-top:6px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+section h2{font-size:16px;margin-bottom:4px}
+section .hint{color:var(--muted);font-size:12px;margin-bottom:12px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--chipbg);color:var(--primary);border:none;border-radius:999px;padding:6px 14px;font-size:12px;cursor:pointer}
+.chip:hover{filter:brightness(.95)}
+textarea{width:100%;min-height:72px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical}
+button.btn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.btn.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+button.btn.gray{background:#6b7280}
+#parseResult{display:none;background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-top:12px;font-size:13px}
+#parseResult .tag{display:inline-block;background:var(--chipbg);color:var(--primary);border-radius:6px;padding:2px 8px;font-size:12px;margin:2px 6px 2px 0}
+.miss{color:var(--warn);font-size:12px;margin-top:6px}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.formGrid label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.formGrid input,.formGrid select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit}
+.formGrid .full{grid-column:1/-1}
+.apprRow{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:4px}
+#board{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.rcard{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fafbfc;min-width:0}
+.rcard .rname{font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.st{font-size:11px;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.st.wait{background:#f1f5f9;color:#64748b}.st.run{background:#dbeafe;color:#1d4ed8}
+.st.ok{background:#dcfce7;color:#15803d}.st.bad{background:#fee2e2;color:#b91c1c}
+.st.pend{background:#fef3c7;color:#b45309}
+.rcard .meta{font-size:12px;color:var(--muted);margin-top:6px}
+.rcard .meta b{color:var(--ink);font-weight:600}
+.rcard .ops{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.rcard .ops button{border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+#feed{max-height:420px;overflow-y:auto;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:86%;border-radius:10px;padding:8px 12px;font-size:13px;min-width:0;word-break:break-word}
+.msg.sys{background:#e5e7eb;color:#374151;align-self:center;font-size:12px;border-radius:999px}
+.msg.agent{background:#dbeafe;align-self:flex-start}
+.msg.warn{background:#fee2e2;align-self:flex-start}
+.msg.okm{background:#dcfce7;align-self:flex-start}
+.apprCard{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 12px;font-size:13px;align-self:flex-start;max-width:86%;min-width:0}
+.apprCard .q{font-weight:600;margin-bottom:6px}
+.apprCard .ops{display:flex;gap:8px}
+.apprCard .ops button{border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;color:#fff}
+.apprCard .done{font-size:12px;color:var(--muted)}
+#stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+#stats div{background:#fafbfc;border:1px solid var(--line);border-radius:10px;text-align:center;padding:10px 4px}
+#stats b{font-size:20px;display:block}
+#stats span{font-size:11px;color:var(--muted)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#111827;color:#fff;font-size:13px;padding:9px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw}
+#toast.show{opacity:.92}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:8px}
+@media(max-width:560px){h1{font-size:20px}#stats{grid-template-columns:repeat(2,1fr)}.formGrid{grid-template-columns:1fr}.msg,.apprCard{max-width:96%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="badge">流程自动化 / RPA + AI 落地 / 数字化运营</span>
+  <h1>Agent例程看板</h1>
+  <p class="sub">参考 agentes-chat「Slack 形态的 Agent 工作台：例程（routines）+ 预算 + 审批闸门」——用自然语言给每日定时任务定例程，Agent 跑完在频道里自己汇报，敏感动作先请示。把「翻日志排障」变成「看看板拍板」。</p>
+  <p class="src">11/13 资讯 · agentes-chat（GitHub Trending，5星）· 衍生单文件演示工具</p>
+</header>
+
+<section>
+  <h2>① 用一句话定义例程</h2>
+  <p class="hint">像给同事布置工作一样描述：什么时候跑、跑什么、怎样算成功、失败了怎么办、要不要请示。</p>
+  <div class="chips" id="chips">
+    <button class="chip" data-ex="每天 09:00 汇总昨日销售日报，成功标准是生成表格且行数≥30，失败重试2次，无需审批">例：销售日报汇总</button>
+    <button class="chip" data-ex="每天 18:30 抓取应收账款台账，成功标准是写入记录≥100条，失败重试1次，推送老板前需要光叔审批">例：应收台账抓取</button>
+    <button class="chip" data-ex="每天 20:00 对账差异清理，成功标准是待处理差异清零，失败重试3次，需要财务经理审批">例：对账差异清理</button>
+  </div>
+  <textarea id="nlInput" placeholder="例如：每天 09:00 汇总昨日销售日报，成功标准是生成表格且行数≥30，失败重试2次，无需审批"></textarea>
+  <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn" id="btnParse">解析例程</button>
+    <button class="btn gray" id="btnReset1">清空</button>
+  </div>
+  <div id="parseResult"></div>
+  <div class="formGrid" id="formGrid">
+    <div><label>例程名称</label><input id="f_name" placeholder="任务名（解析自动填入，可改）"></div>
+    <div><label>触发时间（每天）</label><input id="f_time" type="time" value="09:00"></div>
+    <div class="full"><label>成功标准</label><input id="f_crit" placeholder="例如：写入记录≥100条"></div>
+    <div><label>失败重试次数</label><input id="f_retry" type="number" min="0" max="5" value="1"></div>
+    <div><label>失败后通知对象</label><input id="f_notify" value="光叔"></div>
+    <div class="full apprRow"><label style="margin:0"><input type="checkbox" id="f_appr"> 完成后需要人工审批（敏感动作先请示）</label></div>
+    <div class="full"><label>审批说明（勾选审批时生效）</label><input id="f_apprNote" placeholder="例如：推送老板前请示"></div>
+    <div class="full"><button class="btn" id="btnSave">保存到看板</button></div>
+  </div>
+</section>
+
+<section>
+  <h2>② 例程看板</h2>
+  <p class="hint">每个定时任务一张卡：触发时间 / 成功标准 / 重试 / 审批规则，状态实时流转。</p>
+  <div id="board"></div>
+</section>
+
+<section>
+  <h2>③ 频道消息流 + 模拟运行</h2>
+  <p class="hint">点「模拟运行今天」：Agent 按触发时间顺序执行例程，成功/失败/审批请求都以频道消息汇报——Slack 形态的总控台。</p>
+  <div id="stats">
+    <div><b id="sRun">0</b><span>今日运行</span></div>
+    <div><b id="sOk">0</b><span>成功</span></div>
+    <div><b id="sFail">0</b><span>失败/驳回</span></div>
+    <div><b id="sPend">0</b><span>待审批</span></div>
+  </div>
+  <div class="toolbar" style="margin-bottom:12px">
+    <button class="btn" id="btnSim">▶ 模拟运行今天</button>
+    <button class="btn ghost" id="btnCsv">导出运行报告 CSV</button>
+    <button class="btn gray" id="btnReset">重置演示</button>
+  </div>
+  <div id="feed"><div class="msg sys">频道「#每日例程」已就绪，等待运行…</div></div>
+</section>
+
+<footer>单文件自包含演示 · 数据均为固化示例，仅用于展示「例程定义 → 自动执行 → 频道汇报 → 人工审批」闭环</footer>
+</div>
+<div id="toast"></div>
+<script>
+"use strict";
+var $id=function(i){return document.getElementById(i)};
+var routines=[],seq=0,runLog=[],busy=false;
+var SEED=[
+ {name:"AI资讯采集",time:"08:30",crit:"写入资讯记录≥4条",retry:1,appr:false,apprNote:"",notify:"光叔"},
+ {name:"岗位机会推送",time:"10:00",crit:"写入岗位记录≥5条",retry:1,appr:false,apprNote:"",notify:"光叔"},
+ {name:"Demo生成推送",time:"10:30",crit:"生成demo并推送GitHub",retry:1,appr:true,apprNote:"推送 GitHub 前请示",notify:"光叔"}
+];
+function seed(){routines=SEED.map(function(r,i){return Object.assign({id:"r"+(++seq),status:"待运行",note:""},r)})}
+function toast(t){var el=$id("toast");el.textContent=t;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove("show")},2200)}
+function stClass(s){return s==="待运行"?"wait":s==="运行中"?"run":s==="成功"?"ok":s==="待审批"?"pend":"bad"}
+function renderBoard(){
+  var html=routines.map(function(r){
+    return '<div class="rcard" id="card_'+r.id+'"><div class="rname"><span>'+r.name+'</span><span class="st '+stClass(r.status)+'" id="st_'+r.id+'">'+r.status+'</span></div>'
+    +'<div class="meta">⏰ 每天 <b>'+r.time+'</b>　🔁 失败重试 <b>'+r.retry+'</b> 次</div>'
+    +'<div class="meta">✅ 成功标准：<b>'+r.crit+'</b></div>'
+    +'<div class="meta">'+(r.appr?'🔒 审批：<b>'+r.apprNote+'</b>':'🔓 无需审批')+'　📣 失败通知 '+r.notify+'</div>'
+    +'<div class="ops"><button data-run="'+r.id+'">▶ 立即运行</button></div></div>';
+  }).join("");
+  $id("board").innerHTML=html;
+  Array.prototype.forEach.call(document.querySelectorAll("[data-run]"),function(b){
+    b.onclick=function(){runOne(routines.find(function(r){return r.id===b.getAttribute("data-run")}))}
+  });
+}
+function statRender(){
+  $id("sRun").textContent=runLog.length;
+  $id("sOk").textContent=runLog.filter(function(x){return x.res==="成功"}).length;
+  $id("sFail").textContent=runLog.filter(function(x){return x.res==="失败"||x.res==="已驳回"}).length;
+  $id("sPend").textContent=routines.filter(function(r){return r.status==="待审批"}).length;
+}
+function setStatus(r,s){r.status=s;var el=$id("st_"+r.id);if(el){el.textContent=s;el.className="st "+stClass(s)}}
+function addMsg(cls,html){var d=document.createElement("div");d.className="msg "+cls;d.innerHTML=html;$id("feed").appendChild(d);$id("feed").scrollTop=$id("feed").scrollHeight;return d}
+function now() {var d=new Date();return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+":"+("0"+d.getSeconds()).slice(-2)}
+function logRun(r,res,note){runLog.push({name:r.name,time:r.time,res:res,note:note});statRender()}
+function sleep(ms){return new Promise(function(res){setTimeout(res,ms)})}
+function setBusy(b){busy=b;["btnSim","btnCsv","btnParse","btnSave","btnReset"].forEach(function(i){$id(i).disabled=b});
+  Array.prototype.forEach.call(document.querySelectorAll("[data-run]"),function(btn){btn.disabled=b});
+  Array.prototype.forEach.call(document.querySelectorAll(".apprCard button"),function(btn){btn.disabled=b||btn.dataset.done==="1"})}
+
+/* ---------- 自然语言解析 ---------- */
+function parseNL(text){
+  text=(text||"").trim();
+  if(!text)return null;
+  var out={miss:[]};
+  var m=text.match(/每天\s*(\d{1,2})\s*[:：点]\s*(\d{1,2})?\s*分?/);
+  if(m){out.time=("0"+m[1]).slice(-2)+":"+("0"+(m[2]||"0")).slice(-2)}else{out.time=null;out.miss.push("触发时间")}
+  var critM=text.match(/成功标准(?:是|为)([^，。；]+)/);
+  out.crit=critM?critM[1].trim():null;if(!critM)out.miss.push("成功标准");
+  var rM=text.match(/失败(?:时)?重试\s*(\d+)\s*次/);
+  out.retry=rM?parseInt(rM[1],10):null;if(!rM)out.miss.push("重试次数");
+  out.appr=!/无需审批|不需要审批/.test(text)&&(/需要.{0,8}审批|经.{0,6}审批|审批后/.test(text)||/推送.{0,6}(老板|前)|请示/.test(text));
+  var an=text.match(/(?:推送|发送|提交)([^，。]*?)(?:前|之前)/);
+  out.apprNote=out.appr?(an?("推送"+an[1]+"前请示"):"敏感动作请示"):"";
+  var nm=text.split(/[，,]/)[0].replace(/每天\s*\d{1,2}\s*[:：点]\s*\d{1,2}\s*分?/,"").replace(/每天\s*\d{1,2}\s*点/,"").replace(/^每天/,"").trim();
+  out.name=nm?nm.slice(0,12):null;if(!nm)out.miss.push("例程名称");
+  return out;
+}
+function showParse(){
+  var out=parseNL($id("nlInput").value);
+  var box=$id("parseResult");
+  if(!out){box.style.display="block";box.innerHTML='<span class="miss">请先输入例程描述，或点上方示例。</span>';return}
+  box.style.display="block";
+  box.innerHTML='<b>解析结果：</b>'
+   +(out.name?'<span class="tag">名称：'+out.name+'</span>':'')
+   +(out.time?'<span class="tag">触发：每天 '+out.time+'</span>':'')
+   +(out.crit?'<span class="tag">成功标准：'+out.crit+'</span>':'')
+   +(out.retry!==null?'<span class="tag">失败重试 '+out.retry+' 次</span>':'')
+   +'<span class="tag">'+(out.appr?"需要审批：":"无需审批")+(out.appr?out.apprNote:"")+'</span>'
+   +(out.miss.length?'<div class="miss">⚠ 未识别：'+out.miss.join("、")+'，已保留表单默认值，请人工确认补填。</div>':'<div class="miss">✔ 全部字段识别成功，可在下方表单微调后保存。</div>');
+  if(out.name)$id("f_name").value=out.name;
+  if(out.time)$id("f_time").value=out.time;
+  if(out.crit)$id("f_crit").value=out.crit;
+  if(out.retry!==null)$id("f_retry").value=out.retry;
+  $id("f_appr").checked=out.appr;
+  if(out.appr&&out.apprNote)$id("f_apprNote").value=out.apprNote;
+}
+function saveRoutine(){
+  var name=$id("f_name").value.trim();
+  if(!name){toast("请先填写例程名称（可先解析示例自动填入）");$id("f_name").focus();return}
+  if(routines.some(function(r){return r.name===name})){toast("看板里已有同名例程「"+name+"」，换个名字再保存");return}
+  var r={id:"r"+(++seq),name:name,time:$id("f_time").value||"09:00",crit:$id("f_crit").value.trim()||"任务正常完成",retry:Math.max(0,parseInt($id("f_retry").value,10)||0),
+    appr:$id("f_appr").checked,apprNote:$id("f_apprNote").value.trim()||( $id("f_appr").checked?"敏感动作请示":""),notify:$id("f_notify").value.trim()||"光叔",status:"待运行",note:""};
+  routines.push(r);renderBoard();
+  addMsg("sys","新增例程「"+r.name+"」：每天 "+r.time+" 运行"+(r.appr?"，需审批":""));
+  toast("已保存到看板：每天 "+r.time+" 执行「"+name+"」");
+}
+
+/* ---------- 运行模拟 ---------- */
+var SEED_RESULT={
+ "AI资讯采集":{type:"ok",detail:"抓取完成，写入资讯记录 7 条（≥4 条）✅"},
+ "岗位机会推送":{type:"fail",detail:"岗位源接口连续 2 次超时，写入 0 条（<5 条）❌ 已通知 光叔"},
+ "Demo生成推送":{type:"appr",detail:"Demo 已生成并通过验证，等待推送授权"}
+};
+function runOne(r){
+  if(busy){toast("正在模拟运行中，请稍候");return}
+  setBusy(true);
+  execRoutine(r).then(setBusy.bind(null,false));
+}
+function execRoutine(r){
+  setStatus(r,"运行中");renderBoard();
+  addMsg("agent","🤖 <b>"+r.name+"</b> 触发（每天 "+r.time+"），开始执行…");
+  return sleep(700).then(function(){
+    var seed=SEED_RESULT[r.name];
+    var type=seed?seed.type:"ok";
+    var detail=seed?seed.detail:(r.name+" 执行完成："+r.crit+" ✅");
+    if(type==="fail"){
+      var tries=1+r.retry;
+      addMsg("warn","⚠️ <b>"+r.name+"</b> 第 1 次执行未达标（"+r.crit+"），自动重试…");
+      return sleep(700).then(function(){
+        addMsg("warn","⚠️ <b>"+r.name+"</b> 重试后仍未达标（共 "+tries+" 次尝试），按例程规则通知 "+r.notify+"。");
+        setStatus(r,"失败");logRun(r,"失败","重试"+r.retry+"次后未达标");
+        return sleep(300);
+      });
+    }
+    if(type==="appr"||r.appr){
+      addMsg("okm","✔ <b>"+r.name+"</b> 执行完成："+detail);
+      setStatus(r,"待审批");
+      var card=document.createElement("div");card.className="apprCard";
+      card.innerHTML='<div class="q">🔒 审批请求 · '+r.name+'</div><div>'+detail+'<br>审批说明：'+(r.apprNote||"敏感动作请示")+'</div><div class="ops"><button class="btn" data-a="ok">批准</button><button class="btn gray" data-a="no">驳回</button></div>';
+      $id("feed").appendChild(card);$id("feed").scrollTop=$id("feed").scrollHeight;
+      statRender();
+      card.querySelectorAll("button").forEach(function(b){b.onclick=function(){
+        if(card.dataset.done==="1"||busy)return;
+        card.dataset.done="1";
+        var ok=b.getAttribute("data-a")==="ok";
+        card.querySelector(".ops").innerHTML='<span class="done">'+(ok?"✔ 已批准 · ":"✖ 已驳回 · ")+now()+'</span>';
+        if(ok){setStatus(r,"成功");logRun(r,"成功","人工批准后完成");addMsg("okm","🤖 <b>"+r.name+"</b> 已获批准，继续推送完成 ✅");}
+        else{setStatus(r,"已驳回");logRun(r,"已驳回","人工驳回，保留现场待调整");addMsg("warn","🤖 <b>"+r.name+"</b> 被驳回，保留现场等待调整后重跑。");}
+      }});
+      return sleep(300);
+    }
+    addMsg("okm","✔ <b>"+r.name+"</b> "+detail+"　（成功标准："+r.crit+"）");
+    setStatus(r,"成功");logRun(r,"成功",r.crit);
+    return sleep(300);
+  });
+}
+function simToday(){
+  if(busy){toast("正在运行中，请稍候");return}
+  var pend=routines.filter(function(r){return r.status==="待运行"});
+  if(!pend.length){toast("没有待运行的例程，可先重置或新增例程");return}
+  setBusy(true);
+  addMsg("sys","—— 模拟运行今天（按触发时间排序，共 "+pend.length+" 个例程）——");
+  var list=pend.slice().sort(function(a,b){return a.time<b.time?-1:1});
+  var p=Promise.resolve();
+  list.forEach(function(r){p=p.then(function(){return execRoutine(r)})});
+  p.then(function(){addMsg("sys","—— 今日运行结束：成功 "+$id("sOk").textContent+" · 失败/驳回 "+$id("sFail").textContent+" · 待审批 "+$id("sPend").textContent+" ——");setBusy(false)});
+}
+/* ---------- CSV ---------- */
+function exportCsv(){
+  if(!runLog.length){toast("今天还没有运行记录，先模拟运行一次");return}
+  var head=["例程","触发时间","结果","说明"];
+  var rows=runLog.map(function(x){return [x.name,x.time,x.res,x.note]});
+  var csv="\uFEFF"+head.join(",")+"\n"+rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(",")}).join("\n");
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Agent例程看板_运行报告.csv";a.click();
+  toast("已导出运行报告 CSV（含 BOM，Excel 可直接打开）");
+}
+/* ---------- 绑定 ---------- */
+$id("chips").addEventListener("click",function(e){
+  var t=e.target.closest(".chip");if(!t)return;
+  $id("nlInput").value=t.getAttribute("data-ex");showParse();
+});
+$id("btnParse").onclick=function(){var t=$id("nlInput").value.trim();if(!t){toast("请先输入例程描述");$id("nlInput").focus();return}showParse()};
+$id("btnReset1").onclick=function(){$id("nlInput").value="";$id("parseResult").style.display="none"};
+$id("btnSave").onclick=saveRoutine;
+$id("btnSim").onclick=simToday;
+$id("btnCsv").onclick=exportCsv;
+$id("btnReset").onclick=function(){
+  if(busy){toast("正在运行中，请稍候");return}
+  seed();runLog=[];renderBoard();statRender();
+  $id("feed").innerHTML='<div class="msg sys">频道「#每日例程」已重置，等待运行…</div>';
+  toast("已重置演示");
+};
+seed();renderBoard();statRender();
+</script>
+</body>
+</html>
