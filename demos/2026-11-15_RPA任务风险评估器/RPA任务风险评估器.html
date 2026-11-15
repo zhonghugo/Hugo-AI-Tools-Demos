@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPA任务风险评估器 — 交给 Agent 之前，先算清风险</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--chipbg:#eef2ff;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:18px 14px 60px}
+.wrap{max-width:960px;margin:0 auto}
+header{text-align:center;margin-bottom:20px}
+.badge{display:inline-block;background:var(--chipbg);color:var(--primary);font-size:12px;padding:4px 12px;border-radius:999px;margin-bottom:8px}
+h1{font-size:24px;margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;max-width:680px;margin:0 auto}
+.src{color:var(--muted);font-size:12px;margin-top:6px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+section h2{font-size:16px;margin-bottom:4px}
+section .hint{color:var(--muted);font-size:12px;margin-bottom:12px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--chipbg);color:var(--primary);border:none;border-radius:999px;padding:6px 14px;font-size:12px;cursor:pointer}
+.chip:hover{filter:brightness(.95)}
+textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical}
+button.btn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.btn.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+button.btn.gray{background:#6b7280}
+#parseResult{display:none;background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-top:12px;font-size:13px}
+#parseResult .tag{display:inline-block;background:var(--chipbg);color:var(--primary);border-radius:6px;padding:2px 8px;font-size:12px;margin:2px 6px 2px 0}
+.miss{color:var(--warn);font-size:12px;margin-top:6px}
+.fGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:12px}
+.fGrid label{font-size:12.5px;display:flex;align-items:center;gap:6px;color:var(--ink);cursor:pointer}
+.fGrid .full{grid-column:1/-1}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.formGrid label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.formGrid input,.formGrid select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit}
+.formGrid .full{grid-column:1/-1}
+#report{display:none}
+#riskCard{border-radius:10px;padding:14px 16px;color:#fff;margin-bottom:12px}
+#riskCard .lv{font-size:22px;font-weight:700}
+#riskCard .score{font-size:13px;opacity:.92;margin-top:2px}
+.lv-low{background:#16a34a}.lv-mid{background:#d97706}.lv-high{background:#ea580c}.lv-ext{background:#dc2626}
+.repCol{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.repBox{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;min-width:0}
+.repBox h3{font-size:13px;margin-bottom:6px}
+.repBox li{list-style:none;font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--line);word-break:break-word}
+.repBox li:last-child{border-bottom:none}
+#histList{font-size:12.5px;color:var(--muted)}
+#histList div{padding:3px 0;border-bottom:1px dashed var(--line)}
+#tl{max-height:380px;overflow-y:auto;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.tl-line{font-size:13px;word-break:break-word}
+.tl-line.sys{color:#64748b;font-size:12px}
+.tl-line.ok{color:#15803d}
+.tl-line.warn{color:#b45309}
+.tl-line.bad{color:#b91c1c}
+.confirmCard{background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:10px 12px;font-size:13px;max-width:100%;min-width:0}
+.confirmCard .q{font-weight:600;margin-bottom:6px}
+.confirmCard .ops{display:flex;gap:8px}
+.confirmCard .ops button{border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;color:#fff}
+.confirmCard .done{font-size:12px;color:var(--muted)}
+#stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+#stats div{background:#fafbfc;border:1px solid var(--line);border-radius:10px;text-align:center;padding:10px 4px}
+#stats b{font-size:20px;display:block}
+#stats span{font-size:11px;color:var(--muted)}
+#receipt{display:none;margin-top:12px}
+#receipt summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--primary)}
+#receipt pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin-top:8px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#111827;color:#fff;font-size:13px;padding:9px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw}
+#toast.show{opacity:.92}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:8px}
+@media(max-width:560px){h1{font-size:20px}#stats{grid-template-columns:repeat(2,1fr)}.formGrid,.fGrid,.repCol{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="badge">流程自动化 / RPA + AI 落地 / 数字化运营</span>
+  <h1>RPA任务风险评估器</h1>
+  <p class="sub">参考 n8n Labs 发布的开源个人 Agent「Nod」——任务收据 + 消费上限 + 敏感动作二次确认三件套。把这套安全设计前置：要交给 Agent 的网站任务，先回答「要登录吗 / 涉及钱吗 / 要发消息吗」，自动输出风险等级、必须加哪道人工确认闸门、建议的熔断阈值，再模拟跑一遍看闸门怎么拦。别等 Agent 把事办砸了才补安全。</p>
+  <p class="src">11/15 资讯 · n8n Labs Nod：本地个人 Agent，凭据隔离+二次确认+消费熔断（5星）· 衍生单文件演示工具</p>
+</header>
+
+<section>
+  <h2>① 描述要交给 Agent 的任务</h2>
+  <p class="hint">像给实习生布置活儿一样描述：做什么、登不登录、碰不碰钱。点示例直接填入。</p>
+  <div class="chips" id="chips">
+    <button class="chip" data-ex="每月登录供应商门户下载归档发票，转存到财务文件夹">例：供应商发票归档</button>
+    <button class="chip" data-ex="帮我把收件箱里的营销邮件批量退订">例：营销邮件批量退订</button>
+    <button class="chip" data-ex="从公开数据看板抄 8 项指标进周报表格">例：看板抄数进周报</button>
+  </div>
+  <textarea id="nlInput" placeholder="例如：每月登录供应商门户下载归档发票，转存到财务文件夹"></textarea>
+  <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn" id="btnParse">识别风险因子</button>
+    <button class="btn gray" id="btnClear">清空</button>
+  </div>
+  <div id="parseResult"></div>
+  <div class="fGrid" id="factorGrid">
+    <label><input type="checkbox" id="f_money" value="money"> 💰 涉及资金/付款/续费操作</label>
+    <label><input type="checkbox" id="f_del" value="del"> 🗑️ 删除或覆盖已有数据</label>
+    <label><input type="checkbox" id="f_out" value="out"> 📤 对外发送消息/邮件/下单</label>
+    <label><input type="checkbox" id="f_sens" value="sens"> 🔐 读取敏感数据（工资/客户/合同/发票）</label>
+    <label><input type="checkbox" id="f_login" value="login"> 🔑 需要登录第三方账号</label>
+    <label><input type="checkbox" id="f_web" value="web"> 🌐 纯网页操作（无 API）</label>
+    <label><input type="checkbox" id="f_batch" value="batch"> 🔁 定时/批量执行（非一次性）</label>
+    <label><input type="checkbox" id="f_new" value="new"> 🆕 首次在新网站运行</label>
+  </div>
+  <div class="formGrid">
+    <div class="full"><label>任务名称</label><input id="f_name" placeholder="自动从描述提取，可修改"></div>
+    <div><label>月度消费上限（$/月，超限熔断）</label><input id="f_cap" type="number" min="1" value="5"></div>
+    <div><label>失败自动重试次数</label><input id="f_retry" type="number" min="0" max="5" value="1"></div>
+    <div class="full"><button class="btn" id="btnEval">生成风险评估</button></div>
+  </div>
+</section>
+
+<section id="report">
+  <h2>② 风险评估报告</h2>
+  <p class="hint">风险分 = 各命中因子权重之和（💰资金+3 / 🗑️删除+3 / 📤对外+2 / 其余各+1）。分越高，闸门越多。</p>
+  <div id="riskCard">
+    <div class="lv" id="lvText">—</div>
+    <div class="score" id="scoreText">—</div>
+  </div>
+  <div class="repCol">
+    <div class="repBox"><h3>🔒 必须加的人工确认闸门</h3><ul id="gateList"></ul></div>
+    <div class="repBox"><h3>🚨 建议的熔断阈值</h3><ul id="fuseList"></ul></div>
+  </div>
+  <div style="margin-top:12px" class="toolbar">
+    <button class="btn" id="btnSim">▶ 模拟执行一次该任务</button>
+  </div>
+</section>
+
+<section>
+  <h2>③ 执行时间线 + 任务收据</h2>
+  <p class="hint">闸门触发会暂停等确认；跑完自动生成任务收据——干了什么、花了多少 token、动了什么数据、哪道闸门拦过。</p>
+  <div id="stats">
+    <div><b id="sTask">0</b><span>已评估任务</span></div>
+    <div><b id="sRun">0</b><span>模拟运行</span></div>
+    <div><b id="sGate">0</b><span>闸门触发</span></div>
+    <div><b id="sBlock">0</b><span>人工拦截</span></div>
+  </div>
+  <div id="tl"><div class="tl-line sys">安全总控就绪。先在上方完成风险评估，再点「模拟执行」。</div></div>
+  <details id="receipt"><summary>📋 任务收据（点开看完整 JSON）</summary><pre id="receiptJson"></pre></details>
+  <div class="toolbar" style="margin-top:12px">
+    <button class="btn ghost" id="btnCsv">导出评估记录 CSV</button>
+    <button class="btn gray" id="btnReset">重置演示</button>
+  </div>
+</section>
+
+<footer>单文件自包含演示 · 数据均为固化示例，仅用于展示「风险评分 → 闸门配置 → 熔断阈值 → 任务收据」闭环</footer>
+</div>
+<div id="toast"></div>
+<script>
+"use strict";
+var $id=function(i){return document.getElementById(i)};
+var FACTORS={
+ money:{w:3,label:"涉及资金/付款操作",desc:"付款前二次确认 + 消费上限熔断"},
+ del:{w:3,label:"删除或覆盖数据",desc:"删除/覆盖前二次确认 + 自动备份快照"},
+ out:{w:2,label:"对外发送消息/邮件/下单",desc:"对外发送前二次确认"},
+ sens:{w:1,label:"读取敏感数据",desc:"收据中敏感字段自动脱敏"},
+ login:{w:1,label:"需要登录第三方账号",desc:"凭据隔离：密码走本机 Vault 表单，模型读不到"},
+ web:{w:1,label:"纯网页操作（无API）",desc:"定位失败自愈重试 ≤3 次，仍失败暂停转人工"},
+ batch:{w:1,label:"定时/批量执行",desc:"连续失败 2 次自动熔断暂停，生成失败收据"},
+ new:{w:1,label:"首次在新网站运行",desc:"先试运行 1 次人工观察，再转全自动"}
+};
+var RULES=[
+ {re:/付款|支付|转账|续费/,k:"money"},
+ {re:/删除|清空|覆盖|撤销|作废/,k:"del"},
+ {re:/发送|发消息|通知|退订|下单|回复/,k:"out"},
+ {re:/工资|客户|合同|发票|简历|身份证|银行卡|报价/,k:"sens"},
+ {re:/登录|账号|门户|后台|内部系统/,k:"login"},
+ {re:/网页|网站|看板|页面|门户|没有导出|无API/,k:"web"},
+ {re:/每月|每天|每周|定时|批量/,k:"batch"},
+ {re:/首次|新网站|第一次|没用过/,k:"new"}
+];
+var hist=[],seq=0,busy=false,cur=null;
+var runs=0,gates=0,blocks=0,tasks=0;
+function toast(t){var el=$id("toast");el.textContent=t;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove("show")},2200)}
+function now(){var d=new Date();return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+":"+("0"+d.getSeconds()).slice(-2)}
+function sleep(ms){return new Promise(function(res){setTimeout(res,ms)})}
+function parseNL(text){
+  text=(text||"").trim();if(!text)return null;
+  var hit={};RULES.forEach(function(r){if(r.re.test(text))hit[r.k]=true});
+  var name=text.split(/[，,。；;]/)[0].trim().slice(0,16);
+  return {keys:Object.keys(hit),name:name||null};
+}
+function showParse(){
+  var out=parseNL($id("nlInput").value);
+  var box=$id("parseResult");
+  if(!out){box.style.display="block";box.innerHTML='<span class="miss">请先输入任务描述，或点上方示例。</span>';return}
+  box.style.display="block";
+  if(!out.keys.length){
+    box.innerHTML='<b>未识别到明确风险因子</b><div class="miss">⚠ 没匹配到登录/资金/对外发送等关键词。低风险≠零风险：请人工在下方勾选补全，再生成评估。</div>';
+  }else{
+    box.innerHTML='<b>识别到 '+out.keys.length+' 个风险因子：</b>'+out.keys.map(function(k){
+      return '<span class="tag">'+FACTORS[k].label+'（+'+FACTORS[k].w+'）</span>'}).join("")
+      +'<div class="miss">✔ 已自动勾选到下方表单，可人工增删后生成评估。'+(out.name?"任务名称预填：「"+out.name+"」":"")+'</div>';
+  }
+  ["money","del","out","sens","login","web","batch","new"].forEach(function(k){$id("f_"+k).checked=!!out.keys.filter(function(x){return x===k}).length});
+  if(out.name)$id("f_name").value=out.name;
+}
+function scoreOf(keys){var s=0;keys.forEach(function(k){s+=FACTORS[k].w});return s}
+function levelOf(s){return s<=1?["低","lv-low"]:s<=3?["中","lv-mid"]:s<=5?["高","lv-high"]:["极高","lv-ext"]}
+function evaluate(){
+  var name=$id("f_name").value.trim();
+  var keys=["money","del","out","sens","login","web","batch","new"].filter(function(k){return $id("f_"+k).checked});
+  if(!name){toast("请先填写任务名称（可先点示例自动填入）");$id("f_name").focus();return}
+  var score=scoreOf(keys),lv=levelOf(score);
+  var gates=keys.map(function(k){return FACTORS[k].desc});
+  if(!gates.length)gates=["任务收据留档（干了什么/花了多少/动了什么，每次运行必留）"];
+  var cap=parseInt($id("f_cap").value,10)||5;
+  var retry=parseInt($id("f_retry").value,10)||0;
+  var fuse=["月度消费上限 $"+cap+"，超限自动熔断停止全部任务","单次运行时长 ≤10 分钟","失败自动重试 "+retry+" 次（"+(retry?"重试后仍失败即暂停":"失败即停，不重试")+"）","每周汇总消费收据供人工审计"];
+  cur={name:name,keys:keys.slice(),score:score,lv:lv[0],gates:gates,fuse:fuse,cap:cap,retry:retry};
+  var card=$id("riskCard");card.className=lv[1];
+  $id("lvText").textContent="风险等级："+lv[0]+(lv[0]==="低"?"　✅ 可放心交给 Agent":lv[0]==="中"?"　⚠ 带闸门运行":lv[0]==="高"?"　🛑 必须带人工确认":"⛔ 建议先人工跑通再交 Agent");
+  $id("scoreText").textContent="风险分 "+score+" · 命中因子："+(keys.length?keys.map(function(k){return FACTORS[k].label}).join("、"):"无（低分不等于零风险，收据照留）");
+  $id("gateList").innerHTML=gates.map(function(g){return "<li>🔒 "+g+"</li>"}).join("");
+  $id("fuseList").innerHTML=fuse.map(function(f){return "<li>🚨 "+f+"</li>"}).join("");
+  $id("report").style.display="block";
+  tasks++;$id("sTask").textContent=tasks;
+  hist.unshift({name:name,score:score,lv:lv[0],gates:gates.join("；"),fuse:"消费上限$"+cap+"/重试"+retry});
+  addLine("sys","—— 已评估「"+name+"」：风险分 "+score+"（"+lv[0]+"），"+gates.length+" 道闸门待命 ——");
+  toast("评估完成：风险等级「"+lv[0]+"」，共 "+gates.length+" 道闸门");
+}
+var SEED_STEPS=[
+ {re:/发票/,steps:[
+   {t:"登录供应商门户（凭据走隔离 Vault 表单，模型不可见）",gate:"vault"},
+   {t:"进入发票中心，筛选 10 月归档发票 12 份",gate:null},
+   {t:"逐份下载 PDF 转存「财务/2026-10 发票」文件夹",gate:null},
+   {t:"生成任务收据（步骤/token/数据读写清单）",gate:"receipt"}],
+  rw:{read:["供应商门户发票列表（12 条）"],write:["财务/2026-10 发票 文件夹：12 份 PDF"]}},
+ {re:/退订/,steps:[
+   {t:"扫描收件箱，识别营销邮件退订链接 6 封",gate:null},
+   {t:"逐封打开退订链接，点击「取消订阅」",gate:"confirm"},
+   {t:"截图留存退订确认页，并标记邮件列表",gate:null},
+   {t:"生成任务收据",gate:"receipt"}],
+  rw:{read:["收件箱邮件列表（6 封营销邮件）"],write:["6 封邮件退订状态标记 + 确认页截图"]}},
+ {re:/看板|周报/,steps:[
+   {t:"打开公开数据看板（免登录页面）",gate:null},
+   {t:"抄取 8 项指标写入周报表格",gate:null},
+   {t:"生成任务收据",gate:"receipt"}],
+  rw:{read:["公开看板 8 项指标"],write:["周报表格 1 张"]}}
+];
+function stepsFor(c){
+  for(var i=0;i<SEED_STEPS.length;i++){if(SEED_STEPS[i].re.test(c.name))return SEED_STEPS[i]}
+  var hasLogin=c.keys.indexOf("login")>=0;
+  var risky=c.keys.filter(function(k){return k==="money"||k==="del"||k==="out"}).length>0;
+  return {steps:[
+    {t:"读取任务上下文"+(hasLogin?"（凭据走隔离 Vault 表单）":""),gate:hasLogin?"vault":null},
+    {t:"执行主操作",gate:risky?"confirm":null},
+    {t:"生成任务收据",gate:"receipt"}],
+   rw:{read:["任务上下文"],write:["任务产出文件"]}};
+}
+function addLine(cls,html){var d=document.createElement("div");d.className="tl-line "+cls;d.innerHTML=html;$id("tl").appendChild(d);$id("tl").scrollTop=$id("tl").scrollHeight;return d}
+function setBusy(b){busy=b;["btnEval","btnSim","btnCsv","btnReset","btnParse"].forEach(function(i){$id(i).disabled=b})}
+function gateDesc(c){
+  if(c.keys.indexOf("money")>=0)return "即将执行付款动作，金额 $"+(c.cap>9?29:12)+"，超过需人工确认";
+  if(c.keys.indexOf("del")>=0)return "即将删除/覆盖已有数据（删除后不可恢复）";
+  return "即将对外发送内容，发出后无法撤回";
+}
+function simRun(){
+  if(busy){toast("正在模拟运行中，请稍候");return}
+  if(!cur){toast("请先生成风险评估");return}
+  setBusy(true);runs++;$id("sRun").textContent=runs;
+  var c=cur,plan=stepsFor(c),tokens=plan.steps.length*850;
+  var blockCnt=0,gateCnt=0,gateNames=[];
+  addLine("sys","—— 模拟执行「"+c.name+"」（风险等级 "+c.lv+"，"+c.gates.length+" 道闸门）——");
+  var p=Promise.resolve();
+  plan.steps.forEach(function(st,idx){
+    p=p.then(function(){
+      if(st.gate==="vault"){
+        gateCnt++;gateNames.push("凭据隔离");
+        addLine("warn","🔒 闸门·凭据隔离：密码在本地 Vault 表单，模型读不到 —— 已通过");
+        return sleep(650);
+      }
+      if(st.gate==="confirm"){
+        gateCnt++;gateNames.push("二次确认");
+        return new Promise(function(resolve){
+          var card=document.createElement("div");card.className="confirmCard";
+          card.innerHTML='<div class="q">🔒 二次确认 · '+c.name+'</div><div>'+gateDesc(c)+'</div><div class="ops"><button class="btn" data-a="ok">批准执行</button><button class="btn gray" data-a="no">拒绝</button></div>';
+          $id("tl").appendChild(card);$id("tl").scrollTop=$id("tl").scrollHeight;
+          card.querySelectorAll("button").forEach(function(b){b.onclick=function(){
+            if(card.dataset.done==="1")return;
+            card.dataset.done="1";
+            var ok=b.getAttribute("data-a")==="ok";
+            card.querySelector(".ops").innerHTML='<span class="done">'+(ok?"✔ 已批准 · ":"⛔ 已拦截 · ")+now()+'</span>';
+            if(ok){addLine("warn","▶ 人工批准，继续执行：步骤 "+(idx+1)+"「"+st.t+"」");st._ok=true;resolve()}
+            else{blockCnt++;addLine("bad","⛔ 人工拦截：步骤 "+(idx+1)+" 已跳过，收据中将记录本次拦截");st._ok=false;resolve()}
+          }});
+        }).then(function(){return sleep(500)});
+      }
+      if(st.gate==="receipt"){
+        var okSteps=plan.steps.filter(function(s){return s.gate!=="receipt"&&s._ok!==false}).length;
+        var r={任务:c.name,风险等级:c.lv,风险分:c.score,执行时间:now(),
+          步骤:{总数:plan.steps.length,完成:okSteps,人工拦截:blockCnt},
+          触发闸门:gateNames.length?gateNames:["无（低风险直通）"],
+          token用量:tokens+" tokens（约 $"+(tokens*0.0000012).toFixed(4)+"）",
+          数据读写:plan.rw,
+          熔断配置:{月度消费上限:"$"+c.cap,失败重试:c.retry+" 次"},
+          结论:blockCnt?("人工拦截 "+blockCnt+" 步，任务部分完成"):"全部步骤完成 ✅"};
+        addLine("ok","📄 任务收据已生成：完成 "+okSteps+"/"+plan.steps.length+" 步"+(blockCnt?"（人工拦截 "+blockCnt+" 步）":"")+" · 消耗 "+tokens+" tokens · 数据读写已留痕");
+        $id("receiptJson").textContent=JSON.stringify(r,null,2);
+        $id("receipt").style.display="block";
+        return sleep(300);
+      }
+      if(st._ok===false){return sleep(200)}
+      addLine("ok","✔ 步骤 "+(idx+1)+"/"+plan.steps.length+"："+st.t);
+      return sleep(650);
+    });
+  });
+  p.then(function(){
+    $id("sGate").textContent=Number($id("sGate").textContent)+gateCnt;
+    $id("sBlock").textContent=Number($id("sBlock").textContent)+blockCnt;
+    addLine("sys","—— 运行结束：闸门触发 "+gateCnt+" 次，人工拦截 "+blockCnt+" 步，收据已生成 ——");
+    setBusy(false);
+  });
+}
+function exportCsv(){
+  if(!hist.length){toast("还没有评估记录，先做一次风险评估");return}
+  var head=["任务名称","风险分","风险等级","闸门清单","熔断建议"];
+  var rows=hist.map(function(h){return [h.name,h.score,h.lv,h.gates,h.fuse]});
+  var csv="\uFEFF"+head.join(",")+"\n"+rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(",")}).join("\n");
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="RPA任务风险评估器_评估记录.csv";a.click();
+  toast("已导出评估记录 CSV（含 BOM，Excel 可直接打开）");
+}
+$id("chips").addEventListener("click",function(e){
+  var t=e.target.closest(".chip");if(!t)return;
+  $id("nlInput").value=t.getAttribute("data-ex");showParse();
+});
+$id("btnParse").onclick=function(){var t=$id("nlInput").value.trim();if(!t){toast("请先输入任务描述");$id("nlInput").focus();return}showParse()};
+$id("btnClear").onclick=function(){$id("nlInput").value="";$id("parseResult").style.display="none"};
+$id("btnEval").onclick=evaluate;
+$id("btnSim").onclick=simRun;
+$id("btnCsv").onclick=exportCsv;
+$id("btnReset").onclick=function(){
+  if(busy){toast("正在运行中，请稍候");return}
+  cur=null;hist=[];runs=0;gates=0;blocks=0;tasks=0;
+  $id("sTask").textContent="0";$id("sRun").textContent="0";$id("sGate").textContent="0";$id("sBlock").textContent="0";
+  $id("report").style.display="none";$id("receipt").style.display="none";
+  $id("tl").innerHTML='<div class="tl-line sys">已重置。先在上方完成风险评估，再点「模拟执行」。</div>';
+  toast("已重置演示");
+};
+</script>
+</body>
+</html>
