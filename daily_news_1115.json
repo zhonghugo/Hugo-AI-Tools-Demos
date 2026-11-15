@@ -1,0 +1,183 @@
+{
+  "date": "2026-11-15",
+  "source": "WebSearch（AI资讯聚合/官方源核实/GitHub趋势 4轮，链接经搜索核实）",
+  "count": 7,
+  "table_total": 395,
+  "items": [
+    {
+      "资讯标题": "n8n Labs发布Nod：开源本地个人AI Agent，自带沙箱电脑和独立浏览器，追发票/取消订阅/盯价格自动干完，不需要n8n账号",
+      "摘要": "n8n Labs（n8n内部的试验团队）11/10起发布研究预览版Nod：跑在用户自己Mac/Windows上的开源个人Agent（Apache 2.0），自带本地沙箱容器+独立Chromium浏览器，描述一句任务就干到完而不是给待办清单。官方示例全是数字杂活：每月登录供应商门户下载归档发票、取消订阅并拒绝挽留话术、从没有导出按钮的看板抄数进周报。支持Gmail/Calendar/Drive/Slack等连接器也能操作无API的网站；可Telegram/WhatsApp对话、多任务并行、定时执行；密码走模型读不到的Vault表单、发消息/付款/删除类操作二次确认、月度消费上限+$5熔断检查点。实测226个杂活98%完成率、678次运行零危险操作、LongMemEval记忆93.2%。模型自选（20+厂商或本地开源模型），软件免费但token费自理。",
+      "需求/痛点": "大量日常杂活没有API只能点网页，Selenium脚本一改版就崩；云端Agent又要把密码和数据交给第三方。",
+      "工具建议": "数据、记忆、凭据全留在本机，隐私模型直接对口RPA落地顾虑。研究预览版需Node.js 24+pnpm+Docker自装，笔记本睡眠任务会暂停；先拿公开页面价格监控这类无害任务试水、量单次token成本，再考虑发票等敏感场景。",
+      "VibeCoding小工具机会": "①直接落地：把Nod的「任务收据+消费上限+二次确认」三件套抄进自己的每日定时任务设计——每个自动化任务跑完生成一份干了什么/花了多少token/动了什么数据的收据；②衍生工具：单文件HTML「RPA任务风险评估器」——输入要交给Agent的网站任务（要登录吗/涉及钱吗/要发消息吗），自动输出风险等级+必须加哪道人工确认+建议的熔断阈值，可做成demo。",
+      "推荐原因": "这就是用户RPA方向的完整对标产品：无API网页操作、发票归档、看板抄数全是美餐网式场景，且本地沙箱+凭据隔离的隐私设计正好回应企业落地Agent最大的顾虑；它的安全控制清单可直接搬进自己的自动化流水线。",
+      "推荐指数": 5,
+      "来源平台": [
+        "其他"
+      ],
+      "主题分类": [
+        "RPA/流程自动化"
+      ],
+      "链接": "[https://dev.to/mikefluff/n8n-labs-releases-nod-an-open-source-desktop-ai-agent-5cpf](https://dev.to/mikefluff/n8n-labs-releases-nod-an-open-source-desktop-ai-agent-5cpf)",
+      "日期": "2026-11-15T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28ZnLl2E5jV",
+      "收录时间": "2026-11-15T10:49-10:57+08:00"
+    },
+    {
+      "资讯标题": "Claude Code Projects重构上线beta：只写一个goal，协调器自动拆任务开并行线程，每条线程都是独立云端Claude Code session，手机上也能盯进度",
+      "摘要": "Anthropic 11/14官方发文把Claude Projects从「文件夹」重构为「协调器+线程」形态（beta，11/14起面向部分Pro/Max云session用户）：设定goal和仓库/上下文后，Claude自己划定范围、拆解任务、开多条并行线程、审阅产物、拼装结果，人可以随时钻进单条线程改细节，离开电脑后继续干活。底层每条线程是一个独立Claude Code云session，跑在自己的分支和仓库副本上，能开PR跑测试；线程改到同一处代码按普通PR合并冲突处理；线程内部还能继续用subagent、loop、workflow再拆。所有线程共享一份memory与library，决策、被砍方案、发布改期这类上下文跨线程累积。官方示例：设goal「降低checkout p75延迟」自动给每个端点开线程profile+优化+开PR；三个仓库设goal「退役v1接口」按仓库各开一线程迁移调用方。代价官方明说：多线程=多个完整session同时烧，配额消耗更快。",
+      "需求/痛点": "并行跑多个Agent session全靠人肉当项目经理：拆任务、复制上下文、防撞车、盯进度、决定合并顺序，全是手工活。",
+      "工具建议": "这正是Master+Subagent范式的官方产品化，编排理念（goal→协调器→线程→subagent）与用户在8个平台实践的多Agent工作流完全同构，值得对照自己的Master提示词查缺补漏；注意云侧锁定与配额加速消耗是HN上主要质疑，本地运行版「coming very soon」。",
+      "VibeCoding小工具机会": "①直接落地：按「协调器/线程/共享memory」三层结构重写自己的每日流水线提示词——主控只写goal和验收标准，子任务各自独立session跑，用一份共享memory文件沉淀决策，减少每轮重复交代；②衍生工具：单文件HTML「多Agent任务编排画板」——输入一个目标，按依赖关系拖拽拆成并行线程卡片，每张卡标注分支名/验收条件/合并顺序，把编排思路可视化，正对口Master+Subagent文章配图与讲解需求。",
+      "推荐原因": "用户正在跨8平台搭建Master+Subagent协作框架并写公众号文章，Anthropic把这套范式做成官方产品是最直接的信号与素材；「人只写goal、协调器拆活」的交互变化值得第一时间跟进。",
+      "推荐指数": 5,
+      "来源平台": [
+        "其他"
+      ],
+      "主题分类": [
+        "AI Agent/智能体工具"
+      ],
+      "链接": "[https://claude.com/resources/articles/projects-redesigned](https://claude.com/resources/articles/projects-redesigned)",
+      "日期": "2026-11-15T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28ZnLyf3uZE",
+      "收录时间": "2026-11-15T10:49-10:57+08:00"
+    },
+    {
+      "资讯标题": "DeepSeek开放「全家桶」API：联网搜索/深度思考搜索/文件输入/读链接/安全校验全内置，Search/Fetch/OCR/ASR/TTS独立接口，还开源了1:1复刻App的chat-demo",
+      "摘要": "DeepSeek 11/13在API changelog宣布开放整套应用能力：deepseek-flash（V4.1-Flash-1017）在Messages/Responses/Chat Completions三大接口统一支持内置工具——非思考模式开deepseek_web_search自动联网搜索带引用作答，思考模式下多步推理中自主搜网读链接；PDF/Office/图片文件输入（纯文本提取或图文混排解析）；deepseek_read_url自动抓消息中链接；安全校验参数返回拒答标识。底层能力同时提供独立API：Search/Fetch（5元/1000次成功调用）、OCR（1.5元/1000页）、ASR（限时五折0.39元/小时）、TTS（1.5元/万字符），可单独或组合接入。并开源chat-demo静态前端（浏览器直连API，支持思考/搜索/读链接/附件/语音，可导入DeepSeek历史记录）。flash模型$0.30/百万输入、$1.20/百万输出，闲时减半；内置能力暂不支持v4-pro。",
+      "需求/痛点": "自己搭Agent链路要分别对接搜索API、爬虫、OCR服务、语音供应商，工程复杂度和多供应商成本都高。",
+      "工具建议": "一个key闭环搜索+抓取+OCR+语音，国内可访问、按量计费透明，是个人流水线替换多供应商的务实选择；OCR独立接口（100MB/千页级）可直接用于简历解析类需求；注意面向公众服务须开安全校验并承担内容审核义务。",
+      "VibeCoding小工具机会": "①直接落地：用DeepSeek OCR+ASR独立接口给自己的资讯流水线加「截图/PDF转结构化文本」预处理步骤，把公众号文章截图、纸质发票批量入库；②衍生工具：单文件HTML+后端「简历解析器」——上传Word/PDF简历，调文件输入接口抽取教育/工作/技能结构化字段输出对照表，正对口岗位雷达Word/PDF简历重构方向，可做成可运行demo。",
+      "推荐原因": "价格打到几毛钱一次的搜索/OCR/语音组合，让非程序员的个人自动化流水线也能负担得起完整工具链；开源chat-demo本身就是现成的二开模板。",
+      "推荐指数": 4,
+      "来源平台": [
+        "其他"
+      ],
+      "主题分类": [
+        "泛AI效率工具"
+      ],
+      "链接": "[https://www.qbitai.com/2026/11/510003.html](https://www.qbitai.com/2026/11/510003.html)",
+      "日期": "2026-11-15T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28ZnLyf4Sp1",
+      "收录时间": "2026-11-15T10:49-10:57+08:00"
+    },
+    {
+      "资讯标题": "Anthropic把Claude Opus 5.5设为全付费计划默认模型，同步发布提示指南：别再写「think hard」，Medium effort起步，图和表直接贴不用转述",
+      "摘要": "Anthropic将Opus 5.5切换为Pro/Max/Ultra/Team全计划默认模型，并发布知识工作指南。核心变化：①停止使用「think hard/carefully」类短语——Opus 5.5自己持续推理并按任务和effort档位伸缩深度，这类提示是死重量，去掉后响应更快且质量无可测下降；②从新默认的Medium effort起步——内部测试Medium档Opus 5.5≈高档旧Opus 5，更高档位更贵但不一定更好；③重新考虑「日常用Sonnet、复杂才上Opus」的分工——强模型步数更少，Sonnet开Extra High/Max effort的花费≈Opus 5.5；④像派活给幕僚长一样一条消息说清目标/输出格式/检查点，别挤牙膏式喂指令；⑤图表直接贴图（最低档Opus 5.5读密集图表的准确率超过最高档Opus 5转述）、直接要成品文档、具名排除不要的设计风格、用connectors让模型自己取数。所有对比为Anthropic自测，未公布分数。",
+      "需求/痛点": "老模型的提示习惯（手动加思考咒语、模型分级使用、一步步教）在新模型上反而拖慢且费钱。",
+      "工具建议": "立即可执行且零成本：把每日各Agent任务提示词里的「深入思考」类短语删掉、目标一次说全、图表贴图不转述；WorkBuddy/Claude Code的日常会话都在影响范围内。注意基准全部来自官方自测，建议在自己工作流上量一下token消耗变化。",
+      "VibeCoding小工具机会": "①直接落地：做一次「提示词体检」——把流水线里所有任务提示词过一遍，标记思考咒语/挤牙膏式指令/转述图表三类旧习惯并改写；②衍生工具：单文件HTML「旧习惯提示词检查器」——粘贴提示词文本，用正则规则标出think hard类咒语、分段喂指令、手工转述数据等模式并给出改写建议，正好是提示词层面的「去AI味」工具，可做成demo。",
+      "推荐原因": "直接影响用户每天8个平台的日常使用成本与效果，且「提示习惯要随模型换代」是公众号技术教程的现成选题；Medium effort起步+Sonnet分工重估这两条能直接省钱。",
+      "推荐指数": 4,
+      "来源平台": [
+        "其他"
+      ],
+      "主题分类": [
+        "泛AI效率工具"
+      ],
+      "链接": "[https://dev.to/hiroki-ii-ai/ai-daily-digest-november-15-2026-opus-55-becomes-default-openai-publishes-372-math-results-1pm5](https://dev.to/hiroki-ii-ai/ai-daily-digest-november-15-2026-opus-55-becomes-default-openai-publishes-372-math-results-1pm5)",
+      "日期": "2026-11-15T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28ZnLyf3ax5",
+      "收录时间": "2026-11-15T10:49-10:57+08:00"
+    },
+    {
+      "资讯标题": "Meta确认收购Conductor：并行管理多个编码Agent的平台，创始团队Charlie Holtz+Jackson de Campos，补齐Meta编码Agent编排版图",
+      "摘要": "Meta确认收购AI编码初创公司Conductor，其平台让开发者并行部署和管理多个编码Agent（Claude Code等harness之上的编排层），2024年创立，CEO Charlie Holtz、CTO Jackson de Campos。这是11/15曝出的编码Agent编排赛道又一起并购：此前Anthropic把Projects做成协调器+并行线程，GitHub Next Ace做多Agent共享会话，巨头正在抢「谁替开发者管一群Agent」这一层。对个人开发者的直接影响：Conductor这类独立编排工具被收购后，独立路线的维护与更新存在不确定性。",
+      "需求/痛点": "多个编码Agent并行干活缺统一编排层，巨头开始用收购补齐这块版图，独立工具随时可能变卦。",
+      "工具建议": "编排层正在被巨头收编，个人选型优先官方原生方案（如Claude Projects、WorkBuddy多Agent），自建方案保持轻量可迁移；这也是「多Agent编排是确定性方向」的又一信号，Master+Subagent文章可以引用作为行业佐证。",
+      "VibeCoding小工具机会": "①直接落地：暂无直接落地项，观察Meta后续是否把Conductor并入自家工具链；②衍生工具：单文件HTML「Agent编排工具选型对照表」——把Conductor/Claude Projects/GitHub Ace/t3code/orca等编排方案按「是否官方/是否自托管/手机批准/配额计费」四维打分对比，正好作为Master+Subagent文章的配套可视化，可做成demo。",
+      "推荐原因": "编排层并购潮与用户的Master+Subagent框架直接相关：方向被巨头确认是利好，但个人自建路线要留意工具被收购后的维护风险，选型策略需要及时调整。",
+      "推荐指数": 4,
+      "来源平台": [
+        "其他"
+      ],
+      "主题分类": [
+        "AI Agent/智能体工具"
+      ],
+      "链接": "[https://dev.to/hiroki-ii-ai/ai-daily-digest-november-15-2026-opus-55-becomes-default-openai-publishes-372-math-results-1pm5](https://dev.to/hiroki-ii-ai/ai-daily-digest-november-15-2026-opus-55-becomes-default-openai-publishes-372-math-results-1pm5)",
+      "日期": "2026-11-15T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28ZnLyf3QPg",
+      "收录时间": "2026-11-15T10:49-10:57+08:00"
+    },
+    {
+      "资讯标题": "ponytail登GitHub趋势榜：185K stars的「懒惰高级工程师」skill，实测让Claude Code少写54%代码、省20%成本、快27%",
+      "摘要": "DietrichGebert/ponytail（MIT，188K stars，日增近9K）把「屋里最懒的高级工程师」装进AI Agent：七级决策阶梯逐级追问——这功能需要存在吗（YAGNI）→代码库里已有？→标准库？→平台原生特性？→已装依赖？→一行能写完？→实在不行才写最少够用的代码。禁止没被要求的抽象（一个实现不配接口、一个产品不配工厂）、永不省略验证/错误处理/安全。实测数据：在真实FastAPI+React仓库跑12个功能任务（Haiku 4.5，n=4），对比无skill的同一Agent平均少写~54%代码（过度构建场景达94%）、便宜~20%、快~27%，安全护栏保留率100%。全套技能包含ponytail-review（只审过度工程）、ponytail-audit（全库扫描）、ponytail-debt（把偷懒点记成技术债台账）等skill，支持lite/full/ultra三档，Claude Code/Codex/Cursor等通用。",
+      "需求/痛点": "AI编码Agent爱写「看起来完整」的代码：乱加包装层、过早引依赖、造用不上的抽象，审查和维护负担全留给人。",
+      "工具建议": "安装成本极低（npx skills add一条命令，纯提示词无脚本），用户demo以单文件HTML为主正需要「最少够用」纪律；建议先在demo生成流程里挂lite档试用一周，量一下代码行数变化再决定是否常驻。",
+      "VibeCoding小工具机会": "①直接落地：把七级决策阶梯抄进自己的demo生成提示词——每次生成前先问「已有demo目录里能复用什么/平台原生能覆盖什么/能不能一个文件搞定」，抑制重复造轮子；②衍生工具：单文件HTML「代码瘦身阶梯检查器」——粘贴一段AI生成的代码，按七级阶梯逐条标注可删减点（无谓抽象/重复实现/多余依赖），输出瘦身前后对比，正对口非程序员看不懂AI给的一大坨代码的痛点，可做成demo。",
+      "推荐原因": "「最少够用」纪律直接降低用户作品集demo的维护成本和token消耗；实测数据（54%更少代码+安全不降级）有说服力，且skill生态玩法与用户的skills实践同频。",
+      "推荐指数": 4,
+      "来源平台": [
+        "GitHub"
+      ],
+      "主题分类": [
+        "开源项目"
+      ],
+      "链接": "[https://github.com/DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)",
+      "日期": "2026-11-15T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28ZnLyf4VjU",
+      "收录时间": "2026-11-15T10:49-10:57+08:00"
+    },
+    {
+      "资讯标题": "OpenCode Mobile发布：Android手机直接跑Claude Code/OpenCode等AI编码Agent，内置Linux环境+diff查看器+Git集成，不需要电脑",
+      "摘要": "OpenCode Mobile是新的Android应用，让用户在手机上直接运行Claude Code、OpenCode等多种AI编码Agent，无需电脑：应用内置Linux环境（本地跑agent）、聊天界面、diff查看器和Git集成，支持远程或本地两种模式管理和引导Agent。对编排型用户的含义：人不在电脑前也能盯Agent进度、审diff、批准操作——与t3code「手机批准」、Claude Projects「手机上盯线程」共同指向同一个趋势：编码Agent的监工界面正在全面移动化。",
+      "需求/痛点": "长时间跑的Agent任务把人拴在电脑前，离开工位就断线，等回来发现Agent早卡住或跑偏了。",
+      "工具建议": "Android端先行（iOS未见），macOS用户暂无对应方案；若手头有安卓备用机可以装来试「通勤时盯每日demo任务进度」的可行性。注意本地Linux环境跑Agent对手机性能和电量要求不低，长任务建议远程模式。",
+      "VibeCoding小工具机会": "①直接落地：暂无直接落地项（用户主力macOS），观察WorkBuddy移动端与该趋势的差距；②衍生工具：单文件HTML「移动监工面板模板」——展示手机端盯Agent任务的核心信息架构：任务卡片+当前步骤+diff摘要+批准/拒绝大按钮，供自己的自动化任务通知页参考排版，可做成demo。",
+      "推荐原因": "与已入库的t3code手机批准、Claude Projects手机盯线程构成同一趋势的三连击：Agent监工移动化是明确方向，对「无人值守自动化+人只在关键点介入」的个人流水线设计有直接参考价值。",
+      "推荐指数": 4,
+      "来源平台": [
+        "其他"
+      ],
+      "主题分类": [
+        "开源项目"
+      ],
+      "链接": "[https://www.aionradar.com/weekly/model-releases](https://www.aionradar.com/weekly/model-releases)",
+      "日期": "2026-11-15T00:00:00.000+08:00",
+      "状态": [
+        "待查看"
+      ],
+      "是否感兴趣": [
+        "待定"
+      ],
+      "record_id": "reczz28ZnLyf466x",
+      "收录时间": "2026-11-15T10:49-10:57+08:00"
+    }
+  ]
+}
