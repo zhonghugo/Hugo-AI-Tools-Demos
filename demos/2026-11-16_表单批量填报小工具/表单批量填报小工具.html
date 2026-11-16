@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>表单批量填报小工具</title>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--ink:#1c2430;--muted:#6b7686;--primary:#2563eb;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--line:#e3e8f0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 16px 40px}
+h1{font-size:22px;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.card h2{font-size:15px;margin-bottom:10px}
+.card h2 .tag{display:inline-block;background:var(--primary);color:#fff;font-size:12px;border-radius:4px;padding:0 7px;margin-right:8px;vertical-align:1px}
+.chip{display:inline-block;background:#eef3ff;color:var(--primary);border:1px solid #c6d6fb;border-radius:16px;padding:3px 12px;margin:0 8px 8px 0;cursor:pointer;font-size:13px}
+.chip:hover{background:#dfe9ff}
+textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font-size:13px;font-family:ui-monospace,Menlo,monospace;min-height:110px;resize:vertical}
+button{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit}
+button:disabled{background:#a7b6d3;cursor:not-allowed}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+button.ok{background:var(--ok)}
+button.bad{background:var(--bad)}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:640px}
+th,td{border-bottom:1px solid var(--line);padding:6px 9px;text-align:left;white-space:nowrap}
+th{background:#f0f4fb;font-weight:600}
+tr.done td{background:#f2fbf5}
+tr.reject td{background:#fdf2f2}
+.st{font-size:12px;border-radius:4px;padding:1px 7px;display:inline-block}
+.st.pend{background:#f1f3f7;color:var(--muted)}
+.st.filled{background:#fff7e8;color:var(--warn)}
+.st.wait{background:#eff6ff;color:var(--primary)}
+.st.sub{background:#e8f8ee;color:var(--ok)}
+.st.rej{background:#fdeaea;color:var(--bad)}
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.maprow{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.maprow label{font-size:12.5px;font-weight:600;display:block;margin-bottom:5px}
+.maprow select{width:100%;padding:5px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit}
+.maprow.unmapped{border-color:var(--bad);background:#fdf4f4}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.frow label{font-size:12.5px;font-weight:600;display:block;margin-bottom:4px}
+.frow input{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;background:#fff}
+.frow.flash input{border-color:var(--primary);background:#f3f7ff}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.stat{flex:1;min-width:120px;background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;text-align:center}
+.stat b{font-size:20px;display:block}
+.stat span{font-size:12px;color:var(--muted)}
+.log{background:#0f172a;color:#c9d6ea;border-radius:8px;padding:10px 12px;font-family:ui-monospace,Menlo,monospace;font-size:12px;max-height:220px;overflow-y:auto;white-space:pre-wrap}
+.log .t-ok{color:#4ade80}.log .t-warn{color:#fbbf24}.log .t-bad{color:#f87171}.log .t-info{color:#93c5fd}
+.conf{display:none;border:2px solid var(--warn);background:#fffbeb;border-radius:10px;padding:14px;margin-top:12px}
+.conf.show{display:block}
+.conf b{color:var(--warn)}
+.conf .btns{margin-top:10px}
+.conf .btns button{margin-right:10px}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.topbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+@media(max-width:560px){h1{font-size:19px}.stat{min-width:100px;padding:8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>表单批量填报小工具</h1>
+<div class="sub">参考 Turbo-Browser-MCP「smart_fill_form 一次调用填整张表单 + DOM 增量快照省 98.4% token + 终局按钮默认拦截，最后一步留给人」（Hacker News，MIT 开源）——把 Excel 名单 + 字段映射变成可复用的批量填报流程，财务批量开户/对账/登记直接对口。</div>
+
+<div class="topbar">
+  <button id="btnRun">▶ 开始批量填报</button>
+  <button id="btnCsv" class="ghost">⬇ 导出执行报告 CSV</button>
+  <button id="btnReset" class="ghost">↺ 重置</button>
+</div>
+
+<div class="card">
+  <h2><span class="tag">①</span>名单导入（Excel / CSV 粘贴）</h2>
+  <div>
+    <span class="chip" id="chip1">示例：供应商开户名单（5 行）</span>
+    <span class="chip" id="chip2">示例：门店费用报销单（4 行）</span>
+    <span class="chip" id="chip3">示例：客户回款登记（3 行）</span>
+  </div>
+  <textarea id="rosterInput" placeholder="粘贴 Excel 名单（第一行表头，制表符或逗号分隔），或点上方示例一键载入"></textarea>
+  <div style="margin-top:8px"><button id="btnParse">解析名单</button> <span id="parseMsg" class="hint"></span></div>
+  <div class="tblwrap" id="rosterWrap" style="display:none">
+    <table><thead id="rosterHead"></thead><tbody id="rosterBody"></tbody></table>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="tag">②</span>字段映射（名单列 → 表单字段）</h2>
+  <div class="mapgrid" id="mapWrap"></div>
+  <div id="mapWarn" class="hint" style="color:var(--bad)"></div>
+  <div class="hint">自动按同义词规则匹配（供应商→供应商名称、电话→手机号、账期→结算周期…），可下拉改映射；必填字段未映射将拦截填报。</div>
+</div>
+
+<div class="card">
+  <h2><span class="tag">③</span>目标表单（模拟网页）：<span id="formTitle">—</span></h2>
+  <div class="formgrid" id="targetForm"></div>
+  <div class="hint">「提交登记」为终局按钮（Submit 类），已被策略默认拦截——Agent 只预填，最后一步留给人。</div>
+</div>
+
+<div class="card">
+  <h2><span class="tag">④</span>执行与确认</h2>
+  <div class="stats">
+    <div class="stat"><b id="sRows">0</b><span>名单行数</span></div>
+    <div class="stat"><b id="sFilled">0</b><span>已填报</span></div>
+    <div class="stat"><b id="sSubmitted">0</b><span>已提交</span></div>
+    <div class="stat"><b id="sRejected">0</b><span>已驳回</span></div>
+    <div class="stat"><b id="sIntercept">0</b><span>终局按钮拦截</span></div>
+    <div class="stat"><b id="sSave">—</b><span>快照 token 节省</span></div>
+  </div>
+  <div class="hint" id="tokLine">快照 token：全页模式 0 / 增量模式 0</div>
+  <div class="conf" id="confCard">
+    <b>⏸ 终局确认：</b><span id="confText"></span>
+    <div class="btns">
+      <button id="btnApprove" class="ok">✓ 批准批量提交</button>
+      <button id="btnReject" class="bad">✕ 驳回全部</button>
+    </div>
+  </div>
+  <div class="log" id="log" style="margin-top:12px">日志就绪。先载入名单 → 核对字段映射 → 开始批量填报。</div>
+</div>
+</div>
+
+<script>
+"use strict";
+/* ---------- 示例数据（固化） ---------- */
+var TPL = {
+  1: {
+    chip: "供应商开户名单",
+    formTitle: "供应商合作开户登记",
+    formFields: [
+      {key:"供应商名称", required:true},
+      {key:"联系人", required:true},
+      {key:"手机号", required:true},
+      {key:"开户金额(元)", required:true},
+      {key:"结算周期", required:true},
+      {key:"备注", required:false}
+    ],
+    syn: {"供应商":"供应商名称","对接人":"联系人","电话":"手机号","月结金额":"开户金额(元)","账期":"结算周期"},
+    csv: "供应商,对接人,电话,月结金额,账期,备注\n深圳市鲜达食品有限公司,王建国,13812345678,45800,月结30天,重点供应商\n广州绿源农产品贸易有限公司,李梅,13998765432,12350,月结15天,次日达合作\n佛山顺泰冷链物流,赵强,13655557777,88200,月结30天,冷链专线\n东莞百味调味品厂,陈晓芸,13711112222,6780,现结,\n惠州海丰水产批发,周天磊,13533334444,23400,月结15天,周四固定送货"
+  },
+  2: {
+    chip: "门店费用报销单",
+    formTitle: "门店费用报销录入",
+    formFields: [
+      {key:"报销人", required:true},
+      {key:"所属门店", required:true},
+      {key:"费用类型", required:true},
+      {key:"金额(元)", required:true},
+      {key:"发生日期", required:true},
+      {key:"事由", required:false}
+    ],
+    syn: {"门店":"所属门店","类型":"费用类型","说明":"事由"},
+    csv: "报销人,门店,类型,金额,日期,说明\n刘志强,科技园店,水电费,2360,2026-11-05,11月上半月\n刘志强,科技园店,维修费,880,2026-11-08,冷柜维修\n张丽,福田店,物料采购,1560,2026-11-10,包装耗材\n黄海涛,南山店,营销推广,4200,2026-11-12,周末促销物料"
+  },
+  3: {
+    chip: "客户回款登记",
+    formTitle: "客户回款登记",
+    formFields: [
+      {key:"客户名称", required:true},
+      {key:"经办人", required:true},
+      {key:"回款金额(元)", required:true},
+      {key:"回款日期", required:true},
+      {key:"收款方式", required:true},
+      {key:"备注", required:false}
+    ],
+    syn: {"客户":"客户名称","金额":"回款金额(元)"},
+    csv: "客户,经办人,金额,日期,方式,备注\n华强北餐饮集团,孙敏,68000,2026-11-06,银行转账,10月账款\n万象天美食城,孙敏,32500,2026-11-09,银行转账,\n龙城中央厨房,郑浩,19800,2026-11-13,承兑汇票,12月10日前兑付"
+  }
+};
+var FULL_SNAP = 1180;          // 每次全页快照 token（估算）
+var DELTA_BASE = 36;          // 增量快照基准 token
+
+/* ---------- 状态 ---------- */
+var tpl = null, header = [], rows = [], rowState = [];
+var mapping = [], busy = false, receiptNo = 0;
+var tokFull = 0, tokDelta = 0, intercepts = 0;
+
+function $id(x){return document.getElementById(x);}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function log(msg, cls){
+  var d = document.createElement("div");
+  if(cls) d.className = "t-"+cls;
+  d.textContent = "["+new Date().toLocaleTimeString("zh-CN",{hour12:false})+"] "+msg;
+  $id("log").appendChild(d);
+  $id("log").scrollTop = $id("log").scrollHeight;
+}
+function fmtN(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
+
+/* ---------- 名单解析 ---------- */
+function parseCSV(text){
+  var lines = text.replace(/\r/g,"").split("\n").filter(function(l){return l.trim()!=="";});
+  if(lines.length < 2) return null;
+  var sep = lines[0].indexOf("\t") >= 0 ? "\t" : ",";
+  var h = lines[0].split(sep).map(function(s){return s.trim();});
+  var rs = [];
+  for(var i=1;i<lines.length;i++){
+    var cells = lines[i].split(sep).map(function(s){return s.trim();});
+    while(cells.length < h.length) cells.push("");
+    rs.push(cells.slice(0, h.length));
+  }
+  return {header:h, rows:rs};
+}
+function loadTemplate(id){
+  tpl = TPL[id];
+  $id("rosterInput").value = tpl.csv;
+  $id("parseMsg").textContent = "";
+  doParse();
+  log("已载入示例名单：" + tpl.chip, "info");
+}
+function doParse(){
+  var r = parseCSV($id("rosterInput").value);
+  if(!r){ $id("parseMsg").textContent = "解析失败：至少需要表头 + 1 行数据"; $id("rosterWrap").style.display="none"; return; }
+  header = r.header; rows = r.rows; rowState = rows.map(function(){return "pend";});
+  $id("parseMsg").textContent = "解析成功：" + rows.length + " 行 × " + header.length + " 列";
+  renderRoster();
+  autoMap();
+  $id("btnRun").disabled = false;
+  refreshStats();
+}
+function renderRoster(){
+  $id("rosterHead").innerHTML = "<tr><th>#</th>" + header.map(function(h){return "<th>"+esc(h)+"</th>";}).join("") + "<th>状态</th></tr>";
+  $id("rosterBody").innerHTML = rows.map(function(r,i){
+    return '<tr id="rr'+i+'"><td>'+(i+1)+'</td>' + r.map(function(c){return "<td>"+esc(c)+"</td>";}).join("") +
+      '<td><span class="st pend" id="rs'+i+'">待填报</span></td></tr>';
+  }).join("");
+  $id("rosterWrap").style.display = "";
+  $id("sRows").textContent = rows.length;
+}
+
+/* ---------- 字段映射 ---------- */
+function autoMap(){
+  mapping = tpl.formFields.map(function(f){
+    if(header.indexOf(f.key) >= 0) return header.indexOf(f.key);
+    for(var j=0;j<header.length;j++){
+      if(tpl.syn && tpl.syn[header[j]] === f.key) return j;
+      if(f.key.indexOf(header[j]) >= 0 || header[j].indexOf(f.key.replace(/\(元\)/,"")) >= 0) return j;
+    }
+    return -1;
+  });
+  renderMap();
+  renderForm();
+}
+function renderMap(){
+  $id("mapWrap").innerHTML = tpl.formFields.map(function(f,i){
+    var unmapped = mapping[i] < 0;
+    var opts = '<option value="-1">— 不映射 —</option>' + header.map(function(h,j){
+      return '<option value="'+j+'"'+(mapping[i]===j?" selected":"")+'>'+esc(h)+'</option>';
+    }).join("");
+    return '<div class="maprow'+(unmapped&&f.required?' unmapped':'')+'" id="mr'+i+'"><label>'+esc(f.key)+(f.required?' <span style="color:var(--bad)">*</span>':'')+'</label><select id="map'+i+'" onchange="onMapChange('+i+')">'+opts+'</select></div>';
+  }).join("");
+  checkMap();
+}
+function onMapChange(i){
+  mapping[i] = parseInt($id("map"+i).value, 10);
+  $id("mr"+i).className = "maprow" + (mapping[i]<0 && tpl.formFields[i].required ? " unmapped" : "");
+  renderForm();
+  checkMap();
+}
+function checkMap(){
+  var miss = tpl.formFields.filter(function(f,i){return f.required && mapping[i]<0;}).length;
+  $id("mapWarn").textContent = miss ? "⚠ 还有 "+miss+" 个必填字段未映射，无法开始填报" : "";
+  return miss === 0;
+}
+function renderForm(){
+  $id("formTitle").textContent = tpl ? tpl.formTitle : "—";
+  $id("targetForm").innerHTML = tpl.formFields.map(function(f,i){
+    var v = mapping[i]>=0 && window._curRow ? window._curRow[mapping[i]] : "";
+    return '<div class="frow" id="fr'+i+'"><label>'+esc(f.key)+(f.required?' *':'')+'</label><input id="f'+i+'" value="'+esc(v)+'" placeholder="待填报" readonly></div>';
+  }).join("");
+}
+
+/* ---------- 批量执行 ---------- */
+function fillRowVisual(i){
+  window._curRow = rows[i];
+  tpl.formFields.forEach(function(f,fi){
+    var v = mapping[fi]>=0 ? rows[i][mapping[fi]] : "";
+    var el = $id("f"+fi);
+    if(el){ el.value = v; }
+    var fr = $id("fr"+fi);
+    if(fr){ fr.classList.add("flash"); setTimeout(function(){fr.classList.remove("flash");},350); }
+  });
+}
+function setRowState(i, st, label){
+  rowState[i] = st;
+  var badge = $id("rs"+i);
+  if(badge){ badge.className = "st "+st; badge.textContent = label; }
+  var tr = $id("rr"+i);
+  if(tr){ tr.className = st==="sub" ? "done" : (st==="rej" ? "reject" : ""); }
+}
+function refreshStats(){
+  $id("sFilled").textContent = rowState.filter(function(s){return s!=="pend";}).length;
+  $id("sSubmitted").textContent = rowState.filter(function(s){return s==="sub";}).length;
+  $id("sRejected").textContent = rowState.filter(function(s){return s==="rej";}).length;
+  $id("sIntercept").textContent = intercepts;
+  var pct = tokFull ? Math.round((tokFull-tokDelta)/tokFull*1000)/10 : null;
+  $id("sSave").textContent = pct===null ? "—" : pct+"%";
+  $id("tokLine").textContent = "快照 token：全页模式 " + fmtN(tokFull) + " / 增量模式 " + fmtN(tokDelta);
+}
+function wait(ms){return new Promise(function(res){setTimeout(res, ms);});}
+
+async function runBatch(){
+  if(busy) return;
+  if(!tpl || !rows.length){ log("请先载入并解析名单", "warn"); return; }
+  if(!checkMap()){ log("有必填字段未映射，已拦截", "bad"); return; }
+  busy = true;
+  $id("btnRun").disabled = true;
+  $id("confCard").className = "conf";
+  var pend = rows.map(function(_,i){return i;}).filter(function(i){return rowState[i]==="pend";});
+  if(!pend.length){ log("没有待填报的行", "warn"); busy=false; $id("btnRun").disabled=false; return; }
+  log("批量填报开始：共 " + pend.length + " 行，模式 smart_fill（1 次调用填整张表单）", "info");
+  for(var k=0;k<pend.length;k++){
+    var i = pend[k];
+    await wait(420);
+    fillRowVisual(i);
+    var filledCnt = mapping.filter(function(m,fi){return m>=0 || !tpl.formFields[fi].required;}).length;
+    log("第 "+(i+1)+" 行 smart_fill：1 次调用填入 "+filledCnt+" 个字段 ✓", "ok");
+    await wait(300);
+    var deltaTok = DELTA_BASE + mapping.filter(function(m){return m>=0;}).length*3;
+    tokFull += FULL_SNAP; tokDelta += deltaTok;
+    log("快照增量：变化 "+mapping.filter(function(m){return m>=0;}).length+" 处，返回 "+deltaTok+" tokens（全页快照 "+FULL_SNAP+" tokens）", "info");
+    await wait(260);
+    intercepts++;
+    setRowState(i, "wait", "待确认");
+    log("终局按钮拦截：「提交登记」已拦截（第 "+intercepts+" 次），等待人工确认", "warn");
+    refreshStats();
+  }
+  await wait(300);
+  $id("confText").textContent = "全部 "+pend.length+" 行已预填完成，"+intercepts+" 次「提交登记」已拦截。请核对目标表单后决定是否批量提交。";
+  $id("confCard").className = "conf show";
+  log("已暂停：等待人工终局确认（最后一步留给人）", "warn");
+  busy = false;
+}
+
+async function approve(){
+  if(busy) return;
+  busy = true;
+  $id("confCard").className = "conf";
+  var waitRows = rows.map(function(_,i){return i;}).filter(function(i){return rowState[i]==="wait";});
+  for(var k=0;k<waitRows.length;k++){
+    var i = waitRows[k];
+    await wait(380);
+    receiptNo++;
+    setRowState(i, "sub", "已提交");
+    log("第 "+(i+1)+" 行提交成功，回执号 KP-20261116-"+String(receiptNo).padStart(2,"0"), "ok");
+    refreshStats();
+  }
+  log("批量提交完成：共 "+waitRows.length+" 行已提交 ✓", "ok");
+  busy = false;
+  $id("btnRun").disabled = false;
+}
+function rejectAll(){
+  if(busy) return;
+  $id("confCard").className = "conf";
+  var waitRows = rows.map(function(_,i){return i;}).filter(function(i){return rowState[i]==="wait";});
+  waitRows.forEach(function(i){ setRowState(i, "rej", "已驳回"); });
+  log("已驳回 "+waitRows.length+" 行预填结果，保留现场可调整映射后重填", "bad");
+  refreshStats();
+  $id("btnRun").disabled = false;
+}
+
+/* ---------- CSV 导出 ---------- */
+function exportCsv(){
+  if(!rows.length){ log("没有数据可导出", "warn"); return; }
+  var stMap = {pend:"待填报", filled:"已填报", wait:"待确认", sub:"已提交", rej:"已驳回"};
+  var head = ["行号"].concat(header, ["状态","提交回执","拦截次数"]);
+  var q = function(s){ s = String(s==null?"":s); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+  var lines = [head.map(q).join(",")];
+  var receipt = 0;
+  rows.forEach(function(r,i){
+    var rc = rowState[i]==="sub" ? "KP-20261116-"+String(++receipt).padStart(2,"0") : "";
+    lines.push([i+1].concat(r, [stMap[rowState[i]]||rowState[i], rc, rowState[i]==="wait"||rowState[i]==="sub"||rowState[i]==="rej" ? "1" : "0"]).map(q).join(","));
+  });
+  var blob = new Blob(["\uFEFF" + lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "表单批量填报执行报告_2026-11-16.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  log("执行报告 CSV 已导出（带 BOM，Excel 可直接打开）", "ok");
+}
+
+/* ---------- 重置 ---------- */
+function resetAll(){
+  if(busy) return;
+  tpl = null; header = []; rows = []; rowState = []; mapping = [];
+  tokFull = 0; tokDelta = 0; intercepts = 0; receiptNo = 0;
+  window._curRow = null;
+  $id("rosterInput").value = "";
+  $id("parseMsg").textContent = "";
+  $id("rosterWrap").style.display = "none";
+  $id("mapWrap").innerHTML = "";
+  $id("mapWarn").textContent = "";
+  $id("formTitle").textContent = "—";
+  $id("targetForm").innerHTML = "";
+  $id("confCard").className = "conf";
+  $id("btnRun").disabled = false;
+  ["sRows","sFilled","sSubmitted","sRejected","sIntercept"].forEach(function(x){$id(x).textContent="0";});
+  $id("sSave").textContent = "—";
+  $id("tokLine").textContent = "快照 token：全页模式 0 / 增量模式 0";
+  $id("log").textContent = "日志已重置。";
+}
+
+/* ---------- 绑定 ---------- */
+$id("chip1").onclick = function(){loadTemplate(1);};
+$id("chip2").onclick = function(){loadTemplate(2);};
+$id("chip3").onclick = function(){loadTemplate(3);};
+$id("btnParse").onclick = doParse;
+$id("btnRun").onclick = runBatch;
+$id("btnApprove").onclick = approve;
+$id("btnReject").onclick = rejectAll;
+$id("btnCsv").onclick = exportCsv;
+$id("btnReset").onclick = resetAll;
+$id("btnRun").disabled = true;
+</script>
+</body>
+</html>
