@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>55</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 11/16</b><span>持续产出</span></div>
+      <div><b>56</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 11/17</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -64,6 +64,12 @@
 <script>
 "use strict";
 const DEMOS = [
+  {
+    date:"11-17", name:"Agent代付审批模拟器",
+    desc:"参考 OpenAI 发布的 ChatGPT Wallet『首个「Agent 付款但看不到用户真实卡号」的钱包：存一次卡，Agent 下单时展示商家/商品/总额/所用卡，用户用 Face ID/Touch ID 逐笔生物识别审批，审批后支付网络下发替代卡号的 payment token 完成扣款，真实卡信息不暴露给 Agent 和商家，保留原卡积分与争议保护』（Amex/Visa/Mastercard/Chase 联建）演示『Agent代付审批模拟器』：把「人在回路的代付审批」完整跑一遍，正好对口 RPA 审批卡点讲方案。①卡包与支付护栏业务表单——默认用卡可切（招行 8823/平安 3316）、单笔限额/日累计限额实时可调、生物识别开关；②采购任务——3 个示例 chip（办公用品采购/SaaS 订阅续费/全部任务）一键载入 Agent 领单；③逐笔审批——订单卡展示商家/商品/总额/用卡尾号，Face ID 模拟验证（扫描动画→✅）后才能批准放款，未验证按钮禁用；④限额护栏——超单笔限额转二次确认（放行原因必填）、超日累计自动拦截不进审批、批准时复核余额不足再拦；⑤Token 隔离可视化——同一笔交易在 Agent 视角（只拿 tok_ 占位）/商家视角（扣款 token+授权号）/银行视角（真实卡号换 token 扣款）三个视角的可见信息对比；⑥授权记录台账（授权号 AUTH-20261117-xx+token+状态+备注）+统计卡 5 枚+审批日志+CSV 导出（带 BOM）。『Agent 管下单，人管放款，卡号全程不出银行』——财务内控与 Agent 自动化的交汇组件。",
+    src:"11/17 资讯 · OpenAI ChatGPT Wallet：Agent代付+逐笔生物识别审批+payment token 隔离（5星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-11-17_Agent%E4%BB%A3%E4%BB%98%E5%AE%A1%E6%89%B9%E6%A8%A1%E6%8B%9F%E5%99%A8/Agent%E4%BB%A3%E4%BB%98%E5%AE%A1%E6%89%B9%E6%A8%A1%E6%8B%9F%E5%99%A8.html"
+  },
   {
     date:"11-16", name:"表单批量填报小工具",
     desc:"参考 Turbo-Browser-MCP『smart_fill_form 一次调用填整张表单 + DOM 增量快照只返回变化元素省 98.4% token + 终局按钮（Submit/Send/Pay）默认拦截，最后一步留给人』（Hacker News，MIT 开源）演示『表单批量填报小工具』：把 Excel 名单 + 字段映射变成可复用的批量填报流程，财务批量开户/对账/登记直接对口。①名单导入——3 个示例 chip（供应商开户名单/门店费用报销单/客户回款登记）一键载入，也支持 Excel/CSV 粘贴解析；②字段映射——名单列→表单字段按同义词规则自动匹配（供应商→供应商名称、电话→手机号、账期→结算周期…），下拉可改，必填字段未映射拦截填报；③目标表单模拟——smart_fill 一次调用填整张表单（字段逐个高亮回显），快照增量日志逐行对比全页快照 token 消耗（1180 vs 54，累计节省 95.4%）；④终局按钮拦截——「提交登记」逐行拦截计入待确认，全部预填完成后弹出人工确认卡（批准批量提交出回执号 / 驳回全部保留现场）；⑤统计卡 6 枚+执行日志+执行报告 CSV 导出（带 BOM）。『Agent 只预填，最后一步留给人』——批量填报的降本 + 安全双组件。",

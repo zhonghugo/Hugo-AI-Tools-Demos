@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent代付审批模拟器 · 参考OpenAI ChatGPT Wallet</title>
+<style>
+  :root{--bg:#f5f7fa;--card:#fff;--ink:#1a2233;--muted:#6b7688;--primary:#1a56db;--ok:#15803d;--bad:#b91c1c;--warn:#b45309;--line:#e2e8f0;--tokenbg:#0f172a}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:20px 14px}
+  .wrap{max-width:960px;margin:0 auto}
+  .badge{display:inline-block;background:#e8effc;color:var(--primary);font-size:12px;padding:3px 12px;border-radius:999px;margin-bottom:10px}
+  h1{font-size:26px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:6px}
+  .motto{font-size:13px;color:var(--warn);margin-bottom:18px}
+  .stat{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .stat div{flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat b{font-size:22px;display:block}
+  .stat span{font-size:12px;color:var(--muted)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  h2{font-size:16px;margin-bottom:10px}
+  h2 small{font-weight:normal;color:var(--muted);font-size:12px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{background:#eef2f8;border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-size:13px;cursor:pointer}
+  .chip:hover{background:#e0e9f8}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
+  input[type=number],select,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff}
+  .switchrow{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px}
+  button{font-family:inherit;font-size:14px;border:none;border-radius:8px;padding:8px 16px;cursor:pointer}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .btnP{background:var(--primary);color:#fff}
+  .btnG{background:#15803d;color:#fff}
+  .btnR{background:#fff;color:var(--bad);border:1px solid #f3c1c1}
+  .btnS{background:#eef2f8;color:var(--ink)}
+  .taskcard{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+  .taskcard .trow{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:center}
+  .tag{display:inline-block;font-size:12px;padding:2px 10px;border-radius:999px}
+  .t_pending{background:#fef3c7;color:var(--warn)}
+  .t_confirm{background:#ffedd5;color:var(--warn)}
+  .t_blocked{background:#fee2e2;color:var(--bad)}
+  .t_done{background:#dcfce7;color:var(--ok)}
+  .t_rejected{background:#f1f5f9;color:var(--muted)}
+  .bio{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .bioBox{width:34px;height:34px;border-radius:50%;background:#eef2f8;display:inline-flex;align-items:center;justify-content:center;font-size:17px}
+  .bioBox.scan{animation:pulse 1.2s ease infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(26,86,219,.35)}100%{box-shadow:0 0 0 12px rgba(26,86,219,0)}}
+  .reasonBox{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;word-break:break-all}
+  th{background:#f1f5f9;color:var(--muted);font-weight:600}
+  #tokenViews{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+  .tk{background:var(--tokenbg);color:#e2e8f0;border-radius:10px;padding:12px;font-size:12px}
+  .tk h3{font-size:13px;color:#93c5fd;margin-bottom:6px}
+  .tk code{color:#4ade80;word-break:break-all}
+  .tk .realcard{color:#fbbf24}
+  .log{background:#0f172a;color:#a5f3fc;border-radius:10px;padding:12px;font-size:12px;max-height:180px;overflow-y:auto;font-family:ui-monospace,Menlo,monospace}
+  .log div{margin-bottom:3px}
+  .empty{color:var(--muted);font-size:13px;padding:8px 0}
+  @media(max-width:640px){.grid2,.tokenViews{grid-template-columns:1fr}.stat div{min-width:46%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="badge">参考 OpenAI ChatGPT Wallet · Agent 代付基础设施（Amex/Visa/Mastercard/Chase 联建）</span>
+  <h1>Agent代付审批模拟器</h1>
+  <p class="sub">Agent 看不到真实卡号：存一次卡，Agent 下单展示商家/商品/总额/用卡，你逐笔生物识别审批，支付网络下发 payment token 扣款，卡号全程不出银行。</p>
+  <p class="motto">「Agent 管下单，人管放款，卡号全程不出银行」——财务内控与 Agent 自动化的交汇点。</p>
+
+  <div class="stat">
+    <div><b id="sTotal">0</b><span>今日领取任务</span></div>
+    <div><b id="sOk" style="color:var(--ok)">0</b><span>已批准放款</span></div>
+    <div><b id="sRej" style="color:var(--muted)">0</b><span>已拒绝</span></div>
+    <div><b id="sBlock" style="color:var(--bad)">0</b><span>限额拦截</span></div>
+    <div><b id="sPaid" style="color:var(--ok)">¥0</b><span>今日累计放款</span></div>
+  </div>
+
+  <section>
+    <h2>① 卡包与支付护栏 <small>（业务表单，实时生效）</small></h2>
+    <div class="grid2">
+      <div>
+        <label>默认支付卡</label>
+        <select id="fCard">
+          <option value="8823">招商银行 尾号 8823（默认）</option>
+          <option value="3316">平安银行 尾号 3316（备用）</option>
+        </select>
+      </div>
+      <div>
+        <label>生物识别审批（模拟 Face ID）</label>
+        <select id="fBio">
+          <option value="1">开启：逐笔 Face ID 验证后放款</option>
+          <option value="0">关闭：直接点击批准（不建议）</option>
+        </select>
+      </div>
+      <div>
+        <label>单笔限额（¥）超出需二次确认</label>
+        <input id="fLimit1" type="number" value="2000" min="100" step="100">
+      </div>
+      <div>
+        <label>日累计限额（¥）超出自动拦截</label>
+        <input id="fLimit2" type="number" value="5000" min="500" step="500">
+      </div>
+    </div>
+    <div class="switchrow">今日已放款：<b id="paidInline">¥0</b> / <span id="limit2Show">¥5000</span> · 剩余额度 <b id="remainShow">¥5000</b></div>
+  </section>
+
+  <section>
+    <h2>② 采购任务 <small>（Agent 从内部系统领到的下单需求）</small></h2>
+    <div class="chips">
+      <button class="chip" data-t="1">示例：办公用品采购</button>
+      <button class="chip" data-t="2">示例：SaaS 订阅续费</button>
+      <button class="chip" data-t="3">示例：全部任务一次载入</button>
+    </div>
+    <div id="taskList"><p class="empty">点击上方示例载入采购任务，或由 Agent 自动领取。</p></div>
+  </section>
+
+  <section>
+    <h2>③ Token 隔离可视化 <small>（批准第一单后自动更新）</small></h2>
+    <div id="tokenViews"><p class="empty">尚无授权记录——批准一笔放款后，这里展示同一笔交易在 Agent / 商家 / 银行三个视角下分别能看到什么。</p></div>
+  </section>
+
+  <section>
+    <h2>④ 授权记录台账 <button class="btnS" id="btnCsv" style="float:right">导出 CSV</button></h2>
+    <div id="authWrap"><p class="empty">暂无授权记录。</p></div>
+  </section>
+
+  <section>
+    <h2>⑤ 审批日志</h2>
+    <div class="log" id="log"></div>
+    <div style="margin-top:10px"><button class="btnR" id="btnReset">重置全部数据</button></div>
+  </section>
+</div>
+<script>
+"use strict";
+var PAYD = new Date("2026-11-17T09:00:00");
+var CARD_REAL = { "8823": "招商银行 6222 **** **** 8823", "3316": "平安银行 6225 **** **** 3316" };
+var TASKS = [
+  { id:"T1", buyer:"行政部·小陈", merchant:"京东企业购", item:"打印纸 12 包", amount:960,  note:"月度例行采购" },
+  { id:"T2", buyer:"行政部·小陈", merchant:"京东企业购", item:"打印机硒鼓 2 支", amount:1450, note:"打印机缺耗材，报修单 PR-1108" },
+  { id:"T3", buyer:"IT部·阿Ken", merchant:"Notion 官网", item:"团队版年费续订", amount:2499, note:"发票号 INV-2026-1131，超单笔限额走二次确认" },
+  { id:"T4", buyer:"人力资源部·林悦", merchant:"天猫企业购", item:"年会伴手礼 20 份", amount:5200, note:"年度员工活动预算 BG-0716" }
+];
+var st = { tasks:{}, paid:0, auth:[], seq:0 };
+function $id(x){ return document.getElementById(x); }
+function fmt(n){ return "¥" + n.toLocaleString("zh-CN"); }
+function nowStr(){ var d = new Date(PAYD.getTime() + (st.seq++) * 64000); function p(x){ return (x<10?"0":"")+x; } return p(d.getMonth()+1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); }
+function log(msg){
+  var el = $id("log");
+  var line = document.createElement("div");
+  line.textContent = "[" + nowStr() + "] " + msg;
+  el.insertBefore(line, el.firstChild);
+}
+function limit1(){ return Math.max(0, parseInt($id("fLimit1").value, 10) || 0); }
+function limit2(){ return Math.max(0, parseInt($id("fLimit2").value, 10) || 0); }
+function findTask(id){ for (var i=0;i<TASKS.length;i++){ if (TASKS[i].id === id) return TASKS[i]; } return null; }
+
+function loadTasks(ids){
+  ids.forEach(function(tid){
+    var t = findTask(tid);
+    if (!t || st.tasks[tid]) return;
+    st.tasks[tid] = { status:"pending", bio:false, reason:"" };
+    log("Agent 领取任务 " + tid + "：" + t.item + " " + fmt(t.amount) + "（" + t.merchant + "）");
+    precheck(t, st.tasks[tid]);
+  });
+  renderTasks();
+  refreshStats();
+}
+function precheck(t, rec){
+  if (st.paid + t.amount > limit2()){
+    rec.status = "blocked";
+    rec.blockWhy = "日累计限额不足：已放款 " + fmt(st.paid) + " + 本单 " + fmt(t.amount) + " > 日限额 " + fmt(limit2()) + "，自动拦截，可调额或明日再试";
+    log("⚠ " + t.id + " 触发日累计限额拦截（" + fmt(st.paid + t.amount) + " > " + fmt(limit2()) + "），不进入审批");
+    return "blocked";
+  }
+  if (t.amount > limit1()){
+    rec.status = "confirm";
+    log("▲ " + t.id + " 金额 " + fmt(t.amount) + " 超单笔限额 " + fmt(limit1()) + "，转入二次确认");
+    return "confirm";
+  }
+  return "pending";
+}
+function chipHandler(e){
+  var k = e.target.getAttribute("data-t");
+  if (k === "1") loadTasks(["T1","T2"]);
+  else if (k === "2") loadTasks(["T3"]);
+  else loadTasks(["T1","T2","T3","T4"]);
+}
+function renderTasks(){
+  var host = $id("taskList");
+  var ids = Object.keys(st.tasks);
+  if (!ids.length){ host.innerHTML = '<p class="empty">点击上方示例载入采购任务，或由 Agent 自动领取。</p>'; return; }
+  var html = "";
+  TASKS.forEach(function(t){
+    var rec = st.tasks[t.id];
+    if (!rec) return;
+    var tagMap = { pending:["t_pending","待审批"], confirm:["t_confirm","待二次确认"], blocked:["t_blocked","已拦截"], done:["t_done","已放款"], rejected:["t_rejected","已拒绝"] };
+    var tg = tagMap[rec.status];
+    var card = $id("card_" + t.id);
+    if (card){
+      var sEl = card.querySelector(".tag");
+      sEl.textContent = tg[1];
+      sEl.className = "tag " + tg[0];
+      var act = card.querySelector(".act");
+      var bioRow = card.querySelector(".bio");
+      if (act) act.outerHTML = buildAction(t, rec);
+    } else {
+      html += '<div class="taskcard" id="card_' + t.id + '">'
+        + '<div class="trow"><b>' + t.id + " · " + t.item + '</b><span class="tag ' + tg[0] + '">' + tg[1] + "</span></div>"
+        + '<div class="trow" style="font-size:13px;color:var(--muted)"><span>' + t.merchant + " · 申请人 " + t.buyer + " · " + t.note + '</span><b style="color:var(--ink)">' + fmt(t.amount) + " · 用卡尾号 " + $id("fCard").value + "</b></div>"
+        + buildAction(t, rec)
+        + "</div>";
+    }
+  });
+  if (html) host.insertAdjacentHTML("beforeend", html);
+}
+function buildAction(t, rec){
+  var act = '<div class="act">';
+  if (rec.status === "confirm"){
+    act += '<div class="reasonBox"><input id="rsn_' + t.id + '" placeholder="超限额放行原因（必填，如：年度订阅，预算已批）" style="flex:1;min-width:180px">'
+      + '<span class="bioBox" id="bio_' + t.id + '">🔒</span>'
+      + '<button class="btnP" id="bioBtn_' + t.id + '" onclick="bioScan(\'' + t.id + '\')">Face ID 验证</button>'
+      + '<button class="btnG" id="okBtn_' + t.id + '" disabled onclick="approve(\'' + t.id + '\')">填写原因并放行</button>'
+      + '<button class="btnR" onclick="reject(\'' + t.id + '\')">拒绝</button></div>';
+  } else if (rec.status === "pending"){
+    act += '<div class="bio">'
+      + '<span class="bioBox" id="bio_' + t.id + '">🔒</span>'
+      + (parseInt($id("fBio").value, 10) === 1
+        ? '<button class="btnP" id="bioBtn_' + t.id + '" onclick="bioScan(\'' + t.id + '\')">Face ID 验证</button>'
+          + '<button class="btnG" id="okBtn_' + t.id + '" disabled onclick="approve(\'' + t.id + '\')">批准放款</button>'
+        : '<button class="btnG" id="okBtn_' + t.id + '" onclick="approve(\'' + t.id + '\')">批准放款</button>')
+      + '<button class="btnR" onclick="reject(\'' + t.id + '\')">拒绝</button></div>';
+  } else if (rec.status === "blocked"){
+    act += '<div style="font-size:13px;color:var(--bad);margin-top:6px">' + rec.blockWhy + "</div>";
+  } else if (rec.status === "done"){
+    act += '<div style="font-size:13px;color:var(--ok);margin-top:6px">授权号 ' + rec.authId + " · payment token <code>" + rec.token + "</code> 已下发支付网络扣款 " + fmt(t.amount) + "</div>";
+  } else if (rec.status === "rejected"){
+    act += '<div style="font-size:13px;color:var(--muted);margin-top:6px">已拒绝，订单已关闭并通知申请人。</div>';
+  }
+  return act + "</div>";
+}
+window.bioScan = function(id){
+  var rec = st.tasks[id];
+  var t = findTask(id);
+  if (!rec || (rec.status !== "pending" && rec.status !== "confirm")) return;
+  var box = $id("bio_" + id);
+  var btn = $id("bioBtn_" + id);
+  box.classList.add("scan");
+  btn.disabled = true;
+  log("🔐 正在 Face ID 验证（" + t.id + " · " + fmt(t.amount) + " · " + t.merchant + "）…");
+  setTimeout(function(){
+    box.classList.remove("scan");
+    box.textContent = "✅";
+    btn.disabled = true;
+    var ok = $id("okBtn_" + id);
+    if (ok) ok.disabled = false;
+    rec.bio = true;
+    log("✅ Face ID 通过，可批准放款（" + id + "）");
+  }, 1200);
+};
+window.approve = function(id){
+  var rec = st.tasks[id];
+  var t = findTask(id);
+  if (!rec || (rec.status !== "pending" && rec.status !== "confirm")) return;
+  var needBio = parseInt($id("fBio").value, 10) === 1;
+  if (needBio && !rec.bio){ log("⛔ 请先完成 Face ID 验证再批准（" + id + "）"); return; }
+  if (rec.status === "confirm"){
+    var rsn = $id("rsn_" + id);
+    if (!rsn || !rsn.value.trim()){ log("⛔ 超限额放行必须填写原因（" + id + "）"); return; }
+    rec.reason = rsn.value.trim();
+  }
+  if (st.paid + t.amount > limit2()){
+    rec.status = "blocked";
+    rec.blockWhy = "批准复核时发现日累计额度不足（已放款 " + fmt(st.paid) + " + 本单 " + fmt(t.amount) + " > " + fmt(limit2()) + "），自动拦截";
+    log("⚠ " + id + " 批准时复核日累计额度不足，拦截");
+    renderTasks(); refreshStats(); return;
+  }
+  st.paid += t.amount;
+  var token = "tok_" + Math.random().toString(16).slice(2, 10);
+  var authId = "AUTH-20261117-" + (st.auth.length + 1 < 10 ? "0" : "") + (st.auth.length + 1);
+  rec.status = "done";
+  rec.token = token;
+  rec.authId = authId;
+  st.auth.push({ time: nowStr(), authId: authId, merchant: t.merchant, item: t.item, amount: t.amount, card: $id("fCard").value, token: token, status: "已放款", reason: rec.reason || (t.amount > limit1() ? "超限额人工放行" : "限额内自动通过") });
+  log("💳 " + id + " 批准放款 " + fmt(t.amount) + "：下发 " + token + " 给支付网络（真实卡号未出银行）");
+  renderTasks(); renderAuth(); renderToken(t, rec); refreshStats();
+};
+window.reject = function(id){
+  var rec = st.tasks[id];
+  var t = findTask(id);
+  if (!rec || (rec.status !== "pending" && rec.status !== "confirm")) return;
+  rec.status = "rejected";
+  st.auth.push({ time: nowStr(), authId: "-", merchant: t.merchant, item: t.item, amount: t.amount, card: $id("fCard").value, token: "-", status: "已拒绝", reason: "人工审批拒绝" });
+  log("🚫 " + id + " 人工拒绝 " + fmt(t.amount) + "（" + t.merchant + "），订单关闭");
+  renderTasks(); renderAuth(); refreshStats();
+};
+function renderToken(t, rec){
+  var tail = $id("fCard").value;
+  $id("tokenViews").innerHTML =
+    '<div class="tk"><h3>🤖 Agent 视角</h3>下单请求已提交<br>商品：' + t.item + "<br>金额：" + fmt(t.amount) + '<br>用卡：<code>tok_****</code>（只拿到 token 占位）<br>真实卡号：<b>不可见</b></div>'
+    + '<div class="tk"><h3>🏪 商家视角</h3>收到支付凭证<br>授权号：' + rec.authId + '<br>扣款 token：<code>' + rec.token + '</code><br>卡组织网络：已受理<br>真实卡号：<b>不可见</b>（保留你的积分与争议保护）</div>'
+    + '<div class="tk"><h3>🏦 银行视角</h3>支付网络用 token 换真实卡扣款<br><span class="realcard">' + CARD_REAL[tail] + '</span><br>逐笔审批：生物识别通过<br>授权留痕：已入台账</div>';
+}
+function renderAuth(){
+  var host = $id("authWrap");
+  if (!st.auth.length){ host.innerHTML = '<p class="empty">暂无授权记录。</p>'; return; }
+  var rows = "";
+  st.auth.slice().reverse().forEach(function(a){
+    rows += "<tr><td>" + a.time + "</td><td>" + a.authId + "</td><td>" + a.merchant + "</td><td>" + a.item + "</td><td>" + fmt(a.amount) + "</td><td>尾号 " + a.card + "</td><td><code>" + a.token + "</code></td><td>" + a.status + "</td><td>" + a.reason + "</td></tr>";
+  });
+  host.innerHTML = '<table><thead><tr><th>时间</th><th>授权号</th><th>商家</th><th>商品</th><th>金额</th><th>用卡</th><th>payment token</th><th>状态</th><th>备注</th></tr></thead><tbody>' + rows + "</tbody></table>";
+}
+function refreshStats(){
+  var ok = 0, rej = 0, block = 0;
+  Object.keys(st.tasks).forEach(function(k){
+    var s = st.tasks[k].status;
+    if (s === "done") ok++;
+    else if (s === "rejected") rej++;
+    else if (s === "blocked") block++;
+  });
+  $id("sTotal").textContent = Object.keys(st.tasks).length;
+  $id("sOk").textContent = ok;
+  $id("sRej").textContent = rej;
+  $id("sBlock").textContent = block;
+  $id("sPaid").textContent = fmt(st.paid);
+  $id("paidInline").textContent = fmt(st.paid);
+  $id("limit2Show").textContent = fmt(limit2());
+  $id("remainShow").textContent = fmt(Math.max(0, limit2() - st.paid));
+}
+$id("fLimit2").addEventListener("input", refreshStats);
+document.querySelectorAll(".chip").forEach(function(c){ c.addEventListener("click", chipHandler); });
+$id("btnCsv").addEventListener("click", function(){
+  if (!st.auth.length){ alert("暂无授权记录，先批准一笔放款"); return; }
+  var head = "时间,授权号,商家,商品,金额,用卡,payment token,状态,备注\n";
+  var body = st.auth.map(function(a, i){
+    return [(i+1) < 10 ? "0" + (i+1) : (i+1), a.time, a.authId, a.merchant, '"' + a.item + '"', a.amount, a.card, a.token, a.status, '"' + a.reason + '"'].join(",");
+  }).join("\n");
+  var blob = new Blob(["\uFEFF" + head + body], { type: "text/csv;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Agent代付授权记录_2026-11-17.csv";
+  a.click();
+  log("📤 授权记录 CSV 已导出（" + st.auth.length + " 条）");
+});
+$id("btnReset").addEventListener("click", function(){
+  st.tasks = {}; st.paid = 0; st.auth = []; st.seq = 0;
+  $id("taskList").innerHTML = '<p class="empty">点击上方示例载入采购任务，或由 Agent 自动领取。</p>';
+  $id("tokenViews").innerHTML = '<p class="empty">尚无授权记录——批准一笔放款后，这里展示同一笔交易在 Agent / 商家 / 银行三个视角下分别能看到什么。</p>';
+  $id("authWrap").innerHTML = '<p class="empty">暂无授权记录。</p>';
+  $id("log").innerHTML = "";
+  refreshStats();
+  log("已重置全部数据");
+});
+refreshStats();
+log("模拟器就绪：Agent 已接入卡包（token 隔离模式），等待采购任务");
+</script>
+</body>
+</html>
