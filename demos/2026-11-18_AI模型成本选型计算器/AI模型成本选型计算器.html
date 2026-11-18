@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI模型成本选型计算器</title>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--ink:#1f2430;--muted:#6b7280;--primary:#2563eb;--green:#16a34a;--orange:#ea580c;--red:#dc2626;--line:#e5e7eb;--soft:#eef2ff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;min-width:0}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:24px;margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.tag{display:inline-block;background:var(--soft);color:var(--primary);border-radius:6px;padding:1px 8px;font-size:12px;margin-right:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;min-width:0}
+.card h2{font-size:16px;margin-bottom:10px}
+.card h2 .step{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;background:var(--primary);color:#fff;border-radius:50%;font-size:13px;margin-right:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.grid .fld{min-width:0}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:2px solid var(--soft);border-color:var(--primary)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{background:var(--soft);color:var(--primary);border:1px solid #c7d2fe;border-radius:999px;padding:5px 14px;font-size:13px;cursor:pointer}
+.chip:hover{background:#dbeafe}
+.chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn{display:inline-block;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:15px;cursor:pointer}
+.btn:hover{opacity:.92}
+.btn.gray{background:#64748b}
+.btn.small{padding:6px 14px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;background:#f9fafb}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.best{background:#f0fdf4}
+.statRow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.statRow .st{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;min-width:0}
+.statRow .st b{display:block;font-size:20px;color:var(--primary)}
+.statRow .st span{font-size:12px;color:var(--muted)}
+.barWrap{margin:10px 0}
+.barItem{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.barName{width:150px;font-size:13px;flex:none}
+.barTrack{flex:1;background:#eef1f6;border-radius:6px;height:22px;min-width:0;overflow:hidden}
+.barFill{height:100%;border-radius:6px;color:#fff;font-size:12px;line-height:22px;padding-left:8px;white-space:nowrap;transition:width .4s}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.warn{color:var(--red);font-size:13px;margin-top:8px;display:none}
+.okmsg{color:var(--green);font-size:13px;margin-top:8px;display:none}
+#log{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px;font-family:Menlo,Consolas,monospace;font-size:12px;max-height:200px;overflow-y:auto;white-space:pre-wrap;min-width:0}
+.routeBox{background:var(--soft);border-radius:10px;padding:12px;margin-top:10px}
+input[type=range]{width:100%}
+@media(max-width:560px){h1{font-size:20px}.barName{width:96px;font-size:12px}.wrap{padding:14px 10px 40px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧮 AI模型成本选型计算器</h1>
+  <div class="sub">
+    <span class="tag">11/18 资讯 · 5星</span>参考 OpenAI 发布 GPT-6.2 双模型「Astra 旗舰 $8/$40、Sol 性价比 $2/$10（每百万 Token）」——同一个智能体流水线，选对默认模型，月账单能差 4 倍。本工具把「选模型」变成一次可复算的成本测算：填单价与任务画像，一键算出三款模型的日/月成本对比与混合路由方案。
+  </div>
+
+  <div class="statRow">
+    <div class="st"><b id="sModels">3</b><span>对比模型</span></div>
+    <div class="st"><b id="sCheap">—</b><span>最省模型</span></div>
+    <div class="st"><b id="sSave">—</b><span>相对现用省</span></div>
+    <div class="st"><b id="sRoute">—</b><span>混合路由再省</span></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">1</span>场景预设（一键载入任务画像）</h2>
+    <div class="chips">
+      <button class="chip" id="chip1">📥 资讯采集流水线</button>
+      <button class="chip" id="chip2">🛠️ 每日Demo生成</button>
+      <button class="chip" id="chip3">💻 批量代码任务</button>
+    </div>
+    <div class="note">示例数据已固化进页面，也可在下方表单改成你自己的任务画像。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">2</span>模型单价（$/百万Token，可编辑）</h2>
+    <table id="priceTbl">
+      <thead><tr><th>模型</th><th class="num">输入单价</th><th class="num">缓存输入单价</th><th class="num">输出单价</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>GPT-6.2 Astra（旗舰）</td>
+          <td class="num"><input type="number" id="astraIn" value="8" step="0.1" min="0"></td>
+          <td class="num"><input type="number" id="astraCache" value="0.4" step="0.05" min="0"></td>
+          <td class="num"><input type="number" id="astraOut" value="40" step="0.5" min="0"></td>
+          <td>11/17 发布，官方定价 $8/$0.40/$40</td></tr>
+        <tr><td>GPT-6.2 Sol（性价比）</td>
+          <td class="num"><input type="number" id="solIn" value="2" step="0.1" min="0"></td>
+          <td class="num"><input type="number" id="solCache" value="0.1" step="0.05" min="0"></td>
+          <td class="num"><input type="number" id="solOut" value="10" step="0.5" min="0"></td>
+          <td>与 Astra 价差 4 倍，适合日常批量任务</td></tr>
+        <tr><td id="curName">现用模型（对照）</td>
+          <td class="num"><input type="number" id="curIn" value="5" step="0.1" min="0"></td>
+          <td class="num"><input type="number" id="curCache" value="0.5" step="0.05" min="0"></td>
+          <td class="num"><input type="number" id="curOut" value="25" step="0.5" min="0"></td>
+          <td>默认填公开价示例，改成你正在用的模型单价</td></tr>
+      </tbody>
+    </table>
+    <div class="note">单价改完点「开始测算」即可重算，无需刷新。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">3</span>任务画像（每日流水线用量）</h2>
+    <div class="grid">
+      <div class="fld"><label>每日任务数（次调用）</label><input type="number" id="fTasks" value="120" min="0"></div>
+      <div class="fld"><label>单任务输入 Token</label><input type="number" id="fInTok" value="12000" min="0"></div>
+      <div class="fld"><label>缓存命中率（%）</label><input type="number" id="fCacheRate" value="60" min="0" max="100"></div>
+      <div class="fld"><label>单任务输出 Token</label><input type="number" id="fOutTok" value="2000" min="0"></div>
+      <div class="fld"><label>每月工作日</label><input type="number" id="fDays" value="22" min="1" max="31"></div>
+      <div class="fld"><label>简单任务占比（%，走 Sol 路由）</label><input type="number" id="fEasy" value="70" min="0" max="100"></div>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn" id="btnRun">开始测算</button>
+      <button class="btn gray small" id="btnReset">重置示例</button>
+    </div>
+    <div class="warn" id="warn"></div>
+    <div class="okmsg" id="okmsg"></div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <h2><span class="step">4</span>测算结果（月成本对比）</h2>
+    <div class="barWrap" id="bars"></div>
+    <div id="verdict" style="margin:10px 0;font-size:14px"></div>
+    <table id="detailTbl">
+      <thead><tr><th>模型</th><th class="num">单次调用成本</th><th class="num">日成本</th><th class="num">月成本</th><th class="num">相对现用</th><th>建议用途</th></tr></thead>
+      <tbody id="detailBody"></tbody>
+    </table>
+    <div class="routeBox">
+      <b>🔀 混合路由方案</b>
+      <div class="note" style="margin-top:4px">把 <b id="easyPctTxt">70%</b> 的简单任务路由到 Sol，其余难任务走 Astra（对照继续用现用模型）：</div>
+      <input type="range" id="routeSlider" min="0" max="100" value="70">
+      <div style="margin-top:8px" id="routeOut"></div>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn small" id="btnCsv">导出测算记录 CSV</button>
+    </div>
+    <div class="note">公式：单次成本 = 输入Token×(1−缓存率)×输入单价 + 输入Token×缓存率×缓存单价 + 输出Token×输出单价，单位 $/百万Token。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">5</span>测算日志</h2>
+    <div id="log">等待测算…</div>
+  </div>
+</div>
+<script>
+"use strict";
+var $id=function(x){return document.getElementById(x);};
+function num(v){var n=parseFloat(v);return isFinite(n)?n:0;}
+function money(n){return "$"+n.toFixed(2);}
+function log(msg){var el=$id("log");el.textContent="["+new Date().toLocaleTimeString("zh-CN",{hour12:false})+"] "+msg+"\n"+el.textContent;}
+var REC=[];
+function calcOne(p){
+  // p: {in,cache,out} 单价 $/M；输入输出token、缓存率
+  var inTok=$id("fInTok"),outTok=$id("fOutTok");
+  var inT=num(inTok.value),outT=num(outTok.value),cr=num($id("fCacheRate").value)/100;
+  var cost=(inT*(1-cr)*p.in+inT*cr*p.cache+outT*p.out)/1000000;
+  return cost;
+}
+function collectPrices(){
+  return {
+    astra:{in:num($id("astraIn").value),cache:num($id("astraCache").value),out:num($id("astraOut").value),name:"GPT-6.2 Astra",use:"最难的单个任务/关键交付",cls:"#2563eb"},
+    sol:{in:num($id("solIn").value),cache:num($id("solCache").value),out:num($id("solOut").value),name:"GPT-6.2 Sol",use:"日常批量任务/采集评分",cls:"#16a34a"},
+    cur:{in:num($id("curIn").value),cache:num($id("curCache").value),out:num($id("curOut").value),name:$id("curName").textContent.replace("（对照）",""),use:"现状对照基线",cls:"#64748b"}
+  };
+}
+var SCEN={
+  chip1:{name:"资讯采集流水线",tasks:120,inTok:12000,cacheRate:60,outTok:2000,days:22,easy:70},
+  chip2:{name:"每日Demo生成",tasks:15,inTok:60000,cacheRate:40,outTok:12000,days:22,easy:40},
+  chip3:{name:"批量代码任务",tasks:60,inTok:30000,cacheRate:50,outTok:8000,days:22,easy:55}
+};
+function loadChip(k){
+  var s=SCEN[k];
+  $id("fTasks").value=s.tasks;$id("fInTok").value=s.inTok;$id("fCacheRate").value=s.cacheRate;
+  $id("fOutTok").value=s.outTok;$id("fDays").value=s.days;$id("fEasy").value=s.easy;
+  $id("routeSlider").value=s.easy;
+  document.querySelectorAll(".chip").forEach(function(c){c.classList.remove("on");});
+  $id(k).classList.add("on");
+  log("载入场景「"+s.name+"」：每日 "+s.tasks+" 次调用，输入 "+s.inTok+" tok（缓存率 "+s.cacheRate+"%），输出 "+s.outTok+" tok");
+}
+$id("chip1").onclick=function(){loadChip("chip1");};
+$id("chip2").onclick=function(){loadChip("chip2");};
+$id("chip3").onclick=function(){loadChip("chip3");};
+
+function validate(){
+  var w=$id("warn");w.style.display="none";
+  var problems=[];
+  if(num($id("fTasks").value)<=0)problems.push("每日任务数必须大于 0");
+  if(num($id("fInTok").value)<=0)problems.push("单任务输入 Token 必须大于 0");
+  if(num($id("fDays").value)<1)problems.push("每月工作日至少 1 天");
+  var ps=collectPrices();
+  ["astra","sol","cur"].forEach(function(k){
+    if(ps[k].in<=0&&ps[k].out<=0)problems.push(ps[k].name+" 的单价不能全为 0");
+  });
+  if(problems.length){w.textContent="⚠️ "+problems.join("；");w.style.display="block";return null;}
+  return ps;
+}
+function runCalc(){
+  var ps=validate();
+  if(!ps){log("测算被拦截：表单存在无效输入");return;}
+  var tasks=num($id("fTasks").value),days=num($id("fDays").value);
+  var rows=["astra","sol","cur"].map(function(k){
+    var p=ps[k],one=calcOne(p);
+    return {key:k,name:p.name,cls:p.cls,use:p.use,one:one,day:one*tasks,month:one*tasks*days};
+  });
+  var base=rows[2].month;
+  var minM=rows[0].month<rows[1].month?rows[0]:rows[1];
+  rows.forEach(function(r){
+    r.vsBase=base>0?((r.month-base)/base*100):0;
+  });
+  // 条形图
+  var maxM=Math.max.apply(null,rows.map(function(r){return r.month;}));
+  var bars=$id("bars");bars.innerHTML="";
+  rows.forEach(function(r){
+    var w=maxM>0?(r.month/maxM*100):0;
+    var d=document.createElement("div");d.className="barItem";
+    d.innerHTML='<div class="barName">'+r.name+'</div><div class="barTrack"><div class="barFill" style="width:'+w+'%;background:'+r.cls+'">'+money(r.month)+'/月</div></div>';
+    bars.appendChild(d);
+  });
+  // 明细表
+  var tb=$id("detailBody");tb.innerHTML="";
+  rows.forEach(function(r){
+    var tr=document.createElement("tr");
+    if(r.key===minM.key)tr.className="best";
+    tr.innerHTML="<td>"+r.name+(r.key===minM.key?" ⭐":"")+"</td>"
+      +'<td class="num">'+money(r.one)+'</td><td class="num">'+money(r.day)+'</td><td class="num">'+money(r.month)+'</td>'
+      +'<td class="num">'+(r.vsBase>=0?"+":"")+r.vsBase.toFixed(1)+"%</td><td>"+r.use+"</td>";
+    tb.appendChild(tr);
+  });
+  var savePct=base>0?((base-minM.month)/base*100):0;
+  $id("verdict").innerHTML="💡 结论：当前任务画像下最省的是 <b style=\"color:"+minM.cls+"\">"+minM.name+"</b>，月成本 "+money(minM.month)+"，比现用模型（"+money(base)+"）<b style=\"color:var(--green)\">省 "+savePct.toFixed(1)+"%</b>。注意单价可在上方表单改成你的实际账面价再复算。";
+  $id("sCheap").textContent=minM.key==="sol"?"Sol":(minM.key==="astra"?"Astra":"现用");
+  $id("sSave").textContent=savePct.toFixed(1)+"%";
+  // 混合路由
+  routeRowsCache=rows;routePsCache=ps;
+  renderRoute(rows,ps,days);
+  $id("resultCard").style.display="block";
+  $id("okmsg").textContent="✅ 测算完成：3 款模型 × "+tasks+" 次/日 × "+days+" 天，结果已生成。";
+  $id("okmsg").style.display="block";
+  log("测算完成：Astra "+money(rows[0].month)+"/月 · Sol "+money(rows[1].month)+"/月 · 现用 "+money(rows[2].month)+"/月；最省 "+minM.name+"，省 "+savePct.toFixed(1)+"%");
+  REC.push({time:new Date().toLocaleString("zh-CN",{hour12:false}),scenario:(document.querySelector(".chip.on")||{}).textContent||"自定义画像",tasks:tasks,inTok:num($id("fInTok").value),cacheRate:num($id("fCacheRate").value),outTok:num($id("fOutTok").value),days:days,astraMonth:rows[0].month.toFixed(2),solMonth:rows[1].month.toFixed(2),curMonth:rows[2].month.toFixed(2),cheapest:minM.name,savePct:savePct.toFixed(1)+"%",routeSave:$id("sRoute").textContent});
+}
+function renderRoute(rows,ps,days){
+  var easy=num($id("routeSlider").value)/100;
+  var tasks=num($id("fTasks").value);
+  var oneA=calcOne(ps.astra),oneS=calcOne(ps.sol),oneC=calcOne(ps.cur);
+  var comboMonth=(oneS*easy+oneA*(1-easy))*tasks*days;
+  var fullA=oneA*tasks*days,fullC=oneC*tasks*days;
+  var rs=fullC>0?((fullC-comboMonth)/fullC*100):0;
+  var extra=fullA>0?((fullA-comboMonth)/fullA*100):0;
+  $id("easyPctTxt").textContent=$id("routeSlider").value+"%";
+  $id("routeOut").innerHTML="混合路由月成本 <b>"+money(comboMonth)+"</b> ｜ 全走 Astra "+money(fullA)+"（混合再省 "+extra.toFixed(1)+"%）｜ 全走现用 "+money(fullC)+"（省 "+rs.toFixed(1)+"%）。路由口径：简单任务占比可拖动滑块调整。";
+  $id("sRoute").textContent=extra.toFixed(1)+"%";
+  return {comboMonth:comboMonth,fullA:fullA,fullC:fullC,extra:extra,rs:rs};
+}
+var routeRowsCache=null,routePsCache=null;
+$id("btnRun").onclick=runCalc;
+$id("routeSlider").addEventListener("input",function(){
+  if(!routeRowsCache)return;
+  renderRoute(routeRowsCache,routePsCache,num($id("fDays").value));
+  log("路由比例调整为 "+this.value+"%，混合成本已重算");
+});
+$id("btnReset").onclick=function(){
+  ["fTasks","fInTok","fCacheRate","fOutTok","fDays","fEasy"].forEach(function(k){$id(k).value="";});
+  $id("fTasks").value=120;$id("fInTok").value=12000;$id("fCacheRate").value=60;$id("fOutTok").value=2000;$id("fDays").value=22;$id("fEasy").value=70;
+  $id("astraIn").value=8;$id("astraCache").value=0.4;$id("astraOut").value=40;
+  $id("solIn").value=2;$id("solCache").value=0.1;$id("solOut").value=10;
+  $id("curIn").value=5;$id("curCache").value=0.5;$id("curOut").value=25;
+  $id("routeSlider").value=70;
+  $id("resultCard").style.display="none";$id("okmsg").style.display="none";$id("warn").style.display="none";
+  routeRowsCache=null;routePsCache=null;
+  document.querySelectorAll(".chip").forEach(function(c){c.classList.remove("on");});
+  log("已重置为默认示例");
+};
+$id("btnCsv").onclick=function(){
+  if(!REC.length){alert("还没有测算记录，先点「开始测算」");return;}
+  var head="测算时间,场景,每日任务数,输入Token,缓存率%,输出Token,月工作日,Astra月成本,Sol月成本,现用月成本,最省模型,相对现用节省,混合路由再省";
+  var lines=REC.map(function(r){return [r.time,r.scenario,r.tasks,r.inTok,r.cacheRate,r.outTok,r.days,r.astraMonth,r.solMonth,r.curMonth,r.cheapest,r.savePct,r.routeSave].join(",");});
+  var blob=new Blob(["\uFEFF"+head+"\n"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="模型成本测算记录_2026-11-18.csv";a.click();
+  log("导出测算记录 CSV（"+REC.length+" 条）");
+};
+// 初始化：载入默认场景并自动测算一次
+loadChip("chip1");
+runCalc();
+</script>
+</body>
+</html>
