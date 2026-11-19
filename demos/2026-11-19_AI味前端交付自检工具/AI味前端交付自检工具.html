@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI味前端交付自检工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f6f7fb;color:#1f2937;padding:16px;}
+.wrap{max-width:1080px;margin:0 auto;}
+h1{font-size:22px;margin-bottom:4px;}
+.sub{font-size:13px;color:#6b7280;margin-bottom:16px;line-height:1.6;}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:14px;}
+.card h2{font-size:15px;margin-bottom:10px;color:#111827;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+.chip{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:16px;padding:5px 12px;font-size:13px;cursor:pointer;}
+.chip:hover{background:#dbeafe;}
+textarea{width:100%;height:170px;border:1px solid #d1d5db;border-radius:8px;padding:10px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px;line-height:1.5;resize:vertical;}
+.formGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.fItem{min-width:0;}
+.fItem label{display:block;font-size:12px;color:#6b7280;margin-bottom:5px;}
+select,input[type=text]{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px 10px;font-size:13px;background:#fff;}
+.cks{display:flex;flex-wrap:wrap;gap:10px;}
+.cks label{font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;}
+.btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+button{border:none;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600;}
+button:disabled{opacity:.5;cursor:not-allowed;}
+.bMain{background:#2563eb;color:#fff;}
+.bSub{background:#fff;color:#374151;border:1px solid #d1d5db;}
+.bWarn{background:#f59e0b;color:#fff;}
+#verdict{display:none;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:15px;font-weight:700;line-height:1.7;}
+#verdict.block{display:block;}
+.vBad{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;}
+.vGood{background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;}
+#delta{display:none;font-size:13px;font-weight:600;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-top:8px;}
+#delta.block{display:block;}
+#warn{display:none;font-size:13px;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;margin-top:8px;}
+#warn.block{display:block;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.stat{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;text-align:center;min-width:0;}
+.stat .n{font-size:24px;font-weight:800;}
+.stat .t{font-size:12px;color:#6b7280;margin-top:4px;}
+.catRow{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;}
+.catRow .cn{width:88px;flex:none;color:#374151;}
+.catBar{flex:1;height:14px;background:#f3f4f6;border-radius:7px;overflow:hidden;min-width:0;}
+.catBar i{display:block;height:100%;border-radius:7px;}
+.catRow .cv{width:64px;flex:none;text-align:right;color:#6b7280;font-size:12px;}
+.tblWrap{overflow-x:auto;border:1px solid #e5e7eb;border-radius:8px;}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:640px;}
+th{background:#f9fafb;color:#374151;padding:8px;text-align:left;border-bottom:1px solid #e5e7eb;white-space:nowrap;}
+td{padding:8px;border-bottom:1px solid #f3f4f6;vertical-align:top;}
+td code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:11px;}
+.sev{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+.sev.h{background:#fee2e2;color:#dc2626;}
+.sev.m{background:#fef3c7;color:#b45309;}
+.sev.l{background:#dbeafe;color:#2563eb;}
+#log{background:#0f172a;color:#cbd5e1;border-radius:8px;padding:10px;font-family:Menlo,Consolas,monospace;font-size:11px;line-height:1.7;max-height:150px;overflow-y:auto;}
+#log .t{color:#64748b;}
+.empty{color:#9ca3af;font-size:13px;text-align:center;padding:14px;}
+h3{font-size:13px;color:#374151;margin:12px 0 8px;}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr);}.formGrid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI味前端交付自检工具</h1>
+  <div class="sub">参考 <b>pbakaus/impeccable</b>（GitHub 111.7K stars）「59条确定性检测规则在交付前硬拦截AI味前端」的设计：不靠模型自觉，用确定性规则引擎对 HTML 源码逐行扫描，命中即给出行号+证据+修复建议，指数超过拦截线就<b>不许交付</b>。全部规则本地运行，粘贴的代码不出浏览器。</div>
+
+  <div class="card">
+    <h2>① 待检页面源码</h2>
+    <div class="chips">
+      <button class="chip" data-i="0">AI味模板页（典型slop）</button>
+      <button class="chip" data-i="1">干净手写页</button>
+      <button class="chip" data-i="2">轻微AI味页（边缘样本）</button>
+    </div>
+    <textarea id="srcInput" placeholder="粘贴要交付前自检的 HTML 源码，或点击上方示例载入…"></textarea>
+    <div id="warn"></div>
+  </div>
+
+  <div class="card">
+    <h2>② 检测规则配置（业务表单）</h2>
+    <div class="formGrid">
+      <div class="fItem">
+        <label>交付拦截线（AI味指数 ≥ 该值判定拦截）</label>
+        <select id="fTh">
+          <option value="30">30 · 严格（高危行业/对外门面）</option>
+          <option value="60" selected>60 · 标准（默认）</option>
+          <option value="80">80 · 宽松（内部工具）</option>
+        </select>
+      </div>
+      <div class="fItem">
+        <label>豁免词（命中文案含这些词时不计违规，逗号分隔）</label>
+        <input type="text" id="fExempt" placeholder="如：赋能,合规">
+      </div>
+      <div class="fItem" style="grid-column:1/-1;">
+        <label>启用的规则类别</label>
+        <div class="cks">
+          <label><input type="checkbox" id="ckColor" checked> 配色与视觉</label>
+          <label><input type="checkbox" id="ckCopy" checked> 文案用语</label>
+          <label><input type="checkbox" id="ckLayout" checked> 结构排版</label>
+          <label><input type="checkbox" id="ckMotion" checked> 动效滥用</label>
+        </div>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="bMain" id="btnScan">开始自检</button>
+      <button class="bSub" id="btnCsv" disabled>导出自检报告 CSV</button>
+      <button class="bSub" id="btnReset">重置</button>
+    </div>
+  </div>
+
+  <div id="verdict"></div>
+  <div id="delta"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="sRules">0</div><div class="t">启用规则</div></div>
+    <div class="stat"><div class="n" id="sHit">0</div><div class="t">命中规则</div></div>
+    <div class="stat"><div class="n" id="sEv">0</div><div class="t">问题证据数</div></div>
+    <div class="stat"><div class="n" id="sIdx">–</div><div class="t">AI味指数</div></div>
+  </div>
+
+  <div class="card">
+    <h2>③ 类别分布</h2>
+    <div id="catBars"><div class="empty">尚未自检</div></div>
+  </div>
+
+  <div class="card">
+    <h2>④ 违规明细（行号 + 证据 + 修复建议）</h2>
+    <div class="tblWrap">
+      <table>
+        <thead><tr><th>#</th><th>行号</th><th>类别</th><th>规则</th><th>证据片段</th><th>权重</th><th>修复建议</th></tr></thead>
+        <tbody id="vBody"><tr><td colspan="7" class="empty">尚未自检</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>⑤ 自检日志</h2>
+    <div id="log"><div>[--:--:--] 等待自检…</div></div>
+  </div>
+</div>
+
+<script>
+// ---------- 示例数据（固化进 JS） ----------
+const SAMPLES = [
+`<!DOCTYPE html>
+<html><head><style>
+body{background:linear-gradient(135deg,#1e1b4b,#4c1d95);color:#fff;}
+h1{font-size:42px;text-shadow:0 0 18px #a78bfa;}
+.btn{background:linear-gradient(135deg,#667eea,#764ba2);box-shadow:0 0 20px #8b5cf6;}
+.feat{display:grid;grid-template-columns:repeat(3,1fr);transition:all .3s;}
+.feat:hover{transform:scale(1.05);animation:glow 2s infinite;}
+</style></head>
+<body>
+<h1>🎉 在当今数字化时代，赋能企业增长的一站式智能平台！！</h1>
+<p>✨ 我们提供强大高效的一站式全方位解决方案，助力企业降本增效！</p>
+<ul><li>🚀 智能赋能</li><li>💡 高效便捷</li><li>💎 极致体验</li></ul>
+<button class="btn">让我们开始吧！🚀</button>
+<div class="feat">Lorem ipsum 占位文本</div>
+</body></html>`,
+`<!DOCTYPE html>
+<html><head><style>
+body{font-family:-apple-system,sans-serif;max-width:720px;margin:0 auto;color:#1f2937;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;border-bottom:1px solid #d1d5db;padding:8px;}
+</style></head>
+<body>
+<h1>11月供应商对账结果</h1>
+<table><tr><th>供应商</th><th>金额</th><th>差异</th></tr>
+<tr><td>粤海食品</td><td>12,480.00</td><td>0.00</td></tr>
+<tr><td>恒信调味</td><td>3,215.50</td><td>-12.00</td></tr></table>
+<p>差异原因：恒信调味运费四舍五入，已与对方确认，下月运费按整数元计。</p>
+</body></html>`,
+`<!DOCTYPE html>
+<html><head><style>
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.card{transition:all .2s;}
+.card:hover{transform:scale(1.03);}
+.btn{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;}
+</style></head>
+<body>
+<h1>门店数据看板</h1>
+<p>为门店运营赋能的数据工具，提升日常盘点效率。</p>
+<div class="grid">
+<div class="card">✨ 今日收货 32 单</div>
+<div class="card">✨ 报损 2 笔</div>
+<div class="card">✨ 盘点完成</div>
+</div>
+<button class="btn">导出日报</button>
+</body></html>`];
+
+// ---------- 确定性规则引擎 ----------
+const CATS = {
+  color:{name:'配色与视觉',ck:'ckColor',c:'#8b5cf6'},
+  copy:{name:'文案用语',ck:'ckCopy',c:'#f59e0b'},
+  layout:{name:'结构排版',ck:'ckLayout',c:'#2563eb'},
+  motion:{name:'动效滥用',ck:'ckMotion',c:'#10b981'}
+};
+const RULES = [
+  {cat:'color',name:'紫色渐变背景',w:12,re:/(linear|radial)-gradient[^;"']*(8b5cf6|7c3aed|a78bfa|6d28d9|9333ea|4c1d95|1e1b4b|764ba2)/i,sug:'换纯色或品牌色系背景，紫色渐变是AI生成页面最高频的指纹'},
+  {cat:'color',name:'AI渐变按钮',w:8,re:/linear-gradient[^;"']*(667eea|f093fb|f5576c|4facfe|00f260|fa709a)/i,sug:'按钮用品牌主色纯色，hover 微调明度即可'},
+  {cat:'color',name:'发光文字',w:8,re:/text-shadow\s*:[^;"']*0\s+0\s+\d+px/i,sug:'删掉标题发光效果，对比度靠字重与字号，不靠光晕'},
+  {cat:'color',name:'霓虹阴影',w:6,re:/box-shadow\s*:[^;"']*0\s+0\s+\d+px\s*(#|rgb)?[^;"']*(8b5cf6|a78bfa|6c5ce7|f0f)/i,sug:'卡片阴影用低透明度中性色（如 rgba(0,0,0,.08)），别用彩色光晕'},
+  {cat:'copy',name:'AI高频套话',w:8,re:/(赋能|一站式|全方位解决方案|引领未来|助力企业降本增效|极致体验|重新定义)/,exempt:true,sug:'换成具体数字或动作：「帮门店把盘点从2小时压到15分钟」比「赋能提效」可信十倍'},
+  {cat:'copy',name:'宏大开场白',w:6,re:/在当今(快速发展的|数字化的?)?(时代|浪潮|背景下)/,exempt:true,sug:'删掉，直接从用户场景或数据切入第一句'},
+  {cat:'copy',name:'空洞感叹号堆砌',w:4,re:/(!{2,}|！{2,})/,sug:'一句话最多一个感叹号，靠内容而不是音量'},
+  {cat:'copy',name:'陈词滥调号召',w:4,re:/(让我们(开始|一起|携手)|立即体验吧|赶快行动吧)/,exempt:true,sug:'按钮写动作本身：「导出日报」「提交对账」，不写口号'},
+  {cat:'layout',name:'占位假文案',w:10,re:/(lorem ipsum|占位文本|示例文案|TODO[:：]\s*文案)/i,sug:'交付前必须替换成真实业务文案'},
+  {cat:'layout',name:'emoji堆砌',w:6,re:/[🎉🚀✨💎🔥]{1}/,min:3,sug:'每屏 emoji 少于3个；信息层级用字号与留白表达'},
+  {cat:'layout',name:'三列特性卡',w:4,re:/grid-template-columns\s*:\s*repeat\(\s*3\s*,/,sug:'AI最爱「三张渐变特性卡」；按真实信息结构排，别默认三列'},
+  {cat:'layout',name:'徽章标签堆砌',w:5,re:/(badge|chip|tag)[^>]{0,40}>\s*[^<]{1,6}\s*<\//i,min:4,sug:'标签只保留有信息量的，装饰性徽章全部删除'},
+  {cat:'motion',name:'hover缩放滥用',w:4,re:/:hover[^{]*\{[^}]*transform\s*:\s*scale/i,sug:'hover 反馈改用背景色/边框变化，缩放会让表格与列表抖动'},
+  {cat:'motion',name:'transition:all',w:4,re:/transition\s*:\s*all(\s|,|;)/i,sug:'明确列出要过渡的属性（如 transition:background .2s），all 会带来意外重排动画'},
+  {cat:'motion',name:'无限循环动画',w:5,re:/animation\s*:[^;"']*infinite/i,sug:'装饰性动画禁止 infinite 循环，消耗注意力与电量'},
+  {cat:'motion',name:'弹跳/脉冲装饰',w:3,re:/animation\s*:[^;"']*(bounce|pulse|wiggle)/i,sug:'功能性加载动效除外，装饰性弹跳全部移除'}
+];
+
+const $ = id => document.getElementById(id);
+let lastIdx = null, lastVerdict = null, lastRows = [], scanCount = 0;
+
+function log(msg){
+  const t = new Date().toTimeString().slice(0,8);
+  const d = document.createElement('div');
+  d.innerHTML = '<span class="t">['+t+']</span> '+msg;
+  $('log').appendChild(d);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+function loadSample(i){
+  $('srcInput').value = SAMPLES[i];
+  $('warn').classList.remove('block');
+  log('已载入示例「'+document.querySelectorAll('.chip')[i].textContent+'」，点击「开始自检」');
+}
+
+function scan(){
+  const src = $('srcInput').value;
+  if(!src.trim()){ $('warn').textContent = '请先粘贴 HTML 源码，或点击上方示例一键载入'; $('warn').classList.add('block'); return; }
+  $('warn').classList.remove('block');
+  const exempt = $('fExempt').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+  const lines = src.split('\n');
+  const catsOn = {}; let nRules = 0;
+  for(const k in CATS){ catsOn[k] = $(CATS[k].ck).checked; if(catsOn[k]) nRules += RULES.filter(r=>r.cat===k).length; }
+
+  let rows = [], raw = 0, evCount = 0;
+  const catHit = {}, catEv = {};
+  RULES.forEach((r,idx)=>{
+    if(!catsOn[r.cat]) return;
+    const hits = [];
+    lines.forEach((ln,i)=>{
+      if(r.re.test(ln)){
+        const m = ln.trim().slice(0,60);
+        if(r.exempt && exempt.some(w=>m.includes(w))) return;
+        hits.push({no:i+1,ev:m});
+      }
+    });
+    const c = r.min ? (hits.length>=r.min ? 1 : 0) : Math.min(hits.length,3);
+    if(c>0){
+      const eff = hits.slice(0, r.min?r.min:3);
+      eff.forEach(h=>{ rows.push({no:h.no,cat:r.cat,catName:CATS[r.cat].name,name:r.name,ev:h.ev,w:r.w,sug:r.sug}); evCount++; });
+      catHit[r.cat] = (catHit[r.cat]||0)+1; catEv[r.cat] = (catEv[r.cat]||0)+eff.length;
+      raw += r.w * c;
+    }
+  });
+
+  const idxScore = Math.min(100, Math.round(raw*1.2));
+  const th = +$('fTh').value;
+  const blocked = idxScore >= th;
+  const grade = idxScore>=80?'严重 AI 味':(idxScore>=60?'明显 AI 味':(idxScore>=30?'轻微 AI 味':'干净'));
+  lastRows = rows;
+
+  // 复检对比
+  if(lastIdx !== null){
+    const d = idxScore - lastIdx;
+    const flipped = lastVerdict !== (blocked?'拦截':'通过');
+    $('delta').textContent = '复检对比：AI味指数 '+lastIdx+' → '+idxScore+'（'+(d>=0?'+':'')+d+'）｜上次判定：'+lastVerdict+' → 本次判定：'+(blocked?'拦截':'通过')+'，'+(flipped?'判定已翻转！':'判定未翻转');
+    $('delta').classList.add('block');
+  } else { $('delta').classList.remove('block'); }
+  lastIdx = idxScore; lastVerdict = blocked?'拦截':'通过';
+
+  // 判定横幅
+  const v = $('verdict');
+  v.className = 'block ' + (blocked?'vBad':'vGood');
+  v.innerHTML = blocked
+    ? '⛔ 拦截交付：AI味指数 '+idxScore+'（'+grade+'）≥ 拦截线 '+th+'。共命中 '+Object.keys(catHit).length+' 类 / '+rows.length+' 条证据，最高危类别「'+(catEvMax(catEv))+'」，按明细逐条修复后点「开始自检」复检。'
+    : (evCount===0
+      ? '✅ 允许交付：AI味指数 '+idxScore+'，零命中，页面干净。'
+      : '✅ 允许交付：AI味指数 '+idxScore+'（'+grade+'）< 拦截线 '+th+'，仍有 '+rows.length+' 条轻微问题可顺手优化。');
+
+  $('sRules').textContent = nRules;
+  $('sHit').textContent = Object.keys(catHit).length;
+  $('sEv').textContent = evCount;
+  $('sIdx').textContent = idxScore;
+
+  // 类别条
+  const cb = $('catBars');
+  if(Object.keys(catEv).length===0){ cb.innerHTML = '<div class="empty">零命中，四类全干净 ✅</div>'; }
+  else {
+    const max = Math.max(...Object.values(catEv));
+    cb.innerHTML = Object.keys(CATS).map(k=>{
+      const n = catEv[k]||0;
+      return '<div class="catRow"><div class="cn">'+CATS[k].name+'</div><div class="catBar"><i style="width:'+(n/max*100)+'%;background:'+CATS[k].c+'"></i></div><div class="cv">'+n+' 条</div></div>';
+    }).join('');
+  }
+
+  // 明细表
+  const tb = $('vBody');
+  if(rows.length===0){ tb.innerHTML = '<tr><td colspan="7" class="empty">零命中</td></tr>'; }
+  else {
+    tb.innerHTML = rows.map((r,i)=>{
+      const sev = r.w>=8?'h':(r.w>=5?'m':'l');
+      return '<tr><td>'+(i+1)+'</td><td><code>第'+r.no+'行</code></td><td>'+r.catName+'</td><td>'+r.name+'</td><td><code>'+esc(r.ev)+'</code></td><td><span class="sev '+sev+'">'+r.w+'</span></td><td>'+r.sug+'</td></tr>';
+    }).join('');
+  }
+
+  $('btnCsv').disabled = false;
+  scanCount++;
+  log('自检 #'+scanCount+' 完成：启用 '+nRules+' 条规则，命中 '+Object.keys(catHit).length+' 条规则 / '+evCount+' 条证据，AI味指数 '+idxScore+'（'+grade+'），判定「'+(blocked?'拦截':'通过')+'」（拦截线 '+th+'）');
+}
+
+function catEvMax(catEv){ let mk='',mv=-1; for(const k in catEv){ if(catEv[k]>mv){mv=catEv[k];mk=CATS[k].name;} } return mk; }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function exportCsv(){
+  if(!lastRows.length){ return; }
+  const th = $('fTh').value;
+  let csv = 'AI味前端交付自检报告\n自检时间,'+new Date().toLocaleString('zh-CN')+'\nAI味指数,'+lastIdx+'\n判定,'+lastVerdict+'（拦截线 '+th+'）\n\n序号,行号,类别,规则,证据片段,权重,修复建议\n';
+  lastRows.forEach((r,i)=>{
+    csv += [i+1,'第'+r.no+'行',r.catName,r.name,r.ev,r.w,r.sug].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')+'\n';
+  });
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'AI味自检报告_'+Date.now()+'.csv';
+  a.click();
+  log('已导出自检报告 CSV（含 BOM，Excel 直接打开）');
+}
+
+function resetAll(){
+  $('srcInput').value=''; $('fExempt').value=''; $('fTh').value='60';
+  ['ckColor','ckCopy','ckLayout','ckMotion'].forEach(id=>$(id).checked=true);
+  $('verdict').className=''; $('verdict').innerHTML='';
+  $('delta').className=''; $('delta').textContent='';
+  $('warn').className='';
+  $('sRules').textContent='0'; $('sHit').textContent='0'; $('sEv').textContent='0'; $('sIdx').textContent='–';
+  $('catBars').innerHTML='<div class="empty">尚未自检</div>';
+  $('vBody').innerHTML='<tr><td colspan="7" class="empty">尚未自检</td></tr>';
+  $('btnCsv').disabled=true;
+  lastIdx=null; lastVerdict=null; lastRows=[]; scanCount=0;
+  $('log').innerHTML='<div>[--:--:--] 已重置，等待自检…</div>';
+}
+
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>loadSample(+c.dataset.i)));
+$('btnScan').addEventListener('click',scan);
+$('btnCsv').addEventListener('click',exportCsv);
+$('btnReset').addEventListener('click',resetAll);
+</script>
+</body>
+</html>
