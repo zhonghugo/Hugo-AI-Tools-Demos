@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>桌面软件CLI化调用器</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1c2733;--muted:#67737f;--line:#dfe4ea;--primary:#0f6b52;--primary-soft:#e7f3ef;--warn:#a3560d;--warn-soft:#fdf1e4;--bad:#b3352c;--bad-soft:#fbeae8;--code:#0d1b2a;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:18px 14px 40px}
+  .wrap{max-width:1040px;margin:0 auto}
+  header h1{font-size:22px}
+  header p.sub{color:var(--muted);font-size:13px;margin-top:6px}
+  .stats{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}
+  .stats div{text-align:left}
+  .stats b{font-size:20px;color:var(--primary);display:block}
+  .stats span{font-size:12px;color:var(--muted)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:14px}
+  section h2{font-size:15px;margin-bottom:10px}
+  section h2 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .chips button{background:var(--primary-soft);color:var(--primary);border:1px solid #c4e0d6;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer}
+  .frow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .frow label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+  .frow select,.frow input{padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff;color:var(--ink)}
+  button.act{background:var(--primary);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer}
+  button.act:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer}
+  button.ghost:disabled{opacity:.45;cursor:not-allowed}
+  .regStats{font-size:12px;color:var(--muted);margin-top:8px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px}
+  .card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;background:#fff}
+  .card h3{font-size:14px}
+  .card .meta{font-size:11px;color:var(--muted);margin-top:4px}
+  .card .tag{display:inline-block;font-size:11px;background:#eef1f4;border-radius:4px;padding:1px 6px;margin-top:6px;color:var(--muted)}
+  .card.sel{border-color:var(--primary);background:var(--primary-soft)}
+  .card.sel h3{color:var(--primary)}
+  .cmdBox{background:var(--code);color:#d7e3ee;border-radius:8px;padding:12px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;margin-top:10px}
+  .cmdBox .hl{color:#7fd7a8}
+  .jsonBox{background:#f0f3f6;border:1px solid var(--line);border-radius:8px;padding:10px;font-family:Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;margin-top:10px;color:#243b53}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .duel{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .duel h3{font-size:13px;margin-bottom:6px}
+  .duel .px h3{color:var(--warn)}
+  .duel .cli h3{color:var(--primary)}
+  .log{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:Menlo,Consolas,monospace;font-size:11.5px;min-height:120px;max-height:260px;overflow-y:auto}
+  .log p{padding:2px 0;border-bottom:1px dashed #eef1f4}
+  .log p.r{color:var(--warn)}
+  .log p.ok{color:var(--primary)}
+  .bars{margin-top:12px}
+  .barRow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12px}
+  .barRow .lb{width:88px;color:var(--muted);flex:none}
+  .barRow .track{flex:1;background:#eef1f4;border-radius:5px;height:16px;overflow:hidden}
+  .barRow .fill{height:100%;border-radius:5px}
+  .barRow .val{width:110px;text-align:right;flex:none;font-family:Menlo,Consolas,monospace;font-size:11.5px}
+  .verdict{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:13px;background:var(--primary-soft);color:var(--primary);display:none}
+  .verdict.warn{background:var(--warn-soft);color:var(--warn)}
+  table.report{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+  table.report th,table.report td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+  table.report th{background:#eef1f4}
+  @media(max-width:640px){.duel{grid-template-columns:1fr}.stats{gap:14px}header h1{font-size:19px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>桌面软件CLI化调用器</h1>
+    <p class="sub">参考 HKUDS/CLI-Anything「7 阶段流水线把任意有源码软件转成 Agent 原生 CLI（49.7K stars）+ CLI-Hub 注册中心」：Agent 不再截图点击，而是调用结构化 CLI 命令拿到 JSON 结果——同样的任务，把两条路径摆在一起算账。</p>
+    <div class="stats">
+      <div><b id="stReg">0</b><span>注册中心收录软件</span></div>
+      <div><b id="stOps">—</b><span>本次任务操作次数 像素→CLI</span></div>
+      <div><b id="stTime">—</b><span>耗时对比</span></div>
+      <div><b id="stTok">—</b><span>Token 节省</span></div>
+    </div>
+  </header>
+
+  <section id="secReg">
+    <h2>① CLI-Hub 注册中心选型 <small>按类别 / 协议 / 最低测试通过数筛选，点卡片选中目标软件</small></h2>
+    <div class="chips">
+      <button id="chip1">示例 · 财务对账</button>
+      <button id="chip2">示例 · 批量出图</button>
+      <button id="chip3">示例 · 文献整理</button>
+    </div>
+    <div class="frow">
+      <div><label>软件类别</label>
+        <select id="fCat"><option>全部类别</option><option>表格数据</option><option>文档笔记</option><option>图像设计</option><option>邮件文献</option><option>多媒体</option></select>
+      </div>
+      <div><label>开源协议</label>
+        <select id="fLic"><option>全部协议</option><option>Apache-2.0</option><option>MIT</option><option>GPL-3.0</option><option>MPL-2.0</option><option>AGPL-3.0</option><option>商业授权</option></select>
+      </div>
+      <div><label>最低测试通过数</label>
+        <input id="fTests" type="number" min="0" step="10" value="100" style="width:90px">
+      </div>
+      <button class="act" id="btnFilter">应用筛选</button>
+    </div>
+    <p class="regStats" id="regStats"></p>
+    <div class="cards" id="regList"></div>
+  </section>
+
+  <section id="secCmd">
+    <h2>② 任务命令构建 <small>业务表单选任务 → 生成 CLI 命令 + 结构化输出预览（--help 自描述）</small></h2>
+    <div class="frow">
+      <div><label>目标任务</label><select id="fTask" style="min-width:240px"><option value="">— 请先在上方选中一款软件 —</option></select></div>
+      <button class="act" id="btnGen" disabled>生成 CLI 命令</button>
+    </div>
+    <div class="cmdBox" id="cmdOut" style="display:none"></div>
+    <div class="jsonBox" id="jsonOut" style="display:none"></div>
+    <p class="hint" id="selHint">未选中软件。选中注册中心里的卡片后，此处会列出该软件已生成的 CLI 能力。</p>
+  </section>
+
+  <section id="secDuel">
+    <h2>③ 双模式对比执行 <small>同一任务：像素点击（截图+坐标） vs CLI 调用（一条命令），逐步日志可核对</small></h2>
+    <div class="frow" style="margin-bottom:4px">
+      <button class="act" id="btnRun">开始对比实验</button>
+      <button class="ghost" id="btnCsv" disabled>导出对比报告 CSV</button>
+      <button class="ghost" id="btnReset">重置</button>
+    </div>
+    <p class="hint" id="runHint">请先在②里生成一条 CLI 命令，再开始对比实验。</p>
+    <div class="duel">
+      <div class="px"><h3>像素点击模式（截图 + 坐标点击）</h3><div class="log" id="logPix"><p>等待开始…</p></div></div>
+      <div class="cli"><h3>CLI 调用模式（结构化命令 + JSON 输出）</h3><div class="log" id="logCli"><p>等待开始…</p></div></div>
+    </div>
+    <div class="bars" id="bars" style="display:none">
+      <div class="barRow"><span class="lb">操作次数</span><div class="track"><div class="fill" id="barOpsP" style="background:var(--warn);width:100%"></div></div><span class="val" id="valOps"></span></div>
+      <div class="barRow"><span class="lb">耗时（秒）</span><div class="track"><div class="fill" id="barTimeP" style="background:var(--warn);width:100%"></div></div><span class="val" id="valTime"></span></div>
+      <div class="barRow"><span class="lb">Token 消耗</span><div class="track"><div class="fill" id="barTokP" style="background:var(--warn);width:100%"></div></div><span class="val" id="valTok"></span></div>
+      <div class="barRow"><span class="lb"></span><div class="track"><div class="fill" id="barTokC" style="background:var(--primary)"></div></div><span class="val" id="valTokC"></span></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <table class="report" id="repTbl" style="display:none">
+      <thead><tr><th>模式</th><th>操作次数</th><th>重试</th><th>耗时(秒)</th><th>Token</th><th>执行结果</th></tr></thead>
+      <tbody id="repBody"></tbody>
+    </table>
+  </section>
+</div>
+
+<script>
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+
+/* ---------- 注册中心数据（演示子集，固化进 JS） ---------- */
+var REG = [
+  {name:"WPS表格", cat:"表格数据", cli:"wps-cli", lic:"商业授权", tests:176, desc:"表格清洗/公式重算/多表合并"},
+  {name:"Excel", cat:"表格数据", cli:"excel-cli", lic:"商业授权", tests:178, desc:"透视表生成/重复项清理/批量导出"},
+  {name:"LibreOffice", cat:"文档笔记", cli:"soffice-cli", lic:"MPL-2.0", tests:301, desc:"文档批量转PDF/模板填充"},
+  {name:"Obsidian", cat:"文档笔记", cli:"obsidian-cli", lic:"MIT", tests:312, desc:"笔记批量重链/导出/标签清理"},
+  {name:"Calibre", cat:"文档笔记", cli:"calibre-cli", lic:"GPL-3.0", tests:288, desc:"电子书格式转换/元数据修补"},
+  {name:"GIMP", cat:"图像设计", cli:"gimp-cli", lic:"GPL-3.0", tests:264, desc:"批量加水印/裁剪/格式导出"},
+  {name:"Inkscape", cat:"图像设计", cli:"inkscape-cli", lic:"GPL-3.0", tests:138, desc:"SVG批量导出PNG/尺寸规整"},
+  {name:"Blender", cat:"多媒体", cli:"blender-cli", lic:"GPL-3.0", tests:157, desc:"模型缩略图批量渲染"},
+  {name:"Thunderbird", cat:"邮件文献", cli:"tb-cli", lic:"MPL-2.0", tests:123, desc:"邮件附件批量导出归档"},
+  {name:"Zotero", cat:"邮件文献", cli:"zotero-cli", lic:"AGPL-3.0", tests:114, desc:"文献题录导出BibTeX/去重"},
+  {name:"VLC", cat:"多媒体", cli:"vlc-cli", lic:"GPL-3.0", tests:111, desc:"视频转码/音频提取批处理"},
+  {name:"Audacity", cat:"多媒体", cli:"aud-cli", lic:"GPL-3.0", tests:102, desc:"音频批量降噪/响度规整"}
+];
+
+/* 各软件已生成的 CLI 能力（命令 + 预期 JSON 输出） */
+var TASKS = {
+  "WPS表格":[
+    {t:"批量清洗销售流水（去重+空行标记）", cmd:"wps-cli clean --file 销售流水.xlsx --sheet 10月 --dedup --on 订单号 --mark-empty --out json", json:'{"rows_in": 500, "dedup_removed": 12, "empty_marked": 7, "kept": 481, "status": "ok"}'},
+    {t:"工资表批量重算实发", cmd:"wps-cli calc --file 薪酬.xlsx --sheet 11月 --col 实发 --formula \"基本+绩效-社保-个税\" --out json", json:'{"rows": 236, "recalced": 236, "mismatch": 0, "status": "ok"}'},
+    {t:"门店多表汇总对账", cmd:"wps-cli merge --dir 对账 --pattern \"门店*.xlsx\" --key 门店编码 --out csv", json:'{"files": 9, "rows_merged": 4310, "conflict_rows": 2, "out": "汇总.csv", "status": "ok"}'}
+  ],
+  "Excel":[
+    {t:"重复报销记录清理", cmd:"excel-cli dedup --file 报销台账.xlsx --on 单号+金额 --out json", json:'{"rows_in": 1203, "duplicates": 17, "kept": 1186, "status": "ok"}'},
+    {t:"月度数据透视批量生成", cmd:"excel-cli pivot --file 销售.xlsx --rows 大区 --cols 月份 --val 销售额 --out json", json:'{"pivots": 1, "cells": 96, "grand_total": 8741200, "status": "ok"}'}
+  ],
+  "LibreOffice":[
+    {t:"合同批量转 PDF", cmd:"soffice-cli convert --dir 合同 --to pdf --out json", json:'{"files": 32, "ok": 32, "fail": 0, "status": "ok"}'}
+  ],
+  "Obsidian":[
+    {t:"笔记批量导出 Markdown", cmd:"obsidian-cli export --vault 工作 --tag 周报 --to markdown --out json", json:'{"notes": 48, "exported": 48, "broken_links": 3, "status": "ok"}'}
+  ],
+  "Calibre":[
+    {t:"电子书批量转 EPUB", cmd:"calibre-cli convert --dir 书库 --to epub --out json", json:'{"books": 24, "ok": 24, "status": "ok"}'}
+  ],
+  "GIMP":[
+    {t:"产品图批量加水印", cmd:"gimp-cli batch --dir 图库 --op watermark --text 样机勿外传 --out json", json:'{"files": 48, "ok": 48, "skipped": 0, "status": "ok"}'}
+  ],
+  "Inkscape":[
+    {t:"SVG 批量导出 PNG", cmd:"inkscape-cli export --dir 素材 --width 1200 --out json", json:'{"files": 36, "ok": 36, "status": "ok"}'}
+  ],
+  "Blender":[
+    {t:"模型缩略图批量渲染", cmd:"blender-cli render --dir 模型库 --thumb 512 --out json", json:'{"models": 18, "rendered": 18, "status": "ok"}'}
+  ],
+  "Thunderbird":[
+    {t:"发票邮件附件批量归档", cmd:"tb-cli attachments --folder 发票 --since 2026-11-01 --to 归档/ --out json", json:'{"mails": 63, "attachments": 71, "saved": 71, "status": "ok"}'}
+  ],
+  "Zotero":[
+    {t:"文献题录批量导出 BibTeX", cmd:"zotero-cli export --collection 投稿 --format bibtex --out json", json:'{"items": 42, "exported": 42, "duplicates": 2, "status": "ok"}'}
+  ],
+  "VLC":[
+    {t:"课程录像批量提取音频", cmd:"vlc-cli extract --dir 录像 --to mp3 --out json", json:'{"videos": 12, "extracted": 12, "status": "ok"}'}
+  ],
+  "Audacity":[
+    {t:"播客音频批量降噪规整", cmd:"aud-cli normalize --dir 音频 --denoise --loudness -16 --out json", json:'{"files": 20, "ok": 20, "status": "ok"}'}
+  ]
+};
+
+/* ---------- 像素点击模式脚本（确定性：第3步弹窗遮挡重试1次，第5步菜单改版重试2次） ---------- */
+var PIX_STEPS = [
+  {txt:"打开 {app}，载入目标文件", tok:940, sec:6.2},
+  {txt:"整屏截图交给模型识别界面布局", tok:1120, sec:8.4},
+  {txt:"点击「数据」菜单 → 弹窗遮挡，点击落空", tok:1050, sec:7.1, retry:true},
+  {txt:"重试：关闭遮挡弹窗后再点击菜单", tok:870, sec:5.3, retryAfter:true},
+  {txt:"在对话框中勾选处理选项", tok:760, sec:6.0},
+  {txt:"确认执行 → 菜单改版，原坐标定位失败", tok:1010, sec:9.6, retry:true},
+  {txt:"重试 ×1：模型重新识别仍偏移", tok:930, sec:8.8, retryAfter:true},
+  {txt:"重试 ×2：重新截图后命中新位置", tok:890, sec:8.2, retryAfter:true},
+  {txt:"等待处理完成，截图确认结果", tok:980, sec:12.5},
+  {txt:"逐区域截图核对输出内容", tok:640, sec:9.0},
+  {txt:"保存文件并导出结果", tok:260, sec:7.5}
+];
+var CLI_SEC = 3.2, CLI_TOK = 120;
+
+var selApp = null, selTaskIdx = -1, lastCmd = null, lastJson = null;
+var busy = false, ranPix = false, ranCli = false;
+var sum = {pixOps:0, pixRetry:0, pixTok:0, pixSec:0};
+
+function renderReg(){
+  var cat = $("fCat").value, lic = $("fLic").value;
+  var minT = parseInt($("fTests").value, 10);
+  if (isNaN(minT)) minT = 0;
+  var list = REG.filter(function(r){
+    return (cat === "全部类别" || r.cat === cat) && (lic === "全部协议" || r.lic === lic) && r.tests >= minT;
+  });
+  var box = $("regList"); box.innerHTML = "";
+  list.forEach(function(r){
+    var d = document.createElement("div");
+    d.className = "card" + (selApp === r.name ? " sel" : "");
+    d.setAttribute("data-name", r.name);
+    d.innerHTML = "<h3>" + r.name + "</h3><div class='meta'>" + r.cli + " · " + r.lic + " · 测试通过 " + r.tests + "</div><div class='meta'>" + r.desc + "</div><span class='tag'>" + r.cat + "</span>";
+    d.onclick = function(){ pickApp(r.name); };
+    box.appendChild(d);
+  });
+  var tsum = REG.reduce(function(a, r){ return a + r.tests; }, 0);
+  $("regStats").textContent = "注册中心演示子集：收录 " + REG.length + " 款软件 · 累计测试通过 " + tsum + " 项 · 当前筛选命中 " + list.length + " 款";
+  $("stReg").textContent = REG.length;
+  if (!list.length) box.innerHTML = "<p class='hint'>没有命中筛选条件的软件，放宽条件再试。</p>";
+}
+
+function pickApp(name){
+  if (busy) return;
+  selApp = name; selTaskIdx = 0;
+  renderReg(); fillTasks();
+  $("selHint").textContent = "已选中「" + name + "」，请在下方选任务并生成 CLI 命令。";
+}
+
+function fillTasks(){
+  var sel = $("fTask"); sel.innerHTML = "";
+  var arr = TASKS[selApp] || [];
+  if (!arr.length){
+    sel.innerHTML = "<option value=''>— 请先选中一款软件 —</option>";
+    $("btnGen").disabled = true;
+    return;
+  }
+  arr.forEach(function(t, i){
+    var o = document.createElement("option");
+    o.value = String(i); o.textContent = t.t;
+    sel.appendChild(o);
+  });
+  sel.value = "0";
+  $("btnGen").disabled = false;
+}
+
+function genCmd(){
+  if (busy || !selApp) return;
+  var i = parseInt($("fTask").value, 10);
+  if (isNaN(i)) return;
+  selTaskIdx = i;
+  var t = TASKS[selApp][i];
+  lastCmd = t.cmd; lastJson = t.json;
+  $("cmdOut").style.display = "block";
+  $("cmdOut").innerHTML = "<span class='hl'>$ " + t.cmd + "</span>";
+  $("jsonOut").style.display = "block";
+  $("jsonOut").textContent = "# 预期结构化输出（JSON）\n" + t.json + "\n\n# --help 自描述：wps-cli clean --help → 用法/参数/示例，Agent 无需试错即可正确拼命令";
+  $("runHint").textContent = "命令已生成，可直接开始对比实验。";
+}
+
+function logTo(id, txt, cls){
+  var p = document.createElement("p");
+  if (cls) p.className = cls;
+  p.textContent = txt;
+  var box = $(id);
+  var wait = box.querySelector("p");
+  if (wait && wait.textContent.indexOf("等待") === 0) box.innerHTML = "";
+  box.appendChild(p);
+  box.scrollTop = box.scrollHeight;
+}
+
+function runDuel(){
+  if (busy || !lastCmd) return;
+  busy = true; ranPix = false; ranCli = false;
+  $("btnRun").disabled = true; $("btnGen").disabled = true; $("btnFilter").disabled = true;
+  $("btnCsv").disabled = true;
+  $("verdict").style.display = "none";
+  $("repTbl").style.display = "none";
+  $("bars").style.display = "none";
+  sum = {pixOps:0, pixRetry:0, pixTok:0, pixSec:0};
+  $("logPix").innerHTML = ""; $("logCli").innerHTML = "";
+  $("runHint").textContent = "对比实验运行中（同一任务：清洗 500 行销售流水）……";
+
+  /* CLI 模式（先跑完，快） */
+  var cliSeq = [
+    "$ " + lastCmd,
+    "exit 0 · 耗时 " + CLI_SEC.toFixed(1) + "s · 消耗 " + CLI_TOK + " tokens",
+    "输出：" + lastJson,
+    "结构化结果可直接进入下一步流水线（写入表格/看板/对账）"
+  ];
+  cliSeq.forEach(function(t, i){
+    setTimeout(function(){
+      logTo("logCli", t, i === 1 ? "ok" : "");
+      if (i === cliSeq.length - 1){ ranCli = true; maybeFinish(); }
+    }, 300 + i * 450);
+  });
+
+  /* 像素模式（逐步，含重试） */
+  var delay = 300, app = selApp || "桌面软件";
+  PIX_STEPS.forEach(function(s){
+    var txt = s.txt.replace("{app}", app);
+    setTimeout(function(){
+      logTo("logPix", "[op" + (sum.pixOps + 1) + "] " + txt, s.retry ? "r" : "");
+      sum.pixOps++; sum.pixTok += s.tok; sum.pixSec += s.sec;
+      if (s.retryAfter) sum.pixRetry++;
+      if (s === PIX_STEPS[PIX_STEPS.length - 1]){ ranPix = true; maybeFinish(); }
+    }, delay);
+    delay += 420;
+  });
+}
+
+function maybeFinish(){
+  if (!(ranPix && ranCli)) return;
+  busy = false;
+  $("btnRun").disabled = false; $("btnGen").disabled = false; $("btnFilter").disabled = false;
+  $("btnCsv").disabled = false;
+  var saveTok = Math.round((sum.pixTok - CLI_TOK) / sum.pixTok * 1000) / 10;
+  var saveSec = Math.round((sum.pixSec - CLI_SEC) / sum.pixSec * 1000) / 10;
+  $("stOps").textContent = sum.pixOps + " → 1";
+  $("stTime").textContent = sum.pixSec.toFixed(1) + "s → " + CLI_SEC.toFixed(1) + "s";
+  $("stTok").textContent = "省 " + saveTok + "%";
+  $("bars").style.display = "block";
+  $("valOps").textContent = sum.pixOps + " 次 vs 1 次";
+  $("valTime").textContent = sum.pixSec.toFixed(1) + "s vs " + CLI_SEC.toFixed(1) + "s";
+  $("valTok").textContent = sum.pixTok + " vs " + CLI_TOK;
+  $("valTokC").textContent = "CLI：仅为像素模式的 " + (Math.round(CLI_TOK / sum.pixTok * 1000) / 10) + "%";
+  $("barTokC").style.width = Math.max(1.5, CLI_TOK / sum.pixTok * 100) + "%";
+  $("barOpsP").style.width = "100%";
+  $("barTimeP").style.width = "100%";
+  $("barTokP").style.width = "100%";
+  var v = $("verdict");
+  v.style.display = "block";
+  v.innerHTML = "结论：同一任务，像素点击模式 " + sum.pixOps + " 次操作（含 " + sum.pixRetry + " 次重试）、" + sum.pixSec.toFixed(1) + "s、" + sum.pixTok + " tokens；CLI 调用 1 条命令、" + CLI_SEC.toFixed(1) + "s、" + CLI_TOK + " tokens —— Token 省 " + saveTok + "%、耗时降 " + saveSec + "%，且 JSON 输出确定性可复用。「会点界面」不如「会调命令」。";
+  var tb = $("repBody");
+  tb.innerHTML = "";
+  [["像素点击模式", sum.pixOps, sum.pixRetry, sum.pixSec.toFixed(1), sum.pixTok, "成功，但含 " + sum.pixRetry + " 次重试、结构不可复用"],
+   ["CLI 调用模式", 1, 0, CLI_SEC.toFixed(1), CLI_TOK, "一次成功，JSON 结构化输出"],
+   ["节省", sum.pixOps - 1, sum.pixRetry, (sum.pixSec - CLI_SEC).toFixed(1), sum.pixTok - CLI_TOK, "Token 省 " + saveTok + "% / 耗时降 " + saveSec + "%"]
+  ].forEach(function(r){
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td><td>" + r[3] + "</td><td>" + r[4] + "</td><td>" + r[5] + "</td>";
+    tb.appendChild(tr);
+  });
+  $("repTbl").style.display = "table";
+}
+
+function downloadCsv(){
+  if (busy) return;
+  var saveTok = Math.round((sum.pixTok - CLI_TOK) / sum.pixTok * 1000) / 10;
+  var saveSec = Math.round((sum.pixSec - CLI_SEC) / sum.pixSec * 1000) / 10;
+  var rows = [
+    ["模式","操作次数","重试","耗时(秒)","Token","执行结果"],
+    ["像素点击模式", sum.pixOps, sum.pixRetry, sum.pixSec.toFixed(1), sum.pixTok, "成功，但含" + sum.pixRetry + "次重试、结构不可复用"],
+    ["CLI调用模式", 1, 0, CLI_SEC.toFixed(1), CLI_TOK, "一次成功，JSON结构化输出"],
+    ["节省", sum.pixOps - 1, sum.pixRetry, (sum.pixSec - CLI_SEC).toFixed(1), sum.pixTok - CLI_TOK, "Token省" + saveTok + "%/耗时降" + saveSec + "%"]
+  ];
+  var csv = "\uFEFF" + rows.map(function(r){ return r.join(","); }).join("\n");
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
+  a.download = "CLI化对比报告.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+function resetAll(){
+  if (busy) return;
+  selApp = null; selTaskIdx = -1; lastCmd = null; lastJson = null;
+  sum = {pixOps:0, pixRetry:0, pixTok:0, pixSec:0};
+  $("fCat").value = "全部类别"; $("fLic").value = "全部协议"; $("fTests").value = "100";
+  renderReg();
+  $("fTask").innerHTML = "<option value=''>— 请先在上方选中一款软件 —</option>";
+  $("btnGen").disabled = true;
+  $("cmdOut").style.display = "none"; $("jsonOut").style.display = "none";
+  $("selHint").textContent = "未选中软件。选中注册中心里的卡片后，此处会列出该软件已生成的 CLI 能力。";
+  $("logPix").innerHTML = "<p>等待开始…</p>";
+  $("logCli").innerHTML = "<p>等待开始…</p>";
+  $("bars").style.display = "none";
+  $("verdict").style.display = "none";
+  $("repTbl").style.display = "none";
+  $("btnCsv").disabled = true; $("btnRun").disabled = false;
+  $("stOps").textContent = "—"; $("stTime").textContent = "—"; $("stTok").textContent = "—";
+  $("runHint").textContent = "请先在②里生成一条 CLI 命令，再开始对比实验。";
+}
+
+/* 示例 chip：筛类别 + 选中软件 + 自动生成命令 */
+function chipGo(cat, app){
+  if (busy) return;
+  $("fCat").value = cat; $("fLic").value = "全部协议";
+  renderReg();
+  pickApp(app);
+  genCmd();
+  $("selHint").textContent = "示例已载入：选中「" + app + "」并生成命令，点「开始对比实验」看两条路径的账。";
+}
+
+$("btnFilter").onclick = function(){ if (!busy) renderReg(); };
+$("btnGen").onclick = genCmd;
+$("btnRun").onclick = runDuel;
+$("btnCsv").onclick = downloadCsv;
+$("btnReset").onclick = resetAll;
+$("chip1").onclick = function(){ chipGo("表格数据", "WPS表格"); };
+$("chip2").onclick = function(){ chipGo("图像设计", "GIMP"); };
+$("chip3").onclick = function(){ chipGo("邮件文献", "Zotero"); };
+renderReg();
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+{
+ "date": "2026-11-20",
+ "source": "WebSearch(4轮)+官方源核实",
+ "count": 7,
+ "table_total": 430,
+ "items": [
+  {
+   "日期": "2026-11-20T00:00:00.000+08:00",
+   "资讯标题": "Eclipse Foundation发布Enclave 1.0：厂商中立的开源沙箱运行时，让Claude Code/Codex/OpenCode在隔离容器里全自主跑",
+   "摘要": "11/19正式发布1.0（MIT协议，源自EclipseSource内部工具YOLOArena）。每会话独立容器+独立文件系统视图+网络网关白名单，出站流量全部经DNS allowlist代理并留痕；权限提示可直接关掉（YOLO模式）而token凭据受控保护。开箱支持Claude Code、Codex CLI、OpenCode、Theia AI、Pi、Mistral Vibe，Docker为默认后端（实验性QEMU microVM），多Agent经独立Git worktree并行互不干扰，附控制中心统一启停审查，审计日志对齐EU AI Act要求。",
+   "需求/痛点": "想让编码Agent全自动干活，但要么逐条确认烦死、要么放开权限等于把SSH密钥和源码裸奔；多家Agent工具各有一套沙箱方案，企业没有统一管控面。",
+   "工具建议": "macOS原生可用，一条 enclave 命令即可把Claude Code关进沙箱跑demo任务；把网络白名单配置存成模板，复用到每日demo生成环境；对照其per-session审计日志思路完善自己的验证脚本。",
+   "推荐原因": "编码Agent沙箱此前都是各家私有方案（Claude Cage、Kiro沙箱），Eclipse Foundation下场做厂商中立标准是标志性节点；隔离+白名单+审计的三件套设计可直接借鉴到任何Agent自动化场景，RPA落地最缺的就是这层管控。",
+   "VibeCoding小工具机会": "①做单文件HTML『Agent沙箱配置生成器』：勾选文件目录/网络域名/凭据类型，自动产出enclave配置文件与白名单清单，给自己和读者的多Agent环境一键加护栏；②把Enclave接入每日demo流水线，让生成代码的Agent全程在沙箱里跑并输出访问日志。",
+   "推荐指数": 5,
+   "主题分类": [
+    "AI Agent/智能体工具"
+   ],
+   "来源平台": [
+    "其他"
+   ],
+   "状态": [
+    "待查看"
+   ],
+   "是否感兴趣": [
+    "待定"
+   ],
+   "链接": "https://enclave.eclipse.dev",
+   "record_id": "reczz28bxI45CRha"
+  },
+  {
+   "日期": "2026-11-20T00:00:00.000+08:00",
+   "资讯标题": "Vercel发布Board：人类+Agent共用共享看板原语，任务认领/租约续期/事件唤醒，v0软件工厂超50% PR由它协调合并",
+   "摘要": "11/18发布、11/19起全套餐（含免费Hobby）可用。无头通信原语+消息存储：channel/thread组织任务，Agent经CLI或JS SDK认领任务、发进度、续租约、完工交PR；watcher在新回复或label变化时唤醒Agent（Slack回复也能触发），支持定时follow-up（如开PR五分钟后查CI）；与Slack/GitHub双向同步，消息可挂schema校验的结构化字段，按board/grant区分人与Agent权限并留审计。官方称v0软件工厂重建于Board之上、合并超50%的PR。Claude Code、Codex、Pi、OpenCode、eve、fx、Mastra、LangChain可跨Harness协作。",
+   "需求/痛点": "多Agent/多Subagent协作靠Markdown文件和聊天记录串联，任务谁在干、干到哪、卡没卡全靠人肉盯，跨工具（Slack/GitHub）状态不同步。",
+   "工具建议": "npx skills add vercel/board 一条命令给Agent装上Board技能；免费Hobby套餐即可试用，先拿两个并行Claude Code会话做任务认领+租约实验，验证是否值得替换自己现有的任务清单方式。",
+   "推荐原因": "与Master+Subagent协作范式完全同构——这正是自己8平台多Agent框架缺的『共享任务状态层』；task claim/lease/watcher三件套是经过v0生产验证的编排原语，可直接抄作业。",
+   "VibeCoding小工具机会": "①用Board改造每日流水线：资讯采集/Demo生成/岗位推送三条线各开一个channel，Agent认领任务并自动汇报，替代手工检查；②做『Board看板可视化页』单文件HTML，拉取board数据渲染成任务看板，直观看清三个定时任务谁在跑。",
+   "推荐指数": 5,
+   "主题分类": [
+    "AI Agent/智能体工具"
+   ],
+   "来源平台": [
+    "其他"
+   ],
+   "状态": [
+    "待查看"
+   ],
+   "是否感兴趣": [
+    "待定"
+   ],
+   "链接": "https://vercel.com/blog/introducing-vercel-board",
+   "record_id": "reczz28bxIBmRnzq"
+  },
+  {
+   "日期": "2026-11-20T00:00:00.000+08:00",
+   "资讯标题": "HKUDS/CLI-Anything登GitHub热榜：7阶段流水线把任意有源码的软件自动转成Agent原生CLI，49.7K stars+CLI-Hub注册中心",
+   "摘要": "港大数据智能实验室开源（Apache 2.0，49.7K stars，今日热榜第4+898）。以插件/Skill跑在Claude Code、Codex、Cursor、Qodercli等平台上，7阶段流水线分析目标软件源码自动生成结构化Python CLI（JSON输出+--help自描述）；CLI-Hub（pip install cli-anything-hub）提供社区CLI注册中心，已收录Obsidian/Calibre/GIMP/Blender/LibreOffice等18+软件、2280+测试通过，附arXiv技术报告2606.03854。",
+   "需求/痛点": "Agent推理能力强但只会开浏览器和写代码，操作GIMP/Excel/专业桌面软件仍靠截图点击，脆弱且烧token；为每个软件写适配器成本太高。",
+   "工具建议": "npx skills add HKUDS/CLI-Anything装meta-skill后让Agent自动发现并安装所需CLI；先拿Obsidian或Calibre练手，验证『软件→CLI→Agent调用』闭环；自己的Excel场景可试给WPS/LibreOffice生成CLI后由Agent批量处理表格。",
+   "推荐原因": "把RPA最痛的『操控鸿沟』（Agent不会用真实软件）从像素点击升级成结构化CLI调用，确定性输出天然可验证；且Qodercli插件已官方合并，与自己日常用Qoder的栈直接兼容。",
+   "VibeCoding小工具机会": "①用CLI-Anything给自己高频使用的桌面软件（如WPS表格）生成CLI，接进每日资讯→表格写入流水线，替代部分截图点击式操作；②做『CLI-Hub选型器』单文件HTML：按软件类别/协议/测试数筛选registry里已生成的CLI，输出安装命令清单。",
+   "推荐指数": 5,
+   "主题分类": [
+    "RPA/流程自动化"
+   ],
+   "来源平台": [
+    "GitHub"
+   ],
+   "状态": [
+    "待查看"
+   ],
+   "是否感兴趣": [
+    "待定"
+   ],
+   "链接": "https://github.com/HKUDS/CLI-Anything",
+   "record_id": "reczz28bxIBmS6u2"
+  },
+  {
+   "日期": "2026-11-20T00:00:00.000+08:00",
+   "资讯标题": "mvanhorn/last30days-skill冲上70.8K stars：一条skill让Agent跨Reddit/X/YouTube/HN/Polymarket做30天回溯研究并输出有据可查综述",
+   "摘要": "Python，70.8K stars（今日热榜第3，+954）。给Agent装上后即可对任意主题做过去30天的跨平台调研：Reddit、X、YouTube、HN、Polymarket与公开网页，最后合成一份带来源的grounded summary，适合趋势追踪与舆情回看。",
+   "需求/痛点": "每日资讯采集靠多轮搜索拼凑，容易漏掉过去几周的演进脉络，且结论缺来源可追溯性；人工逐平台翻帖子耗时。",
+   "工具建议": "装skill后对『VibeCoding工具机会』这类主题跑一次30天回溯，把输出直接当公众号选题素材库；注意其依赖各平台公开可访问接口，跑前先小范围验证来源覆盖率。",
+   "推荐原因": "与每日AI资讯采集任务同构——别人已经把『跨平台调研+带来源综述』做成了70K stars的标准件，直接复用能省下自己流水线里最耗token的搜索环节，输出格式还天然适合写公众号。",
+   "VibeCoding小工具机会": "①把skill输出接进资讯日报流程：每日先跑last30days确认候选工具的近30天热度曲线，再决定是否入库，减少误判旧闻；②做『选题热度时间轴』单文件HTML，把回溯结果按平台/日期渲染成趋势卡片，供小红书选题参考。",
+   "推荐指数": 4,
+   "主题分类": [
+    "AI Agent/智能体工具"
+   ],
+   "来源平台": [
+    "GitHub"
+   ],
+   "状态": [
+    "待查看"
+   ],
+   "是否感兴趣": [
+    "待定"
+   ],
+   "链接": "https://github.com/mvanhorn/last30days-skill",
+   "record_id": "reczz28bxIBmPLSI"
+  },
+  {
+   "日期": "2026-11-20T00:00:00.000+08:00",
+   "资讯标题": "cathrynlavery/diagram-design：给编码Agent的编辑级图示设计skill，45种图型全走自包含HTML+SVG，明确拒绝Mermaid slop",
+   "摘要": "HTML项目，68.6K stars（今日热榜第10，+271）。为Claude Code、Codex、GitHub Copilot、Cursor、Factory Droid、Qoder、Pi提供图示设计语言：45种diagram类型，输出自包含HTML+SVG，无阴影、拒绝Mermaid式模板感排版，追求编辑级（editorial）视觉质量。",
+   "需求/痛点": "让Agent画架构图/流程图，出来的不是Mermaid默认灰框就是花哨渐变，放进文档和教程里档次立降；手调样式耗时。",
+   "工具建议": "装skill后让日常主力Agent（Qoder/Claude Code）按45种图型库出图；把其中与单文件HTML交付相关的规则抽出来，与自己作品集页面的视觉标准合并成一套checklist。",
+   "推荐原因": "与已入库的impeccable/taste-skill同属『去AI味』三件套，但专攻图示赛道——每日工作流里架构图、流程图最常见，45种图型+确定性输出（HTML+SVG）可直接当视觉规范用；Qoder在官方支持列表里，适配成本最低。",
+   "VibeCoding小工具机会": "①用diagram-design重画多Agent框架总览图和每日流水线图，替换现有Mermaid输出，前后对比直接成一篇公众号素材；②做『图型选择器』单文件HTML：输入场景（对比/流程/架构/时间轴）自动推荐45种图型之一并给出prompt模板。",
+   "推荐指数": 4,
+   "主题分类": [
+    "开源项目"
+   ],
+   "来源平台": [
+    "GitHub"
+   ],
+   "状态": [
+    "待查看"
+   ],
+   "是否感兴趣": [
+    "待定"
+   ],
+   "链接": "https://github.com/cathrynlavery/diagram-design",
+   "record_id": "reczz28bxIBmRtsV"
+  },
+  {
+   "日期": "2026-11-20T00:00:00.000+08:00",
+   "资讯标题": "zhouxiaoka/autoclip开源：一个链接一键出片，长视频自动剪成短视频并生成字幕/封面/发布文案，原生适配抖音小红书TikTok",
+   "摘要": "Python桌面工具，11.2K stars（今日热榜第14，+126）。输入一个长视频链接（播客/访谈/课程），自动切短视频、生成字幕、封面和平台适配的发布文案，输出对齐抖音、小红书、TikTok、Reels与YouTube Shorts的规格。",
+   "需求/痛点": "长视频拆条手工剪辑+逐平台改文案，一条素材复用到小红书/抖音要重复劳动；现成剪辑工具要么收费要么不带发布文案。",
+   "工具建议": "本地部署后先拿公开技术讲座视频试切，重点验证小红书规格（时长/封面/文案口吻）是否符合自己账号定位；发布文案生成环节接自己的去AI味规范再润色。",
+   "推荐原因": "与小红书『AI只采集不筛选』红线兼容——工具只做拆条与文案初稿，筛选与发布仍由人完成；开源可本地跑、无需上传素材到第三方云，数据安全可控，是公众号教程『长视频变图文短视频』选题的现成素材。",
+   "VibeCoding小工具机会": "①把autoclip输出接进小红书工作流做半自动拆条：录屏讲解→自动出短视频+文案初稿→人工筛选发布；②做『发布文案改写器』单文件HTML：粘贴autoclip生成的文案，按抖音/小红书/TikTok三套模板一键改写并打分。",
+   "推荐指数": 4,
+   "主题分类": [
+    "开源项目"
+   ],
+   "来源平台": [
+    "GitHub"
+   ],
+   "状态": [
+    "待查看"
+   ],
+   "是否感兴趣": [
+    "待定"
+   ],
+   "链接": "https://github.com/zhouxiaoka/autoclip",
+   "record_id": "reczz28bxIBmQpMO"
+  },
+  {
+   "日期": "2026-11-20T00:00:00.000+08:00",
+   "资讯标题": "Mozilla Tabstack Web Access API登陆Product Hunt：一个API给自家模型/Agent三种上网能力，无障碍树自动化省60-80% token",
+   "摘要": "11/19重新在PH发布（API自9月起可用）。一个托管API覆盖三件事：Research（搜实时来源并带引用回答）、Extract（URL转干净Markdown或按schema出JSON）、Automate（英文任务描述驱动真实浏览器完成导航/填表/多步流程，托管版不能登录站点）。基于无障碍树读取页面而非截图，token比截图类方案省60-80%；数据不作训练、默认私有、遵守robots.txt；新账号1万免费credits，付费$10/$99/$499每月。",
+   "需求/痛点": "给自己的Agent加上网能力要自己拼搜索+抓取+浏览器三套栈，还要管代理、登录态和token成本；截图式浏览器自动化又贵又不稳。",
+   "工具建议": "1万免费credits够约1000次Markdown抽取，先用来给资讯采集流程做Extract环节兜底（复杂页面转Markdown再喂给表格）；Automate托管版不能登录，需要登录态的场景走其开源Pilo自托管。",
+   "推荐原因": "Mozilla背书的隐私默认（不训练、robots.txt合规）在浏览器自动化赛道是稀缺卖点；无障碍树路线与已入库的agent-desktop/agent-browser同路数但做成托管API，自己零运维就能给Demo加网页数据能力。",
+   "VibeCoding小工具机会": "①用Extract API给每日资讯流水线加『原文转干净Markdown』步骤，替换不稳定的自建抓取脚本；②做『网页数据→表格』单文件HTML Demo：输入URL，调Extract出schema化JSON，一键导出CSV，作为RPA+AI求职作品集新篇。",
+   "推荐指数": 4,
+   "主题分类": [
+    "RPA/流程自动化"
+   ],
+   "来源平台": [
+    "Product Hunt"
+   ],
+   "状态": [
+    "待查看"
+   ],
+   "是否感兴趣": [
+    "待定"
+   ],
+   "链接": "https://tabstack.ai",
+   "record_id": "reczz28bxIBmOgBO"
+  }
+ ]
+}

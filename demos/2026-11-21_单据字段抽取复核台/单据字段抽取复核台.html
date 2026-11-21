@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单据字段抽取复核台</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1c2733;--muted:#67737f;--line:#dfe4ea;--primary:#0f6b52;--primary-soft:#e7f3ef;--warn:#a3560d;--warn-soft:#fdf1e4;--bad:#b3352c;--bad-soft:#fbeae8;--info:#22577a;--info-soft:#e8f1f7;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:18px 14px 40px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header h1{font-size:22px}
+  header p.sub{color:var(--muted);font-size:13px;margin-top:6px}
+  .stats{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}
+  .stats b{font-size:20px;color:var(--primary);display:block}
+  .stats span{font-size:12px;color:var(--muted)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:14px}
+  section h2{font-size:15px;margin-bottom:10px}
+  section h2 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .chips button{background:var(--primary-soft);color:var(--primary);border:1px solid #c4e0d6;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer}
+  .chips button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .frow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .frow label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+  .frow input,.frow select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff;color:var(--ink)}
+  button.act{background:var(--primary);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer}
+  button.act:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .duel{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-top:12px}
+  .duel>div{min-width:0}
+  .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.fields{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  table.fields th,table.fields td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle}
+  table.fields th{background:#eef1f4;white-space:nowrap}
+  td .val{font-family:Menlo,Consolas,monospace;font-size:12px}
+  .conf{display:inline-block;min-width:52px;text-align:right;font-family:Menlo,Consolas,monospace}
+  .badge{display:inline-block;font-size:11px;border-radius:4px;padding:1px 6px;white-space:nowrap}
+  .b-auto{background:var(--primary-soft);color:var(--primary)}
+  .b-rev{background:var(--warn-soft);color:var(--warn)}
+  .b-block{background:var(--bad-soft);color:var(--bad)}
+  .b-pass{background:var(--primary);color:#fff}
+  .b-fix{background:var(--info-soft);color:var(--info)}
+  .b-rej{background:var(--bad);color:#fff}
+  .rowbtns button{margin:1px 2px;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--line);background:#fff;cursor:pointer;white-space:nowrap}
+  .rowbtns button.ok{color:var(--primary);border-color:var(--primary)}
+  .rowbtns button.ed{color:var(--info);border-color:var(--info)}
+  .rowbtns button.rj{color:var(--bad);border-color:var(--bad)}
+  tr.hl td{background:#fffbe8}
+  .pager{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:12px;min-height:220px}
+  .pager h3{font-size:13px;color:var(--info);margin-bottom:8px}
+  .pager .docline{font-family:"Songti SC","SimSun",serif;font-size:13px;color:#3d4d5c;padding:4px 6px;border-radius:4px}
+  .pager mark{background:#ffe08a;padding:1px 3px;border-radius:3px}
+  .pager .pageno{font-size:11px;color:var(--muted);margin-top:10px;text-align:right}
+  .verdict{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:13px;background:var(--warn-soft);color:var(--warn);display:none}
+  .verdict.done{background:var(--primary-soft);color:var(--primary)}
+  .log{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:Menlo,Consolas,monospace;font-size:11.5px;min-height:110px;max-height:220px;overflow-y:auto}
+  .log p{padding:2px 0;border-bottom:1px dashed #eef1f4}
+  .log p.ok{color:var(--primary)}
+  .log p.r{color:var(--warn)}
+  .legend{font-size:12px;color:var(--muted);margin-top:8px}
+  @media(max-width:640px){.duel{grid-template-columns:1fr}.stats{gap:14px}header h1{font-size:19px}table.fields{font-size:11.5px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>单据字段抽取复核台</h1>
+    <p class="sub">参考 Amazon Textract Insights「自然语言描述字段即可抽取，每个值带置信分 + 页码级溯源，3000 页混合文档包自动拆分，无需训练模型」（2026-11-21 正式可用）：把「蓝图 = 字段描述 + 置信分 + 页码溯源 + 低置信转人工」做成财务单据复核台——机器管批量抽取，人只看机器没把握的字段。</p>
+    <div class="stats">
+      <div><b id="stTotal">—</b><span>抽取字段</span></div>
+      <div><b id="stAuto">—</b><span>自动通过</span></div>
+      <div><b id="stPend">—</b><span>待人工复核</span></div>
+      <div><b id="stDone">—</b><span>已复核完成</span></div>
+      <div><b id="stRej">—</b><span>标记异常</span></div>
+    </div>
+  </header>
+
+  <section id="secDoc">
+    <h2>① 混合单据包 <small>OCR 抽取结果已固化（字段值 + 置信分 + 页码），点示例 chip 切换单据包</small></h2>
+    <div class="chips">
+      <button id="chip1" class="on">示例 · 增值税发票包</button>
+      <button id="chip2">示例 · 采购合同包</button>
+      <button id="chip3">示例 · 差旅报销包</button>
+    </div>
+    <p class="hint" id="packInfo"></p>
+  </section>
+
+  <section id="secRule">
+    <h2>② 抽取蓝图与复核阈值 <small>业务表单调阈值 → 全表实时重新分级（已复核字段保留人工结论）</small></h2>
+    <div class="frow">
+      <div><label>自动通过线（置信分 ≥）</label><input id="fAuto" type="number" min="50" max="100" value="90" style="width:80px"></div>
+      <div><label>转人工线（低于此值拦截）</label><input id="fRev" type="number" min="30" max="95" value="75" style="width:80px"></div>
+      <div><label>高额强制复核线（金额 ≥，元）</label><input id="fAmt" type="number" min="0" step="10000" value="100000" style="width:110px"></div>
+      <button class="act" id="btnRule">应用阈值重新分级</button>
+    </div>
+    <p class="legend">分级规则：置信分 ≥ 自动通过线 → ✅ 自动通过；转人工线 ~ 自动通过线之间 → ⚠️ 转人工复核；低于转人工线 → ⛔ 置信不足（必须修正或标记异常）；金额字段 ≥ 高额强制线 → 无论置信分一律转人工。</p>
+  </section>
+
+  <section id="secReview">
+    <h2>③ 字段复核清单 <small>点任意字段行 → 右侧单据原文页码溯源高亮；⚠️/⛔ 字段需人工给出结论</small></h2>
+    <div class="duel">
+      <div>
+        <div class="tableWrap">
+        <table class="fields" id="fldTbl">
+          <thead><tr><th>单据 / 字段</th><th>抽取值</th><th>置信分</th><th>页</th><th>分级 / 结论</th><th>人工操作</th></tr></thead>
+          <tbody id="fldBody"></tbody>
+        </table>
+        </div>
+      </div>
+      <div class="pager" id="pager">
+        <h3>页码溯源预览</h3>
+        <div id="pagerBody"><p class="hint">点左侧任意字段，此处显示所在单据页原文并高亮抽取片段。</p></div>
+        <div class="pageno" id="pagerNo"></div>
+      </div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="frow" style="margin-top:12px">
+      <button class="ghost" id="btnCsv">导出复核清单 CSV</button>
+      <button class="ghost" id="btnReset">重置本单据包</button>
+    </div>
+  </section>
+
+  <section id="secLog">
+    <h2>④ 复核操作日志</h2>
+    <div class="log" id="log"></div>
+  </section>
+</div>
+
+<script>
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+function logTo(txt, cls){
+  var p = document.createElement("p");
+  if (cls) p.className = cls;
+  p.textContent = txt;
+  var box = $("log");
+  var wait = box.querySelector("p");
+  if (wait && wait.textContent.indexOf("等待") === 0) box.innerHTML = "";
+  box.appendChild(p);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ---------- 单据包数据（OCR 抽取结果演示子集，固化进 JS） ---------- */
+/* 字段: id, doc, page, field, val, conf(0-1), rule:{amt:true} 高额强制, snip 原文片段 */
+var PACKS = {
+  inv: {
+    name: "增值税发票包",
+    desc: "3 张发票 · 15 个字段 · 含大写金额置信 0.88、印章遮挡 0.68、高额价税合计强制复核",
+    fields: [
+      {id:"f1", doc:"发票 NO.04471958 · 云途科技", page:1, field:"供应商名称", val:"深圳市云途科技有限公司", conf:.97, snip:"销 售 单 位：深圳市云途科技有限公司"},
+      {id:"f2", doc:"发票 NO.04471958 · 云途科技", page:1, field:"纳税人识别号", val:"91440300MA5E8T2X7K", conf:.98, snip:"纳税人识别号：91440300MA5E8T2X7K"},
+      {id:"f3", doc:"发票 NO.04471958 · 云途科技", page:1, field:"开票日期", val:"2026-11-12", conf:.96, snip:"开 票 日 期：2026年11月12日"},
+      {id:"f4", doc:"发票 NO.04471958 · 云途科技", page:1, field:"价税合计(大写)", val:"壹拾贰万玖仟捌佰贰拾贰元柒角贰分", conf:.88, snip:"价税合计(大写) 壹拾贰万玖仟捌佰贰拾贰元柒角贰分"},
+      {id:"f5", doc:"发票 NO.04471958 · 云途科技", page:1, field:"价税合计(小写)", val:"¥129,822.72", conf:.96, amt:true, snip:"(小写) ¥129,822.72"},
+      {id:"f6", doc:"发票 NO.04471958 · 云途科技", page:1, field:"税额", val:"¥7,347.00", conf:.93, snip:"税 额：¥7,347.00"},
+      {id:"f7", doc:"发票 NO.04471958 · 云途科技", page:2, field:"收款账户", val:"6222****4012", conf:.71, snip:"开户行及账号：6222 **** 4012（印章压盖）"},
+      {id:"f8", doc:"发票 NO.04471958 · 云途科技", page:2, field:"备注条款", val:"按合同第4条 30天内付清", conf:.82, snip:"备 注：按合同第4条 30天内付清"},
+      {id:"f9", doc:"发票 NO.04471959 · 链数信息", page:1, field:"供应商名称", val:"上海链数信息有限公司", conf:.68, snip:"销 售 单 位：上海链数信息有限公司（红章遮挡）"},
+      {id:"f10", doc:"发票 NO.04471959 · 链数信息", page:1, field:"金额(不含税)", val:"¥86,300.00", conf:.95, snip:"金 额：¥86,300.00"},
+      {id:"f11", doc:"发票 NO.04471959 · 链数信息", page:1, field:"税额", val:"¥5,178.00", conf:.94, snip:"税 额：¥5,178.00"},
+      {id:"f12", doc:"发票 NO.04471959 · 链数信息", page:1, field:"开票日期", val:"2026-11-14", conf:.91, snip:"开 票 日 期：2026年11月14日"},
+      {id:"f13", doc:"发票 NO.04471960 · 佰数云", page:1, field:"供应商名称", val:"广州佰数云股份有限公司", conf:.96, snip:"销 售 单 位：广州佰数云股份有限公司"},
+      {id:"f14", doc:"发票 NO.04471960 · 佰数云", page:1, field:"价税合计(小写)", val:"¥45,210.00", conf:.93, snip:"(小写) ¥45,210.00"},
+      {id:"f15", doc:"发票 NO.04471960 · 佰数云", page:1, field:"纳税人识别号", val:"91440101MA9CQXXX4B", conf:.77, snip:"纳税人识别号：91440101MA9CQXXX4B（字体粘连）"}
+    ]
+  },
+  ctr: {
+    name: "采购合同包",
+    desc: "2 份合同 · 11 个字段 · 含跨页折痕 0.86、高额合同总额强制复核、质保条款 0.74",
+    fields: [
+      {id:"c1", doc:"采购合同 HT-2026-088", page:1, field:"合同编号", val:"HT-2026-088", conf:.97, snip:"合同编号：HT-2026-088"},
+      {id:"c2", doc:"采购合同 HT-2026-088", page:1, field:"甲方名称", val:"深圳美餐网信息技术有限公司", conf:.95, snip:"甲方（买方）：深圳美餐网信息技术有限公司"},
+      {id:"c3", doc:"采购合同 HT-2026-088", page:1, field:"乙方名称", val:"北京数智云软件股份有限公司", conf:.86, snip:"乙方（卖方）：北京数智云软件股份有限公司（跨页折痕）"},
+      {id:"c4", doc:"采购合同 HT-2026-088", page:3, field:"合同总金额", val:"¥2,400,000.00", conf:.96, amt:true, snip:"合同总金额：人民币 ¥2,400,000.00 元整"},
+      {id:"c5", doc:"采购合同 HT-2026-088", page:3, field:"付款条款", val:"验收后 30 日内一次性付清", conf:.92, snip:"付款方式：验收合格后 30 日内一次性付清"},
+      {id:"c6", doc:"采购合同 HT-2026-088", page:4, field:"签署日期", val:"2026-10-28", conf:.89, snip:"签署日期：2026 年 10 月 28 日"},
+      {id:"c7", doc:"采购合同 HT-2026-089", page:1, field:"合同编号", val:"HT-2026-089", conf:.96, snip:"合同编号：HT-2026-089"},
+      {id:"c8", doc:"采购合同 HT-2026-089", page:1, field:"乙方名称", val:"上海佰腾科技有限公司", conf:.94, snip:"乙方（卖方）：上海佰腾科技有限公司"},
+      {id:"c9", doc:"采购合同 HT-2026-089", page:2, field:"合同总金额", val:"¥360,000.00", conf:.92, snip:"合同总金额：人民币 ¥360,000.00 元整"},
+      {id:"c10", doc:"采购合同 HT-2026-089", page:2, field:"质保条款", val:"自验收合格起 24 个月", conf:.74, snip:"质保期：自验收合格之日起 24 个月（扫描模糊）"},
+      {id:"c11", doc:"采购合同 HT-2026-089", page:2, field:"违约金比例", val:"每日 0.05%", conf:.83, snip:"违约责任：每逾期一日按合同金额 0.05% 支付违约金"}
+    ]
+  },
+  exp: {
+    name: "差旅报销包",
+    desc: "2 张报销单 · 12 个字段 · 含手写票据 0.79、潦草签名 0.72、票据张数 0.66",
+    fields: [
+      {id:"e1", doc:"差旅报销单 BX-1107 · 林晓", page:1, field:"报销人", val:"林晓", conf:.96, snip:"报销人：林晓"},
+      {id:"e2", doc:"差旅报销单 BX-1107 · 林晓", page:1, field:"部门", val:"华东区销售部", conf:.93, snip:"所属部门：华东区销售部"},
+      {id:"e3", doc:"差旅报销单 BX-1107 · 林晓", page:1, field:"出差城市", val:"成都", conf:.90, snip:"出差地点：四川省成都市"},
+      {id:"e4", doc:"差旅报销单 BX-1107 · 林晓", page:2, field:"交通费", val:"¥2,168.50", conf:.79, snip:"交通费（手写票据粘贴）：¥2,168.50"},
+      {id:"e5", doc:"差旅报销单 BX-1107 · 林晓", page:2, field:"住宿费", val:"¥1,860.00", conf:.87, snip:"住宿费：¥1,860.00"},
+      {id:"e6", doc:"差旅报销单 BX-1107 · 林晓", page:1, field:"合计金额", val:"¥4,028.50", conf:.95, snip:"报销合计：¥4,028.50"},
+      {id:"e7", doc:"差旅报销单 BX-1108 · 王勤", page:1, field:"报销人", val:"王勤", conf:.72, snip:"报销人：王勤（签名潦草）"},
+      {id:"e8", doc:"差旅报销单 BX-1108 · 王勤", page:1, field:"部门", val:"华南区交付部", conf:.91, snip:"所属部门：华南区交付部"},
+      {id:"e9", doc:"差旅报销单 BX-1108 · 王勤", page:1, field:"出差城市", val:"西安", conf:.92, snip:"出差地点：陕西省西安市"},
+      {id:"e10", doc:"差旅报销单 BX-1108 · 王勤", page:2, field:"交通费", val:"¥1,145.00", conf:.95, snip:"交通费：¥1,145.00"},
+      {id:"e11", doc:"差旅报销单 BX-1108 · 王勤", page:2, field:"住宿费", val:"¥2,320.00", conf:.80, snip:"住宿费：¥2,320.00"},
+      {id:"e12", doc:"差旅报销单 BX-1108 · 王勤", page:2, field:"票据张数", val:"11 张", conf:.66, snip:"粘贴票据：11 张（手写计数难辨）"}
+    ]
+  }
+};
+
+var curPack = "inv";
+var reviewed = {};   /* id -> {act:"pass"|"fix"|"rej", val?} */
+var selId = null;
+
+function amtNum(v){
+  var n = parseFloat(String(v).replace(/[¥,￥\s]/g, ""));
+  return isNaN(n) ? 0 : n;
+}
+
+/* 分级：auto / review / block（人工结论优先保留） */
+function classify(f, autoLine, revLine, amtLine){
+  if (reviewed[f.id]) return reviewed[f.id].act;
+  if (f.amt && amtNum(f.val) >= amtLine) return "review";
+  if (f.conf * 100 >= autoLine) return "auto";
+  if (f.conf * 100 >= revLine) return "review";
+  return "block";
+}
+
+function badge(st){
+  var map = {
+    auto:["b-auto","✅ 自动通过"],
+    review:["b-rev","⚠️ 转人工"],
+    block:["b-block","⛔ 置信不足"],
+    pass:["b-pass","✓ 人工确认"],
+    fix:["b-fix","✎ 已修正"],
+    rej:["b-rej","⚑ 异常"]
+  };
+  var m = map[st];
+  return "<span class='badge " + m[0] + "'>" + m[1] + "</span>";
+}
+
+function readRule(){
+  var a = parseInt($("fAuto").value, 10), r = parseInt($("fRev").value, 10), m = parseInt($("fAmt").value, 10);
+  if (isNaN(a)) a = 90;
+  if (isNaN(r)) r = 75;
+  if (isNaN(m)) m = 100000;
+  if (r > a){ var t = a; a = r; r = t; $("fAuto").value = a; $("fRev").value = r; }
+  return {a:a, r:r, m:m};
+}
+
+function render(keepSel){
+  var rule = readRule();
+  var pk = PACKS[curPack];
+  var html = "";
+  var counts = {auto:0, review:0, block:0, pass:0, fix:0, rej:0};
+  var lastDoc = null;
+  pk.fields.forEach(function(f){
+    var st = classify(f, rule.a, rule.r, rule.m);
+    counts[st]++;
+    if (f.doc !== lastDoc){
+      html += "<tr class='docrow'><td colspan='6' style='background:#f0f3f6;font-weight:600;font-size:12px'>" + f.doc + "</td></tr>";
+      lastDoc = f.doc;
+    }
+    var actions = "";
+    if (st === "auto"){
+      actions = "<span class='hint'>无需人工</span>";
+    } else {
+      actions = "<span class='rowbtns'>";
+      if (st === "review") actions += "<button class='ok' data-act='pass' data-id='" + f.id + "'>✓确认</button>";
+      actions += "<button class='ed' data-act='fix' data-id='" + f.id + "'>✎修正</button>" +
+                 "<button class='rj' data-act='rej' data-id='" + f.id + "'>⚑异常</button></span>";
+    }
+    var valHtml = (reviewed[f.id] && reviewed[f.id].act === "fix")
+      ? "<span class='val' style='color:var(--info)'>" + reviewed[f.id].val + "</span> <span class='hint'>(改自 " + f.val + ")</span>"
+      : "<span class='val'>" + f.val + "</span>";
+    html += "<tr data-id='" + f.id + "' class='" + (selId === f.id ? "hl" : "") + "'>" +
+      "<td>" + f.field + "</td>" +
+      "<td>" + valHtml + "</td>" +
+      "<td><span class='conf'>" + Math.round(f.conf * 100) + "%</span></td>" +
+      "<td>P" + f.page + "</td>" +
+      "<td>" + badge(st) + "</td>" +
+      "<td>" + actions + "</td></tr>";
+  });
+  $("fldBody").innerHTML = html;
+  $("packInfo").textContent = "当前单据包：" + pk.name + " —— " + pk.desc;
+  $("stTotal").textContent = pk.fields.length;
+  $("stAuto").textContent = counts.auto;
+  var pend = counts.review + counts.block;
+  $("stPend").textContent = pend;
+  $("stDone").textContent = counts.pass + counts.fix;
+  $("stRej").textContent = counts.rej;
+  var v = $("verdict");
+  v.style.display = "block";
+  if (pend === 0){
+    v.className = "verdict done";
+    v.textContent = "✅ 本单据包复核完成：待人工字段清零（自动通过 " + counts.auto + " / 人工确认 " + counts.pass + " / 修正 " + counts.fix + " / 异常 " + counts.rej + "），可导出复核清单 CSV 归档。";
+  } else {
+    v.className = "verdict";
+    v.textContent = "还有 " + pend + " 个字段待人工处理（转人工 " + counts.review + " / 置信不足 " + counts.block + "）——机器管批量抽取，人只看没把握的字段。";
+  }
+  showPager(selId);
+  bindRowBtns();
+}
+
+function showPager(id){
+  var pk = PACKS[curPack];
+  if (!id){
+    $("pagerBody").innerHTML = "<p class='hint'>点左侧任意字段，此处显示所在单据页原文并高亮抽取片段。</p>";
+    $("pagerNo").textContent = "";
+    return;
+  }
+  var f = pk.fields.find(function(x){ return x.id === id; });
+  if (!f) return;
+  var idx = pk.fields.indexOf(f);
+  var before = pk.fields[(idx - 1 + pk.fields.length) % pk.fields.length];
+  var after = pk.fields[(idx + 1) % pk.fields.length];
+  $("pagerBody").innerHTML =
+    "<p class='docline'>" + f.doc + " · 第 " + f.page + " 页</p>" +
+    "<p class='docline'>" + before.field + " ……（本页其他内容略）</p>" +
+    "<p class='docline'><mark>" + f.snip + "</mark></p>" +
+    "<p class='docline'>" + after.field + " ……（本页其他内容略）</p>";
+  $("pagerNo").textContent = "溯源：" + f.doc + " · 第 " + f.page + " 页 · 抽取置信分 " + Math.round(f.conf * 100) + "%";
+}
+
+function bindRowBtns(){
+  var btns = document.querySelectorAll("#fldBody button[data-act]");
+  btns.forEach(function(b){
+    b.onclick = function(){
+      var id = b.getAttribute("data-id"), act = b.getAttribute("act") || b.getAttribute("data-act");
+      var pk = PACKS[curPack];
+      var f = pk.fields.find(function(x){ return x.id === id; });
+      if (act === "pass"){
+        reviewed[id] = {act:"pass"};
+        logTo("[人工确认] " + f.field + " = " + f.val + "（" + f.doc + " P" + f.page + "）→ 与原文核对无误", "ok");
+      } else if (act === "fix"){
+        var nv = prompt("修正字段「" + f.field + "」的值（原抽取值：" + f.val + "）：", f.val);
+        if (nv === null) return;
+        nv = nv.trim();
+        if (!nv){ alert("修正值不能为空。"); return; }
+        reviewed[id] = {act:"fix", val:nv};
+        logTo("[人工修正] " + f.field + "：" + f.val + " → " + nv + "（" + f.doc + " P" + f.page + "）", "r");
+      } else {
+        reviewed[id] = {act:"rej"};
+        logTo("[标记异常] " + f.field + " = " + f.val + "（" + f.doc + " P" + f.page + "）→ 退回补扫，不入账", "r");
+      }
+      render(true);
+    };
+  });
+  var rows = document.querySelectorAll("#fldBody tr[data-id]");
+  rows.forEach(function(r){
+    r.onclick = function(e){
+      if (e.target.tagName === "BUTTON") return;
+      selId = r.getAttribute("data-id");
+      render(true);
+    };
+  });
+}
+
+function loadPack(p){
+  curPack = p; reviewed = {}; selId = null;
+  document.querySelectorAll(".chips button").forEach(function(b){ b.classList.remove("on"); });
+  var btn = {inv:"chip1", ctr:"chip2", exp:"chip3"}[p];
+  $(btn).classList.add("on");
+  $("log").innerHTML = "<p>等待操作…</p>";
+  logTo("[载入] " + PACKS[p].name + "：" + PACKS[p].desc, "ok");
+  render(false);
+}
+
+$("chip1").onclick = function(){ loadPack("inv"); };
+$("chip2").onclick = function(){ loadPack("ctr"); };
+$("chip3").onclick = function(){ loadPack("exp"); };
+$("btnRule").onclick = function(){
+  var rule = readRule();
+  render(true);
+  logTo("[阈值] 自动通过线 " + rule.a + "% / 转人工线 " + rule.r + "% / 高额线 ¥" + rule.m + " → 全表重新分级（已复核结论保留）");
+};
+$("btnReset").onclick = function(){
+  reviewed = {}; selId = null;
+  $("log").innerHTML = "<p>等待操作…</p>";
+  logTo("[重置] " + PACKS[curPack].name + " 人工结论已清空，恢复机器分级", "ok");
+  render(false);
+};
+$("btnCsv").onclick = function(){
+  var rule = readRule();
+  var pk = PACKS[curPack];
+  var rows = [["序号","单据","页码","字段","抽取值","置信分(%)","机器分级","复核结果","最终值"]];
+  var stName = {auto:"自动通过", review:"转人工", block:"置信不足", pass:"人工确认", fix:"已修正", rej:"异常"};
+  var finName = {auto:"自动通过", pass:"人工确认无误", fix:"人工修正", rej:"异常退回", review:"待人工", block:"待人工"};
+  pk.fields.forEach(function(f, i){
+    var st = classify(f, rule.a, rule.r, rule.m);
+    var fin = reviewed[f.id] ? finName[reviewed[f.id].act] : finName[st];
+    rows.push([i + 1, f.doc, "P" + f.page, f.field, f.val, Math.round(f.conf * 100), stName[st], fin,
+      (reviewed[f.id] && reviewed[f.id].act === "fix") ? reviewed[f.id].val : f.val]);
+  });
+  var csv = "\uFEFF" + rows.map(function(r){ return r.join(","); }).join("\n");
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
+  a.download = PACKS[curPack].name + "复核清单.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  logTo("[导出] " + PACKS[curPack].name + "复核清单.csv（" + (rows.length - 1) + " 条字段记录，含机器分级与人工结论）", "ok");
+};
+
+loadPack("inv");
+</script>
+</body>
+</html>
