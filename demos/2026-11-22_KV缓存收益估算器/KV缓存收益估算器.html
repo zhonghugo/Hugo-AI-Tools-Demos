@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KV缓存收益估算器</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1c2733;--muted:#67737f;--line:#dfe4ea;--primary:#22577a;--primary-soft:#e8f1f7;--ok:#0f6b52;--ok-soft:#e7f3ef;--warn:#a3560d;--warn-soft:#fdf1e4;--bad:#b3352c;--bad-soft:#fbeae8;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:18px 14px 40px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header h1{font-size:22px}
+  header p.sub{color:var(--muted);font-size:13px;margin-top:6px}
+  .stats{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}
+  .stats b{font-size:20px;color:var(--primary);display:block}
+  .stats span{font-size:12px;color:var(--muted)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:14px}
+  section h2{font-size:15px;margin-bottom:10px}
+  section h2 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .chips button{background:var(--primary-soft);color:var(--primary);border:1px solid #c4d5e0;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer}
+  .chips button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .frow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .frow label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+  .frow input,.frow select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff;color:var(--ink);width:110px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid2>div{min-width:0}
+  button.act{background:var(--primary);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer}
+  button.act:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .banner{display:none;border-radius:8px;padding:12px 14px;font-size:14px;font-weight:600;margin-top:12px}
+  .banner.ok{display:block;background:var(--ok-soft);color:var(--ok);border:1px solid #bfe0d3}
+  .banner.bad{display:block;background:var(--bad-soft);color:var(--bad);border:1px solid #efc7c3}
+  .tableWrap{overflow-x:auto;margin-top:12px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:13px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#eef2f6;font-weight:600;white-space:nowrap}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .good{color:var(--ok);font-weight:600}
+  .poor{color:var(--bad);font-weight:600}
+  .barWrap{margin-top:12px}
+  .barRow{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12px}
+  .barRow .bl{width:130px;color:var(--muted);flex:none}
+  .barRow .track{flex:1;min-width:0;background:#eef2f6;border-radius:6px;height:20px;position:relative}
+  .barRow .fill{height:100%;border-radius:6px;background:var(--primary)}
+  .barRow .fill.cache{background:var(--ok)}
+  .barRow .bv{width:90px;flex:none;text-align:right;font-variant-numeric:tabular-nums}
+  .sens{margin-top:12px}
+  .sens input[type=range]{width:100%;accent-color:var(--primary)}
+  .sensVals{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:13px}
+  .sensVals b{font-variant-numeric:tabular-nums}
+  #log{background:#0f1c26;color:#cfe3ee;border-radius:8px;padding:12px;font-size:12px;font-family:ui-monospace,Menlo,monospace;max-height:220px;overflow-y:auto;white-space:pre-wrap;margin-top:10px}
+  .acts{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  @media (max-width:600px){
+    .grid2{grid-template-columns:1fr}
+    .stats{gap:14px}
+    .barRow .bl{width:96px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>KV缓存收益估算器</h1>
+    <p class="sub">参考 Amazon ElastiCache for Valkey 分布式 KV 缓存（2026-11-22 官方发布，4星）：GPU 集群旁挂共享缓存层，推理服务器复用 KV 状态，官方数字推理成本最高降 40%、首 token 时间（TTFT）最高降 80%。本工具复刻开源 KVTrace 的核心算术——「先算账再花钱」：输入代理负载与缓存层配置，估算共享 KV 缓存的月成本、节省额、盈亏平衡命中率，判断你的代理流水线值不值得建缓存层。纯前端本地计算，示例数据已固化。</p>
+    <div class="stats">
+      <div><b id="sNo">—</b><span>无缓存月成本</span></div>
+      <div><b id="sWith">—</b><span>有缓存月成本</span></div>
+      <div><b id="sSave">—</b><span>月节省额</span></div>
+      <div><b id="sRate">—</b><span>节省率</span></div>
+    </div>
+  </header>
+
+  <section>
+    <h2>① 业务场景 <small>示例数据固化，点击一键载入</small></h2>
+    <div class="chips" id="chips">
+      <button data-s="1">客服语音代理 · 7×24 常驻</button>
+      <button data-s="2">律师长文档会话</button>
+      <button data-s="3">代码代理高频多轮</button>
+    </div>
+    <div class="grid2">
+      <div>
+        <h2 style="font-size:13px">负载与 GPU 配置</h2>
+        <div class="frow">
+          <div><label>日活跃会话数</label><input id="fSessions" type="number" min="1" value="3000"></div>
+          <div><label>每会话平均轮数</label><input id="fTurns" type="number" min="1" value="10"></div>
+          <div><label>平均上下文(K token)</label><input id="fCtx" type="number" min="1" value="20"></div>
+        </div>
+        <div class="frow" style="margin-top:8px">
+          <div><label>Prefill吞吐( tok/秒/机 )</label><input id="fTput" type="number" min="1" value="8000"></div>
+          <div><label>GPU时薪( $/机时 )</label><input id="fGpuRate" type="number" min="0.1" step="0.1" value="8"></div>
+          <div><label>月天数</label><input id="fDays" type="number" min="1" max="31" value="30"></div>
+        </div>
+      </div>
+      <div>
+        <h2 style="font-size:13px">KV 缓存层配置</h2>
+        <div class="frow">
+          <div><label>缓存节点数</label><input id="fNodes" type="number" min="1" value="1"></div>
+          <div><label>节点时薪( $/时 )</label><input id="fCacheRate" type="number" min="0.1" step="0.1" value="1.2"></div>
+          <div><label>KV保留时长( 天 )</label><input id="fTtl" type="number" min="1" value="3"></div>
+        </div>
+        <div class="frow" style="margin-top:8px">
+          <div><label>提示词重复率( % )</label><input id="fRep" type="number" min="0" max="100" value="65"></div>
+          <div><label>会话复用率( % )</label><input id="fReuse" type="number" min="0" max="100" value="55"></div>
+        </div>
+        <p class="hint">预估命中率（KVTrace 口径）= 提示词重复率×0.5 + 会话复用率×0.35 + 长上下文加成 min(上下文/100K,1)×0.15，上限 95%。命中后该部分 KV 直接复用，无需重新 prefill。</p>
+      </div>
+    </div>
+    <div class="acts" style="margin-top:12px">
+      <button class="act" id="btnRun">开始估算</button>
+      <button class="ghost" id="btnCsv">导出估算报告 CSV</button>
+      <button class="ghost" id="btnReset">重置示例</button>
+    </div>
+  </section>
+
+  <section id="secReport" style="display:none">
+    <h2>② 估算报告 <small id="repMeta"></small></h2>
+    <div class="banner" id="banner"></div>
+    <div class="tableWrap">
+      <table id="tbl">
+        <thead><tr><th>指标</th><th>数值</th><th>口径说明</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="barWrap">
+      <div class="barRow"><span class="bl">无缓存月成本</span><div class="track"><div class="fill" id="barNo"></div></div><span class="bv" id="bvNo">—</span></div>
+      <div class="barRow"><span class="bl">有缓存月成本</span><div class="track"><div class="fill cache" id="barWith"></div></div><span class="bv" id="bvWith">—</span></div>
+    </div>
+    <div class="sens">
+      <h2 style="font-size:13px;margin-top:6px">③ 命中率敏感性 <small>拖动滑杆按假设命中率实时重算（覆盖预估公式）</small></h2>
+      <input id="sens" type="range" min="0" max="90" step="1" value="55">
+      <div class="sensVals">
+        <span>假设命中率 <b id="sensR">—</b></span>
+        <span>有缓存月成本 <b id="sensWith">—</b></span>
+        <span>月节省 <b id="sensSave">—</b></span>
+        <span>节省率 <b id="sensRate">—</b></span>
+      </div>
+    </div>
+    <div id="log"></div>
+  </section>
+</div>
+<script>
+"use strict";
+function $id(x){return document.getElementById(x)}
+function fmt$(v){return "$"+Math.round(v).toLocaleString("en-US")}
+function fmtN(v){return v.toLocaleString("en-US",{maximumFractionDigits:1})}
+
+var SCEN={
+  "1":{name:"客服语音代理 · 7×24 常驻",sessions:3000,turns:10,ctx:20,tput:8000,gpuRate:8,days:30,nodes:1,cacheRate:1.2,ttl:3,rep:65,reuse:55},
+  "2":{name:"律师长文档会话",sessions:400,turns:15,ctx:80,tput:6000,gpuRate:9,days:30,nodes:1,cacheRate:1.2,ttl:3,rep:35,reuse:60},
+  "3":{name:"代码代理高频多轮",sessions:8000,turns:8,ctx:15,tput:9000,gpuRate:7.5,days:30,nodes:2,cacheRate:1.1,ttl:3,rep:55,reuse:70}
+};
+var cur=null, last=null, logs=[];
+
+function fill(o){
+  $id("fSessions").value=o.sessions; $id("fTurns").value=o.turns; $id("fCtx").value=o.ctx;
+  $id("fTput").value=o.tput; $id("fGpuRate").value=o.gpuRate; $id("fDays").value=o.days;
+  $id("fNodes").value=o.nodes; $id("fCacheRate").value=o.cacheRate; $id("fTtl").value=o.ttl;
+  $id("fRep").value=o.rep; $id("fReuse").value=o.reuse;
+}
+function read(){
+  return {
+    sessions:+$id("fSessions").value, turns:+$id("fTurns").value, ctxK:+$id("fCtx").value,
+    tput:+$id("fTput").value, gpuRate:+$id("fGpuRate").value, days:+$id("fDays").value,
+    nodes:+$id("fNodes").value, cacheRate:+$id("fCacheRate").value, ttl:+$id("fTtl").value,
+    rep:+$id("fRep").value/100, reuse:+$id("fReuse").value/100
+  };
+}
+function estHit(p){
+  var h=p.rep*0.5+p.reuse*0.35+Math.min(p.ctxK/100,1)*0.15;
+  return Math.min(0.95,h);
+}
+function calc(p,r){
+  var ctxTokens=p.ctxK*1000;
+  var dailyTok=p.sessions*p.turns*ctxTokens;
+  var gpuHrs=dailyTok/p.tput/3600;
+  var noDay=gpuHrs*p.gpuRate;
+  var cacheDay=p.nodes*p.cacheRate*24;
+  var withDay=gpuHrs*(1-r)*p.gpuRate+cacheDay;
+  var breakeven=cacheDay/(gpuHrs*p.gpuRate);
+  var ttftNo=ctxTokens/p.tput, ttftWith=ttftNo*(1-r);
+  return {p:p,r:r,ctxTokens:ctxTokens,dailyTok:dailyTok,gpuHrs:gpuHrs,noDay:noDay,cacheDay:cacheDay,
+    withDay:withDay,noMo:noDay*p.days,withMo:withDay*p.days,saveMo:(noDay-withDay)*p.days,
+    rate:(noDay-withDay)/noDay,breakeven:breakeven,ttftNo:ttftNo,ttftWith:ttftWith};
+}
+function log(msg){
+  var t=new Date().toTimeString().slice(0,8);
+  logs.push("["+t+"] "+msg);
+  $id("log").textContent=logs.join("\n");
+  $id("log").scrollTop=$id("log").scrollHeight;
+}
+function render(res,estHitVal,scenName){
+  var ok=res.r>res.breakeven;
+  var b=$id("banner");
+  b.className="banner "+(ok?"ok":"bad");
+  b.textContent=ok?("✅ 值得建缓存层：命中率 "+(res.r*100).toFixed(1)+"% 高于盈亏平衡点 "+(res.breakeven*100).toFixed(1)+"%，月省 "+fmt$(res.saveMo)+"（"+(res.rate*100).toFixed(1)+"%）")
+                  :("⛔ 暂不值得：命中率 "+(res.r*100).toFixed(1)+"% 低于盈亏平衡点 "+(res.breakeven*100).toFixed(1)+"%——先提提示词复用率，或砍缓存节点数/换便宜节点");
+  var rows=[
+    ["日 prefill token 量（无缓存）",fmtN(res.dailyTok/1e6)+" M","会话数 × 轮数 × 上下文 token，每轮全量重算 KV"],
+    ["日 GPU 机器时（无缓存）",fmtN(res.gpuHrs)+" 机时","日 prefill token ÷ 吞吐 ÷ 3600"],
+    ["无缓存月成本",fmt$(res.noMo),"机时 × GPU 时薪 × "+res.p.days+" 天"],
+    ["KV 缓存层日成本",fmt$(res.cacheDay),res.p.nodes+" 节点 × "+res.p.cacheRate+" $/时 × 24h"],
+    ["有缓存月成本（命中率 "+(res.r*100).toFixed(1)+"%）",fmt$(res.withMo),"未命中部分 GPU 成本 + 缓存层成本"],
+    ["月节省额",fmt$(res.saveMo),"无缓存 − 有缓存"],
+    ["节省率",(res.rate*100).toFixed(1)+"%",res.rate>=0.4?"接近官方口径上限（40%）":"官方参考：成本最高降 40%"],
+    ["盈亏平衡命中率",(res.breakeven*100).toFixed(1)+"%","缓存层日成本 ÷ 无缓存日成本——命中率高于它才值"],
+    ["预估命中率（KVTrace 口径）",(estHitVal*100).toFixed(1)+"%","重复率×0.5 + 复用率×0.35 + 长上下文加成，上限 95%"],
+    ["TTFT（首 token 等待）",res.ttftNo.toFixed(2)+"s → "+res.ttftWith.toFixed(2)+"s（-"+(res.r*100).toFixed(1)+"%）","命中部分免 prefill；官方参考 TTFT 最高降 80%"]
+  ];
+  $id("tbody").innerHTML=rows.map(function(rw,ix){
+    var cls=(ix===6)?(res.rate>0?"good":"poor"):(ix===7?"":(ix===5?"good":""));
+    return "<tr><td>"+rw[0]+"</td><td class='num"+(cls?" "+cls:"")+"'>"+rw[1]+"</td><td style='color:var(--muted)'>"+rw[2]+"</td></tr>";
+  }).join("");
+  $id("repMeta").textContent="场景："+scenName+" ｜ KV 保留 "+res.p.ttl+" 天（跨会话/宕机保留）";
+  var mx=Math.max(res.noMo,res.withMo)||1;
+  $id("barNo").style.width=(res.noMo/mx*100)+"%"; $id("bvNo").textContent=fmt$(res.noMo);
+  $id("barWith").style.width=(res.withMo/mx*100)+"%"; $id("bvWith").textContent=fmt$(res.withMo);
+  $id("sNo").textContent=fmt$(res.noMo); $id("sWith").textContent=fmt$(res.withMo);
+  $id("sSave").textContent=fmt$(res.saveMo); $id("sRate").textContent=(res.rate*100).toFixed(1)+"%";
+  $id("secReport").style.display="";
+}
+function renderSens(){
+  if(!last)return;
+  var r=+$id("sens").value/100;
+  var s=calc(last.p,r);
+  $id("sensR").textContent=(r*100).toFixed(0)+"%";
+  $id("sensWith").textContent=fmt$(s.withMo);
+  $id("sensSave").textContent=fmt$(s.saveMo);
+  $id("sensRate").textContent=(s.rate*100).toFixed(1)+"%"+(r>last.breakeven?" ✓":"（低于平衡点 "+(last.breakeven*100).toFixed(1)+"%，负收益）");
+}
+function run(src){
+  var p=read();
+  if(!(p.sessions>0&&p.turns>0&&p.ctxK>0&&p.tput>0&&p.gpuRate>0&&p.days>0&&p.nodes>0&&p.cacheRate>0)){
+    log("⚠️ 参数不完整：负载与单价必须为正数");
+    return;
+  }
+  var eh=estHit(p);
+  var r=Math.round(eh*100)/100;
+  var res=calc(p,r);
+  var ok=res.r>res.breakeven;
+  last=res;
+  $id("sens").value=Math.round(r*100);
+  var name=cur?cur.name:"自定义参数";
+  render(res,eh,name);
+  renderSens();
+  log("▶ 开始估算「"+name+"」");
+  log("  日 prefill "+fmtN(res.dailyTok/1e6)+"M tok → 无缓存月成本 "+fmt$(res.noMo)+"（"+fmtN(res.gpuHrs)+" 机时/日 × $"+p.gpuRate+" × "+p.days+"天）");
+  log("  预估命中率 "+(eh*100).toFixed(1)+"%（重复率"+(p.rep*100).toFixed(0)+"%/复用率"+(p.reuse*100).toFixed(0)+"%/上下文"+p.ctxK+"K）→ 按 "+(r*100).toFixed(0)+"% 计算");
+  log("  缓存层 "+p.nodes+" 节点 × $"+p.cacheRate+"/时 = "+fmt$(res.cacheDay)+"/日；盈亏平衡命中率 "+(res.breakeven*100).toFixed(1)+"%");
+  log(ok
+    ? "  结论：✅ 值得建缓存层，月省 "+fmt$(res.saveMo)+"（"+(res.rate*100).toFixed(1)+"%），TTFT "+res.ttftNo.toFixed(2)+"s→"+res.ttftWith.toFixed(2)+"s"
+    : "  结论：⛔ 暂不值得，命中率低于平衡点，先提复用率或降缓存成本");
+}
+function download(){
+  if(!last){log("⚠️ 请先「开始估算」再导出报告");return;}
+  var rows=[["指标","数值","口径说明"]];
+  var trs=$id("tbody").querySelectorAll("tr");
+  for(var i=0;i<trs.length;i++){
+    var tds=trs[i].querySelectorAll("td");
+    rows.push([tds[0].textContent,tds[1].textContent,tds[2].textContent]);
+  }
+  rows.push(["假设命中率敏感性", $id("sensR").textContent+" → 有缓存月成本 "+$id("sensWith").textContent+"，月节省 "+$id("sensSave").textContent,"滑杆口径"]);
+  var csv="\uFEFF"+rows.map(function(rw){return rw.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(",")}).join("\r\n");
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="KV缓存收益估算报告_"+new Date().toISOString().slice(0,10)+".csv";
+  document.body.appendChild(a);a.click();a.remove();
+  log("⬇ 已导出估算报告 CSV（"+rows.length+" 行，含 BOM）");
+}
+function reset(){
+  cur=null;
+  var btns=$id("chips").querySelectorAll("button");
+  for(var i=0;i<btns.length;i++)btns[i].classList.remove("on");
+  fill(SCEN["1"]);
+  $id("secReport").style.display="none";
+  $id("banner").className="banner";
+  last=null;
+  log("↺ 已重置为默认示例（未估算）");
+}
+$id("chips").addEventListener("click",function(e){
+  var b=e.target.closest("button"); if(!b)return;
+  var btns=$id("chips").querySelectorAll("button");
+  for(var i=0;i<btns.length;i++)btns[i].classList.remove("on");
+  b.classList.add("on");
+  cur={name:SCEN[b.dataset.s].name,key:b.dataset.s};
+  fill(SCEN[b.dataset.s]);
+  log("📋 载入场景「"+cur.name+"」，参数已填充——点「开始估算」出报告");
+});
+$id("btnRun").addEventListener("click",function(){run()});
+$id("btnCsv").addEventListener("click",download);
+$id("btnReset").addEventListener("click",reset);
+$id("sens").addEventListener("input",function(){if(last)renderSens()});
+log("就绪：选场景 → 开始估算 → 看盈亏平衡命中率 → 拖滑杆做敏感性分析");
+</script>
+</body>
+</html>

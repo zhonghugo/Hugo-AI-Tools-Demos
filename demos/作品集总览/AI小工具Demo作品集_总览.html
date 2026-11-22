@@ -43,8 +43,8 @@
     <h1>AI 小工具 Demo 作品集</h1>
     <p class="sub">每天从「AI工具资讯日报」挑选 1 条最新 AI 工具资讯，做成一个能直接运行、直接分享的单文件小工具——全部围绕重复劳动自动化与业务数据场景。</p>
     <div class="stat">
-      <div><b>60</b><span>个已交付 Demo</span></div>
-      <div><b>9/14 – 11/21</b><span>持续产出</span></div>
+      <div><b>61</b><span>个已交付 Demo</span></div>
+      <div><b>9/14 – 11/22</b><span>持续产出</span></div>
       <div><b>单文件 HTML</b><span>即开即用 · 可分享</span></div>
     </div>
   </header>
@@ -65,16 +65,22 @@
 "use strict";
 const DEMOS = [
   {
+    date:"11-22", name:"KV缓存收益估算器",
+    desc:"参考 AWS ElastiCache for Valkey 分布式 KV 缓存（2026-11-22 官方发布，4星）：GPU 集群旁挂共享缓存层，任何推理服务器可复用 KV 状态（跨会话/路由切换/宕机保留数天），官方数字推理成本最高降 40%、首 token 时间（TTFT）最高降 80%，配套开源 KVTrace 可在部署前用真实流量估算命中率。本工具复刻 KVTrace 的核心算术——『先算账再花钱』的轻量网页版：①业务场景 3 示例 chip（客服语音代理 7×24 常驻/律师长文档会话/代码代理高频多轮）一键载入；②负载与 GPU 配置 + KV 缓存层配置两组业务表单（日会话数/轮数/上下文/Prefill 吞吐/GPU 时薪/缓存节点数与单价/提示词重复率/会话复用率）实时可调；③开始估算——预估命中率（KVTrace 口径：重复率×0.5+复用率×0.35+长上下文加成，上限 95%）→ 无缓存 vs 有缓存月成本、月节省、节省率、盈亏平衡命中率（缓存层日成本÷无缓存日成本）、TTFT 前后对比；④命中率敏感性滑杆 0–90% 实时重算，低于平衡点判负收益；⑤判定横幅（✅ 值得建缓存层/⛔ 暂不值得——先提复用率或砍缓存成本）+统计卡 4 枚+估算日志+估算报告 CSV 导出（带 BOM）。『先算命中率够不够，再决定花不花缓存层的钱』。",
+    src:"11/22 资讯 · AWS ElastiCache 分布式 KV 缓存：共享缓存层推理成本最高降40%、TTFT降80%（4星）",
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-11-22_KV%E7%BC%93%E5%AD%98%E6%94%B6%E7%9B%8A%E4%BC%B0%E7%AE%97%E5%99%A8/KV%E7%BC%93%E5%AD%98%E6%94%B6%E7%9B%8A%E4%BC%B0%E7%AE%97%E5%99%A8.html"
+  },
+  {
     date:"11-21", name:"单据字段抽取复核台",
     desc:"参考 Amazon Textract Insights「自然语言描述字段即可抽取，每个值带置信分 + 页码级溯源，3000 页混合文档包自动拆分，无需训练模型」（2026-11-21 正式可用，5星）演示『单据字段抽取复核台』：把「蓝图 = 字段描述 + 置信分 + 页码溯源 + 低置信转人工」做成财务单据复核台——机器管批量抽取，人只看机器没把握的字段。①混合单据包——OCR 抽取结果固化（3 示例 chip：增值税发票包 15 字段/采购合同包 11 字段/差旅报销包 12 字段，含印章遮挡 0.68、手写票据 0.79、潦草签名 0.72 等真实噪声）；②抽取蓝图与复核阈值业务表单——自动通过线/转人工线/高额强制复核线实时可调，全表重新分级且已复核结论保留；③三级分级——置信分达线 ✅ 自动通过、之间 ⚠️ 转人工、低于 ⛔ 置信不足必须修正或标记异常，金额字段 ≥ 高额线一律转人工（价税合计 12.9 万强制复核）；④字段复核清单——点行即右侧单据原文页码溯源高亮，人工三动作（✓确认/✎修正带改自留痕/⚑异常退回）；⑤待人工清零判定横幅+统计卡 5 枚+复核操作日志+复核清单 CSV 导出（带 BOM）。『机器管批量抽取，人只看没把握的字段』。",
     src:"11/21 资讯 · Amazon Textract Insights：自然语言描述字段即可抽取，置信分+页码级溯源（5星）",
-    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/2026-11-21_%E5%8D%95%E6%8D%AE%E5%AD%97%E6%AE%B5%E6%8A%BD%E5%8F%96%E5%A4%8D%E6%A0%B8%E5%8F%B0/%E5%8D%95%E6%8D%AE%E5%AD%97%E6%AE%B5%E6%8A%BD%E5%8F%96%E5%A4%8D%E6%A0%B8%E5%8F%B0.html"
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-11-21_%E5%8D%95%E6%8D%AE%E5%AD%97%E6%AE%B5%E6%8A%BD%E5%8F%96%E5%A4%8D%E6%A0%B8%E5%8F%B0/%E5%8D%95%E6%8D%AE%E5%AD%97%E6%AE%B5%E6%8A%BD%E5%8F%96%E5%A4%8D%E6%A0%B8%E5%8F%B0.html"
   },
   {
     date:"11-20", name:"桌面软件CLI化调用器",
     desc:"参考 HKUDS/CLI-Anything「7 阶段流水线把任意有源码的软件自动转成 Agent 原生 CLI + CLI-Hub 注册中心」（GitHub 49.7K stars，5星）演示『桌面软件CLI化调用器』：Agent 不再截图点击，而是调用结构化 CLI 命令拿到 JSON 结果——同样的任务，把两条路径摆在一起算账。①CLI-Hub 注册中心选型——12 款桌面软件（WPS表格/Excel/LibreOffice/GIMP 等）按类别/开源协议/最低测试通过数三条件筛选，点卡片选中；②任务命令构建——业务表单选任务生成 CLI 命令+预期 JSON 输出预览（--help 自描述，Agent 无需试错）；③双模式对比执行——像素点击（截图+坐标，确定性脚本：弹窗遮挡重试/菜单改版重试 2 次）vs CLI 调用（1 条命令 3.2s 120 tokens）逐步日志并排可核对；④对比条形图（操作次数 11→1、耗时 88.6s→3.2s、Token 9450→120 省 98.7%）+结论横幅+报告表；⑤对比报告 CSV 导出（带 BOM）。『会点界面』不如『会调命令』。",
     src:"11/20 资讯 · HKUDS/CLI-Anything：7阶段流水线把任意有源码软件转成 Agent 原生 CLI（5星）",
-    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/2026-11-20_%E6%A1%8C%E9%9D%A2%E8%BD%AF%E4%BB%B6CLI%E5%8C%96%E8%B0%83%E7%94%A8%E5%99%A8/%E6%A1%8C%E9%9D%A2%E8%BD%AF%E4%BB%B6CLI%E5%8C%96%E8%B0%83%E7%94%A8%E5%99%A8.html"
+    url:"https://github.com/zhonghugo/Hugo-AI-Tools-Demos/blob/main/demos/2026-11-20_%E6%A1%8C%E9%9D%A2%E8%BD%AF%E4%BB%B6CLI%E5%8C%96%E8%B0%83%E7%94%A8%E5%99%A8/%E6%A1%8C%E9%9D%A2%E8%BD%AF%E4%BB%B6CLI%E5%8C%96%E8%B0%83%E7%94%A8%E5%99%A8.html"
   },
   {
     date:"11-19", name:"AI味前端交付自检工具",
