@@ -1,1 +1,71 @@
-@daily_news_1123.json
+{
+  "date": "2026-11-23",
+  "table_id": "tbltCHyotV8hdemf",
+  "table_total": 451,
+  "count": 7,
+  "items": [
+    {
+      "record_id": "reczz28d887ZjrES",
+      "资讯标题": "记忆张量联合英伟达发布并开源记忆原生模型MemT-1.0-Pro：554B总参/59B激活，11项记忆评测平均53.08分第一",
+      "推荐指数": 5,
+      "来源平台": "GitHub",
+      "主题分类": "开源项目",
+      "链接": "https://github.com/MemTensor/MemT-1.0",
+      "要点": "记忆原生第三条路线：历史信息编码进模型内部记忆（动态局部记忆+可训练超记忆），交互后更新记忆状态、无需重放历史原文；BEAM-1M/MemoryAgentBench 均列参数化记忆方法第一；官方称任务完成率约+30%、token消耗降60-70%；发布即开源（HuggingFace/GitHub/ModelScope）。"
+    },
+    {
+      "record_id": "reczz28d89DLxTf4",
+      "资讯标题": "开源Agent Workbench发布：给Claude Code/Codex配Manager会话+三层Worker，L1-L3按模型分档派活，L3执行需人工批准",
+      "推荐指数": 5,
+      "来源平台": "其他",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "https://www.haiai123.com/en/hot/9935",
+      "要点": "skills+hooks 轻量编排：Manager 派活、Worker 分 L1/L2/L3（默认 Haiku/Sonnet/Opus）从最低档起派、L3 需人工批准；workers.yml 可配、支持 Codex/网关模型；Manager 汇报前独立核实分支/提交/CI。与 Master+Subagent 框架同构，设计可直接抄。"
+    },
+    {
+      "record_id": "reczz28d89DLwIvO",
+      "资讯标题": "Omi CLI登陆Product Hunt（97票第8）：终端异步编码Agent，13模型自动选档+并行子代理worktree+后台/云代理",
+      "推荐指数": 4,
+      "来源平台": "Product Hunt",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "https://www.hunted.space/dashboard/omi-cli",
+      "要点": "diff 审批（yes/no/always）+Auto 每轮从13模型选型省成本；0.5.0 并行子代理独立 worktree 三方合并、无头 Chrome 自测报 console 错误、omi bg 后台继续、omi cloud 跑 GitHub Actions 开 PR；兼容 Claude Code 的 .claude/agents 与技能。"
+    },
+    {
+      "record_id": "reczz28d89DLxmBM",
+      "资讯标题": "Ulika上线Product Hunt（90票）：给Claude/Cursor/Codex生成的网站加可视化编辑器，改完回写代码",
+      "推荐指数": 4,
+      "来源平台": "Product Hunt",
+      "主题分类": "泛AI效率工具",
+      "链接": "https://startupcorners.com/digest/product-digest-2026-11-23",
+      "要点": "补上 vibe coding 所见即所得一环：页面点选微调、编辑回写为代码，替代'往对话里塞修改意见'的多轮往返——非程序员 demo 工作流的高频摩擦点工具。"
+    },
+    {
+      "record_id": "reczz28d89DLxDKm",
+      "资讯标题": "Levenza宣布个人AI Agent全球企业版上线并收购Fluid Inference：Agent驻Teams/Slack/Outlook主动接管排会订差旅，300+客户未融资已盈利",
+      "推荐指数": 4,
+      "来源平台": "其他",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "https://businesspartnermagazine.com/levenza-launches-personal-ai-agents-globally-enterprise",
+      "要点": "企业AI落地样本：Agent驻IM/邮箱接管排会/订会议室/差旅/工时/待办拾取，NRR 170%、毛留存99%、未融资盈利；收购 Fluid Inference 加语音；2027上差旅报销。可直接用作 AI 落地岗位面试案例。"
+    },
+    {
+      "record_id": "reczz28d89DLvsCl",
+      "资讯标题": "cursor/plugins冲上GitHub日榜：Cursor官方插件规范与官方插件开源，18.4K stars日增294",
+      "推荐指数": 4,
+      "来源平台": "GitHub",
+      "主题分类": "开源项目",
+      "链接": "https://github.com/cursor/plugins",
+      "要点": "官方下场标准化插件/技能体系，与 Agent Skills 开放标准呼应；跨平台技能生态收敛，对维护8平台技能目录的用户直接降低维护成本。"
+    },
+    {
+      "record_id": "reczz28d89DLvUpa",
+      "资讯标题": "微软VibeVoice开源再获关注：企业级自托管多语言长音频语音AI，可作云端TTS/ASR的数据不出域替代",
+      "推荐指数": 3,
+      "来源平台": "GitHub",
+      "主题分类": "开源项目",
+      "链接": "https://github.com/microsoft/VibeVoice",
+      "要点": "自托管+长音频流是差异化点，适合企业'语音→结构化数据'合规场景；个人当前工作流非刚需，备查。"
+    }
+  ]
+}

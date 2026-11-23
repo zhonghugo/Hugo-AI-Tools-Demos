@@ -1,1 +1,432 @@
-@demos/2026-11-23_网页可视化编辑回写器/网页可视化编辑回写器.html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>网页可视化编辑回写器 · 改完自动回写代码</title>
+<style>
+:root{
+  --ink:#1c2333; --sub:#5b6478; --line:#e3e7ef; --bg:#f4f6fa;
+  --brand:#2b5cff; --brand-soft:#e8eeff; --ok:#0a8f5b; --ok-soft:#e3f6ee;
+  --warn:#b7791f; --warn-soft:#fdf3e0; --bad:#c0392b; --bad-soft:#fdecea;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--ink); font-size:14px;}
+.wrap{max-width:1180px; margin:0 auto; padding:18px 16px 40px;}
+header{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:6px;}
+header h1{font-size:20px;}
+.badge{background:var(--brand-soft); color:var(--brand); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:600;}
+.lead{color:var(--sub); margin-bottom:14px; line-height:1.6;}
+.chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+.chip{border:1px solid var(--line); background:#fff; border-radius:8px; padding:7px 13px; cursor:pointer; font-size:13px; transition:all .15s;}
+.chip:hover{border-color:var(--brand);}
+.chip.on{background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600;}
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px;}
+.stat{background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px 14px;}
+.stat b{display:block; font-size:22px; margin-bottom:2px;}
+.stat span{color:var(--sub); font-size:12px;}
+.workspace{display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start;}
+.panel{background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+.panel h2{font-size:14px; padding:11px 14px; border-bottom:1px solid var(--line); background:#fafbfe; display:flex; justify-content:space-between; align-items:center;}
+.panel h2 small{color:var(--sub); font-weight:400;}
+#preview{padding:18px; min-height:420px; position:relative;}
+#preview [data-el]{cursor:pointer; outline:2px dashed transparent; outline-offset:3px; transition:outline-color .12s;}
+#preview [data-el]:hover{outline-color:#9db4ff;}
+#preview [data-el].sel{outline-color:var(--brand); outline-style:solid; background-image:linear-gradient(rgba(43,92,255,.05),rgba(43,92,255,.05));}
+#preview .hiddenEl{display:none !important;}
+/* 示例页面样式（编辑对象） */
+.demo-nav{display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#101828; color:#fff; border-radius:8px; margin-bottom:18px; font-size:14px;}
+.demo-hero{padding:26px 20px; background:#f0f4ff; border-radius:10px; margin-bottom:16px;}
+.demo-hero h2{font-size:26px; margin-bottom:8px; line-height:1.3;}
+.demo-hero p{color:var(--sub); line-height:1.6; margin-bottom:14px;}
+.demo-cta{display:inline-block; padding:10px 22px; background:var(--brand); color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer;}
+.demo-cards{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;}
+.demo-card{background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px;}
+.demo-card h3{font-size:15px; margin-bottom:6px;}
+.demo-card p{color:var(--sub); font-size:13px; line-height:1.55;}
+.demo-price{padding:16px 20px; background:#f6f8fc; border-radius:10px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;}
+.demo-price b{font-size:22px; color:var(--brand);}
+.demo-footer{text-align:center; color:var(--sub); font-size:12px; padding:10px 0 0; border-top:1px solid var(--line);}
+.rep-head{padding:20px; background:#101828; color:#fff; border-radius:10px; margin-bottom:14px;}
+.rep-head h2{font-size:22px; margin-bottom:6px;}
+.rep-head p{opacity:.85; font-size:13px; line-height:1.5;}
+.rep-kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;}
+.rep-kpi{background:#fff; border:1px solid var(--line); border-radius:10px; padding:13px;}
+.rep-kpi b{display:block; font-size:19px; color:var(--ink);}
+.rep-kpi i{font-style:normal; font-size:12px; color:var(--sub);}
+.rep-quote{padding:14px 18px; background:var(--ok-soft); border-left:4px solid var(--ok); border-radius:6px; line-height:1.6; margin-bottom:12px; color:#0d5c3f;}
+/* 右侧表单 */
+.formBody{padding:12px 14px 14px;}
+.fld{margin-bottom:10px;}
+.fld label{display:block; font-size:12px; color:var(--sub); margin-bottom:4px;}
+.fld input[type=text],.fld select{width:100%; border:1px solid var(--line); border-radius:7px; padding:7px 9px; font-size:13px; font-family:inherit;}
+.fld input[type=number]{width:74px; border:1px solid var(--line); border-radius:7px; padding:6px 8px; font-size:13px;}
+.fld input[type=color]{width:44px; height:30px; border:1px solid var(--line); border-radius:6px; padding:2px; background:#fff; vertical-align:middle;}
+.fld input[type=range]{width:100%;}
+.row2{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.row2 .numLbl{font-size:12px; color:var(--sub);}
+.btnRow{display:flex; gap:8px; margin-top:12px;}
+.btn{flex:1; border:none; border-radius:8px; padding:9px 0; font-size:13px; cursor:pointer; font-family:inherit;}
+.btn-pri{background:var(--brand); color:#fff; font-weight:600;}
+.btn-sec{background:#eef1f7; color:var(--ink);}
+.btn-dis{background:var(--bad); color:#fff;}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+.emptyTip{color:var(--sub); font-size:13px; padding:26px 6px; text-align:center; line-height:1.7;}
+/* 改动清单 & 代码 */
+#changeList, #logList{max-height:150px; overflow-y:auto; font-size:12px;}
+.chg{padding:7px 14px; border-bottom:1px solid #f0f2f8; display:flex; justify-content:space-between; gap:8px;}
+.chg .old{color:var(--sub); text-decoration:line-through;}
+.chg .new{color:var(--ok); font-weight:600; word-break:break-all;}
+.chg small{color:var(--sub); flex-shrink:0;}
+.chg .undoBtn{border:none; background:var(--warn-soft); color:var(--warn); border-radius:5px; padding:2px 8px; cursor:pointer; font-size:11px; flex-shrink:0;}
+.logline{padding:5px 14px; border-bottom:1px solid #f0f2f8; color:var(--sub); font-size:12px;}
+.logline b{color:var(--ink);}
+#codePanel{max-height:300px; overflow:auto; background:#141a26; color:#d6e2ff; font-family:"SF Mono",Menlo,Consolas,monospace; font-size:11.5px; line-height:1.6; padding:10px 0;}
+.cl{padding:0 14px; white-space:pre;}
+.cl .ln{display:inline-block; width:34px; color:#5a6a8a; user-select:none;}
+.cl.diff{background:rgba(255,193,7,.16); border-left:3px solid #ffc107;}
+.cl.diff .ln{color:#ffc107;}
+.diffTag{color:#ffc107; font-size:11px;}
+.banner{border-radius:10px; padding:12px 16px; margin-bottom:14px; font-size:13px; line-height:1.6; display:none;}
+.banner.ok{background:var(--ok-soft); color:var(--ok); display:block;}
+.banner.warn{background:var(--warn-soft); color:var(--warn); display:block;}
+footer.note{color:var(--sub); font-size:12px; margin-top:18px; line-height:1.7;}
+@media (max-width:900px){
+  .workspace{grid-template-columns:1fr;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .demo-cards,.rep-kpis{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🖥️ 网页可视化编辑回写器</h1>
+    <span class="badge">改完自动回写代码 · 告别多轮对话改页面</span>
+  </header>
+  <p class="lead">给 AI 生成的网页补上「所见即所得」一环：<b>点选页面元素 → 业务表单微调 → 实时预览 → 代码自动回写并高亮差异 → 导出成品 HTML</b>。不用再往对话里一遍遍塞「标题大一点、按钮换个颜色」。</p>
+
+  <div class="chips" id="pageChips"></div>
+
+  <div class="stats">
+    <div class="stat"><b id="sChg">0</b><span>累计改动数</span></div>
+    <div class="stat"><b id="sEls">0</b><span>涉及元素</span></div>
+    <div class="stat"><b id="sRound">0</b><span>省去对话往返（次）</span></div>
+    <div class="stat"><b id="sLines">0</b><span>回写代码差异行</span></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="workspace">
+    <!-- 左：预览 -->
+    <div class="panel">
+      <h2>① 页面预览 <small>点击任意元素即可选中编辑</small></h2>
+      <div id="preview"></div>
+    </div>
+    <!-- 右：编辑面板 -->
+    <div class="panel">
+      <h2>② 属性编辑 <small id="selLabel">未选中元素</small></h2>
+      <div class="formBody" id="propForm"><div class="emptyTip">👆 先在左侧预览里<br>点选一个要改的元素</div></div>
+      <div class="panel" style="border:none; border-top:1px solid var(--line); border-radius:0;">
+        <h2>③ 改动清单 <small>可逐条撤销</small></h2>
+        <div id="changeList"><div class="logline" style="text-align:center;">暂无改动</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace" style="margin-top:14px;">
+    <div class="panel">
+      <h2>④ 代码回写 <small id="diffSummary">与原始版本无差异</small></h2>
+      <div id="codePanel"></div>
+    </div>
+    <div class="panel">
+      <h2>⑤ 操作</h2>
+      <div class="formBody">
+        <div class="btnRow">
+          <button class="btn btn-pri" id="btnExport">⬇️ 导出成品 HTML</button>
+        </div>
+        <div class="btnRow">
+          <button class="btn btn-sec" id="btnUndo" disabled>↩️ 撤销上一条</button>
+          <button class="btn btn-dis" id="btnReset">🔄 重置本页全部改动</button>
+        </div>
+        <div style="margin-top:12px;">
+          <div style="font-size:12px; color:var(--sub); margin-bottom:4px;">操作日志</div>
+          <div id="logList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer note">设计参考 Ulika「给 Claude/Cursor/Codex 生成的网站加可视化编辑器，改完回写代码」：可视化微调替代「往对话里塞修改意见」的多轮往返，改动直接回写为最终代码并高亮差异。<br>纯前端模拟 · 示例数据固化 · 单文件自包含，file:// 直接打开即可使用。</p>
+</div>
+
+<script>
+"use strict";
+/* ---------- 示例页面数据（固化） ---------- */
+var PAGES = [
+  {
+    id:"landing", name:"📄 产品落地页（云账通）",
+    elements:[
+      {id:"navBrand", label:"导航栏·品牌名", tag:"div", text:"云账通 CloudBooks", css:{fontSize:"14px", color:"#ffffff", background:"#101828", borderRadius:"8px", padding:"10px 14px", textAlign:"left"}},
+      {id:"heroTitle", label:"主标题", tag:"h2", text:"让每一笔流水自动对账", css:{fontSize:"26px", color:"#1c2333", background:"transparent", borderRadius:"0px", padding:"0px", textAlign:"left"}},
+      {id:"heroSub", label:"副标题", tag:"p", text:"银行流水、发票、ERP 三端自动核对，财务月结从 3 天缩到 2 小时。", css:{fontSize:"14px", color:"#5b6478", background:"transparent", borderRadius:"0px", padding:"0px", textAlign:"left"}},
+      {id:"heroCta", label:"主按钮", tag:"button", text:"免费试用 30 天", css:{fontSize:"14px", color:"#ffffff", background:"#2b5cff", borderRadius:"8px", padding:"10px 22px", textAlign:"center"}},
+      {id:"card1", label:"特性卡·自动对账", tag:"div", text:"🔁 自动对账|流水与发票自动匹配，差异自动标记。", css:{fontSize:"13px", color:"#1c2333", background:"#ffffff", borderRadius:"10px", padding:"14px", textAlign:"left"}},
+      {id:"card2", label:"特性卡·异常提醒", tag:"div", text:"⚠️ 异常提醒|重复扣款、涨价订阅实时告警。", css:{fontSize:"13px", color:"#1c2333", background:"#ffffff", borderRadius:"10px", padding:"14px", textAlign:"left"}},
+      {id:"card3", label:"特性卡·一键报表", tag:"div", text:"📊 一键报表|月度经营报告自动生成。", css:{fontSize:"13px", color:"#1c2333", background:"#ffffff", borderRadius:"10px", padding:"14px", textAlign:"left"}},
+      {id:"price", label:"价格条", tag:"div", text:"¥199 / 月|含 3 个银行账户，不限对账笔数", css:{fontSize:"14px", color:"#1c2333", background:"#f6f8fc", borderRadius:"10px", padding:"16px 20px", textAlign:"left"}},
+      {id:"footer", label:"页脚", tag:"div", text:"© 2026 云账通 · 深圳钱程科技有限公司", css:{fontSize:"12px", color:"#5b6478", background:"transparent", borderRadius:"0px", padding:"10px 0 0", textAlign:"center"}}
+    ]
+  },
+  {
+    id:"report", name:"📈 财务周报页",
+    elements:[
+      {id:"repTitle", label:"周报标题", tag:"h2", text:"第 47 周财务经营周报", css:{fontSize:"22px", color:"#ffffff", background:"#101828", borderRadius:"10px", padding:"20px", textAlign:"left"}},
+      {id:"repSub", label:"本周摘要", tag:"p", text:"回款完成率 92%，环比 +4pp；两笔大额报销待审批，已提醒责任人。", css:{fontSize:"13px", color:"#ffffff", background:"#101828", borderRadius:"0px 0px 10px 10px", padding:"0px 20px 18px", textAlign:"left"}},
+      {id:"kpi1", label:"指标卡·回款", tag:"div", text:"¥86.4 万|本周回款", css:{fontSize:"13px", color:"#1c2333", background:"#ffffff", borderRadius:"10px", padding:"13px", textAlign:"left"}},
+      {id:"kpi2", label:"指标卡·费用", tag:"div", text:"¥12.7 万|本周费用支出", css:{fontSize:"13px", color:"#1c2333", background:"#ffffff", borderRadius:"10px", padding:"13px", textAlign:"left"}},
+      {id:"kpi3", label:"指标卡·现金流", tag:"div", text:"+¥31.2 万|经营性现金流净额", css:{fontSize:"13px", color:"#1c2333", background:"#ffffff", borderRadius:"10px", padding:"13px", textAlign:"left"}},
+      {id:"repQuote", label:"周报结论", tag:"div", text:"结论：回款节奏健康；建议下周聚焦两家超期 15 天客户启动催收流程。", css:{fontSize:"14px", color:"#0d5c3f", background:"#e3f6ee", borderRadius:"6px", padding:"14px 18px", textAlign:"left"}}
+    ]
+  }
+];
+/* 多段文本用 | 分隔渲染 */
+var FIELDS = [
+  {k:"text",  name:"文本内容"},
+  {k:"fontSize", name:"字号", type:"number", unit:"px"},
+  {k:"color", name:"文字颜色", type:"color"},
+  {k:"background", name:"背景色", type:"color"},
+  {k:"borderRadius", name:"圆角", type:"range", min:0, max:24, unit:"px"},
+  {k:"padding", name:"内边距", type:"range", min:0, max:30, unit:"px"},
+  {k:"textAlign", name:"对齐", type:"select", opts:["left","center","right"]},
+  {k:"visible", name:"显示/隐藏", type:"bool"}
+];
+
+/* ---------- 状态 ---------- */
+var st = {pageIdx:0, selId:null, chg:[], logs:[]};
+var els = [];           // 当前页元素的可变副本
+var baseline = [];      // 当前页原始快照
+
+function el(){ return els.find(function(e){return e.id===st.selId;}); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function $(id){ return document.getElementById(id); }
+
+function log(msg){
+  st.logs.unshift("["+new Date().toTimeString().slice(0,8)+"] "+msg);
+  if(st.logs.length>60) st.logs.pop();
+  $("logList").innerHTML = st.logs.map(function(l){return '<div class="logline">'+esc(l)+"</div>";}).join("");
+}
+
+/* ---------- 渲染预览 ---------- */
+function renderPreview(){
+  var p = PAGES[st.pageIdx];
+  var html = "";
+  els.forEach(function(e){
+    if(e.css.visible===false) html += "";
+    else{
+      var style = 'font-size:'+e.css.fontSize+';color:'+e.css.color+';background:'+e.css.background+';border-radius:'+e.css.borderRadius+';padding:'+e.css.padding+';text-align:'+e.css.textAlign+';';
+      var parts = String(e.text).split("|");
+      if(e.tag==="h2"||e.tag==="h3"){
+        html += '<'+e.tag+' data-el="'+e.id+'" class="demo-'+(e.id.indexOf("rep")===0?"rep-el":"el")+'" style="'+style+'">'+esc(parts[0])+"</"+e.tag+">";
+      }else{
+        var inner = parts.length>1 ? '<b>'+esc(parts[0])+'</b><br>'+esc(parts[1]) : esc(parts[0]);
+        html += '<'+e.tag+' data-el="'+e.id+'" style="'+style+'">'+inner+"</"+e.tag+">";
+      }
+    }
+  });
+  /* 落地页加布局容器 */
+  if(p.id==="landing"){
+    html = html
+      .replace(/(<div data-el="navBrand"[^>]*>[\s\S]*?<\/div>)/, '<div class="demo-nav">$1</div>')
+      .replace(/(<h2 data-el="heroTitle"[\s\S]*?<\/h2>)(<p data-el="heroSub"[\s\S]*?<\/p>)(<button data-el="heroCta"[\s\S]*?<\/button>)/, '<div class="demo-hero">$1$2$3</div>')
+      .replace(/(<div data-el="card1"[\s\S]*?<\/div>)(<div data-el="card2"[\s\S]*?<\/div>)(<div data-el="card3"[\s\S]*?<\/div>)/, '<div class="demo-cards">$1$2$3</div>')
+      .replace(/(<div data-el="price"[\s\S]*?<\/div>)/, '<div class="demo-price">$1</div>')
+      .replace(/(<div data-el="footer"[\s\S]*?<\/div>)/, '<div class="demo-footer">$1</div>');
+  }
+  if(p.id==="report"){
+    html = html
+      .replace(/(<h2 data-el="repTitle"[\s\S]*?<\/h2>)(<p data-el="repSub"[\s\S]*?<\/p>)/, '<div class="rep-head">$1$2</div>')
+      .replace(/(<div data-el="kpi1"[\s\S]*?<\/div>)(<div data-el="kpi2"[\s\S]*?<\/div>)(<div data-el="kpi3"[\s\S]*?<\/div>)/, '<div class="rep-kpis">$1$2$3</div>')
+      .replace(/(<div data-el="repQuote"[\s\S]*?<\/div>)/, '<div class="rep-quote">$1</div>');
+  }
+  $("preview").innerHTML = html;
+  Array.prototype.forEach.call($("preview").querySelectorAll("[data-el]"), function(node){
+    node.addEventListener("click", function(ev){ ev.stopPropagation(); selectEl(node.getAttribute("data-el")); });
+  });
+  if(st.selId && els.some(function(e){return e.id===st.selId && e.css.visible!==false;})){
+    var n = $("preview").querySelector('[data-el="'+st.selId+'"]');
+    if(n) n.classList.add("sel");
+  }
+}
+
+/* ---------- 代码生成与 diff ---------- */
+function genSource(list){
+  var lines = [];
+  lines.push("<!DOCTYPE html>");
+  lines.push('<html lang="zh-CN">');
+  lines.push("<body>");
+  list.forEach(function(e){
+    if(e.css.visible===false){ lines.push('  <!-- '+e.label+' 已隐藏 -->'); return; }
+    var style = 'font-size:'+e.css.fontSize+';color:'+e.css.color+';background:'+e.css.background+';border-radius:'+e.css.borderRadius+';padding:'+e.css.padding+';text-align:'+e.css.textAlign+';';
+    var text = String(e.text).replace(/\|/g,"<br>");
+    lines.push('  <'+e.tag+' class="'+e.id+'" style="'+style+'">'+esc(text)+"</"+e.tag+">");
+  });
+  lines.push("</body>");
+  lines.push("</html>");
+  return lines;
+}
+function renderCode(){
+  var base = genSource(baseline), cur = genSource(els);
+  var baseSet = {};
+  base.forEach(function(l){ baseSet[l]=(baseSet[l]||0)+1; });
+  var html="", diffN=0;
+  cur.forEach(function(l,i){
+    if(baseSet[l]>0){ baseSet[l]--; html += '<div class="cl"><span class="ln">'+(i+1)+'</span>'+esc(l)+"</div>"; }
+    else{ diffN++; html += '<div class="cl diff"><span class="ln">'+(i+1)+'</span><span class="diffTag">✏️ </span>'+esc(l)+"</div>"; }
+  });
+  $("codePanel").innerHTML = html;
+  $("sLines").textContent = diffN;
+  $("diffSummary").textContent = diffN>0 ? ("已回写 · "+diffN+" 行差异高亮") : "与原始版本无差异";
+  return diffN;
+}
+function refreshStats(){
+  $("sChg").textContent = st.chg.length;
+  var set = {};
+  st.chg.forEach(function(c){ set[c.elId]=1; });
+  $("sEls").textContent = Object.keys(set).length;
+  $("sRound").textContent = st.chg.length;
+  $("btnUndo").disabled = st.chg.length===0;   /* 有改动才允许撤销 */
+  renderCode();
+}
+
+/* ---------- 选中与表单 ---------- */
+function selectEl(id){
+  st.selId = id;
+  var e = el();
+  $("selLabel").textContent = "正在编辑：" + e.label + "（"+e.tag+"）";
+  var f = '<div class="fld"><label>文本内容</label><input type="text" id="fText" value="'+esc(e.text)+'"></div>';
+  f += '<div class="row2 fld"><div><label>字号(px)</label><input type="number" id="fSize" min="10" max="40" value="'+parseInt(e.css.fontSize)+'"></div>';
+  f += '<div><label>文字颜色</label><input type="color" id="fColor" value="'+(e.css.color||"#000000")+'"></div>';
+  f += '<div><label>背景色</label><input type="color" id="fBg" value="'+(e.css.background&&e.css.background!=="transparent"?e.css.background:"#ffffff")+'"></div></div>';
+  f += '<div class="fld"><label>圆角('+parseInt(e.css.borderRadius)+'px)</label><input type="range" id="fRadius" min="0" max="24" value="'+parseInt(e.css.borderRadius)+'"></div>';
+  f += '<div class="fld"><label>内边距('+parseInt(e.css.padding)+'px)</label><input type="range" id="fPad" min="0" max="30" value="'+parseInt(e.css.padding)+'"></div>';
+  f += '<div class="fld"><label>对齐</label><select id="fAlign">'+["left","center","right"].map(function(o){return '<option'+(e.css.textAlign===o?" selected":"")+'>'+o+"</option>";}).join("")+'</select></div>';
+  f += '<div class="fld"><label>显示/隐藏</label><select id="fVis"><option value="show"'+(e.css.visible!==false?" selected":"")+'>显示</option><option value="hide"'+(e.css.visible===false?" selected":"")+'>隐藏</option></select></div>';
+  f += '<div class="btnRow"><button class="btn btn-pri" id="btnApply">✅ 应用改动</button></div>';
+  $("propForm").innerHTML = f;
+  $("btnApply").addEventListener("click", applyChange);
+  renderPreview();
+}
+
+function applyChange(){
+  var e = el();
+  if(!e) return;
+  var newText = $("fText").value.trim();
+  if(!newText){ log("⛔ 文本内容为空，未应用（请填写内容或隐藏元素）"); showBanner("warn","文本内容为空：要么填写内容，要么改用「隐藏」。"); return; }
+  var newBg = $("fBg").value;
+  if(e.css.background==="transparent" && newBg==="#ffffff") newBg = "transparent"; /* 未主动改色的透明背景不误判 */
+  var fields = [
+    {k:"text", old:e.text, nw:newText, name:"文本"},
+    {k:"fontSize", old:e.css.fontSize, nw:$("fSize").value+"px", name:"字号"},
+    {k:"color", old:e.css.color, nw:$("fColor").value, name:"文字颜色"},
+    {k:"background", old:e.css.background, nw:newBg, name:"背景色"},
+    {k:"borderRadius", old:e.css.borderRadius, nw:$("fRadius").value+"px", name:"圆角"},
+    {k:"padding", old:e.css.padding, nw:$("fPad").value+"px", name:"内边距"},
+    {k:"textAlign", old:e.css.textAlign, nw:$("fAlign").value, name:"对齐"},
+    {k:"visible", old:e.css.visible, nw:($("fVis").value==="hide"?false:true), name:"可见性"}
+  ];
+  var snap = JSON.parse(JSON.stringify(e));
+  var changed = 0;
+  fields.forEach(function(fd){
+    if(String(fd.old)!==String(fd.nw)){
+      st.chg.push({pageId:PAGES[st.pageIdx].id, elId:e.id, elLabel:e.label, field:fd.name, oldV:String(fd.old), newV:String(fd.nw), snap:snap, fieldKey:fd.k});
+      if(fd.k==="text") e.text = fd.nw;
+      else if(fd.k==="visible") e.css.visible = fd.nw;
+      else e.css[fd.k] = fd.nw;
+      changed++;
+    }
+  });
+  if(changed===0){ log("ℹ️ 本次未产生实际改动（所有属性与现值一致）"); renderChangeList(); return; }
+  log("✅ 应用 "+changed+" 项改动 → "+e.label+"，代码已回写");
+  showBanner("ok","已应用 "+changed+" 项改动并回写代码：预览已更新，差异行已在下方高亮。可点「导出成品 HTML」拿走最终文件。");
+  renderPreview(); renderChangeList(); refreshStats();
+  selectEl(st.selId);
+}
+
+function renderChangeList(){
+  if(st.chg.length===0){ $("changeList").innerHTML = '<div class="logline" style="text-align:center;">暂无改动</div>'; return; }
+  $("changeList").innerHTML = st.chg.map(function(c,i){
+    return '<div class="chg"><div><small>'+esc(c.elLabel)+' · '+esc(c.field)+'</small><br><span class="old">'+esc(c.oldV.slice(0,28))+'</span> → <span class="new">'+esc(c.newV.slice(0,28))+'</span></div><button class="undoBtn" data-i="'+i+'">撤销</button></div>';
+  }).join("");
+  Array.prototype.forEach.call($("changeList").querySelectorAll(".undoBtn"), function(b){
+    b.addEventListener("click", function(){ undoChange(parseInt(b.getAttribute("data-i"))); });
+  });
+}
+
+function undoChange(idx){
+  var c = st.chg[idx];
+  if(!c) return;
+  var e = els.find(function(x){return x.id===c.elId;});
+  if(e){
+    if(c.fieldKey==="text") e.text = c.oldV;
+    else if(c.fieldKey==="visible") e.css.visible = c.snap.css.visible;
+    else e.css[c.fieldKey] = c.oldV;
+  }
+  st.chg.splice(idx,1);
+  log("↩️ 已撤销："+c.elLabel+" · "+c.field+" 回退到 "+c.oldV.slice(0,20));
+  showBanner("warn","已撤销 1 条改动并回写代码。");
+  renderPreview(); renderChangeList(); refreshStats();
+  if(st.selId===c.elId) selectEl(st.selId);
+}
+
+function showBanner(type,msg){
+  var b = $("banner");
+  b.className = "banner "+type;
+  b.innerHTML = msg;
+}
+
+/* ---------- 页面切换 / 撤销 / 重置 / 导出 ---------- */
+function loadPage(idx){
+  st.pageIdx = idx; st.selId = null; st.chg = []; st.logs = [];
+  els = JSON.parse(JSON.stringify(PAGES[idx].elements));
+  baseline = JSON.parse(JSON.stringify(PAGES[idx].elements));
+  /* 归一化可见性：undefined → true，避免误记「可见性」改动 */
+  [els, baseline].forEach(function(list){ list.forEach(function(e){ if(e.css.visible===undefined) e.css.visible=true; }); });
+  $("selLabel").textContent = "未选中元素";
+  $("propForm").innerHTML = '<div class="emptyTip">👆 先在左侧预览里<br>点选一个要改的元素</div>';
+  $("banner").className = "banner";
+  Array.prototype.forEach.call($("pageChips").children, function(c,i){ c.className = "chip"+(i===idx?" on":""); });
+  renderPreview(); renderChangeList(); refreshStats();
+  log("📂 已载入示例页："+PAGES[idx].name.slice(2)+"（原始版本已存档，可随时回写对比）");
+}
+
+$("btnUndo").addEventListener("click", function(){ if(st.chg.length>0) undoChange(st.chg.length-1); });
+$("btnReset").addEventListener("click", function(){
+  loadPage(st.pageIdx);
+  showBanner("warn","已重置本页全部改动，恢复原始版本。");
+  log("🔄 已重置本页全部改动");
+});
+$("btnExport").addEventListener("click", function(){
+  var diffN = renderCode();
+  var p = PAGES[st.pageIdx];
+  var html = genSource(els).join("\n");
+  var blob = new Blob(["\uFEFF"+html], {type:"text/html;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "edited_"+p.id+"_page.html";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showBanner("ok","成品 HTML 已导出（含 "+diffN+" 行回写差异）。浏览器下载完成。");
+  log("⬇️ 导出成品 HTML（"+diffN+" 行差异），已触发下载");
+});
+
+/* 初始化 */
+(function(){
+  $("pageChips").innerHTML = PAGES.map(function(p,i){ return '<button class="chip" data-i="'+i+'">'+p.name+"</button>"; }).join("");
+  Array.prototype.forEach.call($("pageChips").children, function(c){
+    c.addEventListener("click", function(){ loadPage(parseInt(c.getAttribute("data-i"))); });
+  });
+  loadPage(0);
+})();
+</script>
+</body>
+</html>
