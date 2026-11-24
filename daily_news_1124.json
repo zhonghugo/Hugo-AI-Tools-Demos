@@ -1,0 +1,71 @@
+{
+ "date": "2026-11-24",
+ "table_id": "tbltCHyotV8hdemf",
+ "table_total": 458,
+ "count": 7,
+ "items": [
+  {
+   "record_id": "reczz28dTVdBByk8",
+   "资讯标题": "Anthropic发布Claude Ship：AI代理全流程接管代码审查→修复→审批，Claude Approvals可按自然语言规则自动批准PR",
+   "推荐指数": 5,
+   "来源平台": "其他",
+   "主题分类": "AI Agent/智能体工具",
+   "链接": "https://www.claude.com/blog/introducing-claude-ship",
+   "要点": "Code Review已GA；PR Steward（beta）自动处理CI失败/合并冲突并留言说明改动与回滚；Claude Approvals（beta）读取仓库内自然语言审批策略文件（.claude/approvals.yml）自动批准低风险变更，官方建议先observe-only模式+月度支出上限；/ship命令随Claude Code推送。审批门+观察模式设计与L3人工批准同构。"
+  },
+  {
+   "record_id": "reczz28dTWOA6AWR",
+   "资讯标题": "智谱发布GLM-5.4：首个Loop Transformer旗舰，750B循环两轮达2-3T级智能，泛Coding串联视频/游戏/3D/工程建模",
+   "推荐指数": 5,
+   "来源平台": "其他",
+   "主题分类": "泛AI效率工具",
+   "链接": "https://news.lavx.hu/article/z-ai-introduces-glm-5-4-its-first-loop-transformer-model",
+   "要点": "750B基座28层共享权重循环两轮，宣称2-3T级智能，KingBench 4开源第一；门控渐进更新+混合KV Cache+稀疏索引复用让多一轮几乎不多占显存；原生视觉+1M上下文，泛Coding用代码驱动视频/游戏/3D/FreeCAD；已接入ZCode/WorkBuddy/Qoder/OpenCode等，周配额+50%；HN 1080分。"
+  },
+  {
+   "record_id": "reczz28dTWOA7d4e",
+   "资讯标题": "OpenCode v2.4.0发布：编码Agent内置桌面浏览器，导入四浏览器登录态让Agent读写同一批页面，自动化支持cron/MCP事件触发",
+   "推荐指数": 5,
+   "来源平台": "其他",
+   "主题分类": "RPA/流程自动化",
+   "链接": "https://munderdiffl.in/blog/agent-tools-today-2026-11-24",
+   "要点": "编码Agent+内置桌面浏览器+Chrome/Edge/Firefox/Safari登录态导入=轻量级RPA三件套；自动化支持定时器/cron/MCP事件触发，generate_video直出视频；需登录的后台系统不再挡Agent，日常网页流程可零采购自动化。"
+  },
+  {
+   "record_id": "reczz28dTWOA7Bnr",
+   "资讯标题": "OpenAI联合Cisco开源Shirudo：给在跑的Linux服务加\"运行时护盾\"，不用等补丁重启就拦住Java4Shell攻击",
+   "推荐指数": 4,
+   "来源平台": "其他",
+   "主题分类": "开源项目",
+   "链接": "https://munderdiffl.in/blog/agent-tools-today-2026-11-24",
+   "要点": "运行时隔离护盾保护不打补丁不重启的Linux服务，实测Codex构建的护盾拦住运行中Elasticsearch的Java4Shell利用；预留LLM监控Agent钩子；AI写代码保护AI写的代码，安全+自动化交叉面试素材。"
+  },
+  {
+   "record_id": "reczz28dTWOA7OKT",
+   "资讯标题": "Atomic Engine开源：给Mac本地MoE推理加RAM上限+SSD专家流式加载，Inkling 2 Mini在M5 Max跑到122 tok/s",
+   "推荐指数": 4,
+   "来源平台": "其他",
+   "主题分类": "开源项目",
+   "链接": "https://explainx.ai/catch-up-on-ai/2026-11-24",
+   "要点": "基于llama.cpp：--engine-budget-mib限常驻内存+SSD流式加载MoE专家+dspark投机草稿，Inkling 2 Mini在M5 Max达122 tok/s且输出一致；不换硬件跑前沿MoE，与colibri（纯C推理引擎）定位重叠。"
+  },
+  {
+   "record_id": "reczz28dTWOA8Neu",
+   "资讯标题": "mobile-agent-testers开源：GitHub Actions里跑20个Claude Code QA代理，并行测iOS/Android模拟器并出带截图的结构化Bug报告",
+   "推荐指数": 4,
+   "来源平台": "其他",
+   "主题分类": "AI Agent/智能体工具",
+   "链接": "https://explainx.ai/catch-up-on-ai/2026-11-24",
+   "要点": "GitHub托管移动模拟器上并行Claude Code代理做QA，按Markdown任务简报执行+截图取证+可本地解密的结构化Bug报告；一群Agent并行验收+结构化汇报，与Master+Subagent多Agent范式同构。"
+  },
+  {
+   "record_id": "reczz28dTWOA8UfP",
+   "资讯标题": "datasette-charts 0.1a0发布：整表GROUP BY聚合做图表，URL片段即可分享，配套启发式规则由Claude Fable生成",
+   "推荐指数": 4,
+   "来源平台": "其他",
+   "主题分类": "开源项目",
+   "链接": "https://explainx.ai/catch-up-on-ai/2026-11-24",
+   "要点": "Datasette整表GROUP BY聚合让图表覆盖全部行而非抽样，URL片段分享零后端成本，图表启发式由Claude Fable辅助生成；透视表思维→SQL聚合的桥接工具，Excel强项与SQL短板之间的桥。"
+  }
+ ]
+}

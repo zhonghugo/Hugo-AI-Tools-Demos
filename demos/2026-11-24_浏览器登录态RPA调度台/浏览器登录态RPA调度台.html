@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>浏览器登录态RPA调度台 · 会话共享，登录不再挡Agent</title>
+<style>
+:root{
+  --ink:#1c2333; --sub:#5b6478; --line:#e3e7ef; --bg:#f4f6fa;
+  --brand:#2b5cff; --brand-soft:#e8eeff; --ok:#0a8f5b; --ok-soft:#e3f6ee;
+  --warn:#b7791f; --warn-soft:#fdf3e0; --bad:#c0392b; --bad-soft:#fdecea;
+}
+*{box-sizing:border-box; min-width:0; margin:0; padding:0;}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--ink); font-size:14px;}
+.wrap{max-width:1180px; margin:0 auto; padding:18px 16px 46px;}
+header{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:6px;}
+header h1{font-size:20px;}
+.badge{background:var(--brand-soft); color:var(--brand); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:600;}
+.lead{color:var(--sub); margin-bottom:14px; line-height:1.6;}
+.stats{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:14px;}
+.stat{background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px 14px;}
+.stat b{display:block; font-size:22px; margin-bottom:2px;}
+.stat span{color:var(--sub); font-size:12px;}
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; margin-bottom:14px;}
+.panel{background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+.panel h2{font-size:14px; padding:11px 14px; border-bottom:1px solid var(--line); background:#fafbfe; display:flex; justify-content:space-between; align-items:center; gap:8px;}
+.panel h2 small{color:var(--sub); font-weight:400;}
+.panel .bd{padding:14px;}
+.form{display:grid; grid-template-columns:1fr 1fr; gap:9px;}
+.form label{font-size:12px; color:var(--sub); display:block; margin-bottom:3px;}
+.form input,.form select{width:100%; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; background:#fff; color:var(--ink);}
+.form input:focus,.form select:focus{outline:2px solid var(--brand-soft); border-color:var(--brand);}
+.btn{border:1px solid var(--brand); background:var(--brand); color:#fff; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; font-weight:600;}
+.btn:hover{filter:brightness(1.08);}
+.btn.ghost{background:#fff; color:var(--brand);}
+.btn.sm{padding:4px 10px; font-size:12px; border-radius:6px;}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+.cronOut{grid-column:1/-1; background:var(--brand-soft); color:var(--brand); border-radius:8px; padding:7px 10px; font-size:12px;}
+.banner{border-radius:9px; padding:9px 12px; font-size:13px; margin-bottom:10px; display:none;}
+.banner.show{display:block;}
+.banner.ok{background:var(--ok-soft); color:var(--ok);}
+.banner.warn{background:var(--warn-soft); color:var(--warn);}
+.banner.bad{background:var(--bad-soft); color:var(--bad);}
+.tableWrap{overflow-x:auto;}
+table{width:100%; border-collapse:collapse; font-size:12.5px;}
+th{background:#f6f8fc; color:var(--sub); font-weight:600; text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); white-space:nowrap;}
+td{padding:7px 8px; border-bottom:1px solid var(--line); white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+.tag{display:inline-block; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:600;}
+.tag.ok{background:var(--ok-soft); color:var(--ok);}
+.tag.warn{background:var(--warn-soft); color:var(--warn);}
+.tag.bad{background:var(--bad-soft); color:var(--bad);}
+.tag.mute{background:#eef1f6; color:var(--sub);}
+.empty{color:var(--sub); font-size:12.5px; padding:14px; text-align:center;}
+.logbox{background:#101828; color:#c9d4ea; border-radius:10px; padding:12px 14px; font-size:12px; font-family:ui-monospace,Menlo,Consolas,monospace; max-height:220px; overflow-y:auto; line-height:1.75;}
+.logbox .t{color:#5f6f8f;}
+.logbox .g{color:#5fd39a;}
+.logbox .r{color:#ff8f7d;}
+.logbox .y{color:#f0c36a;}
+.chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+.chip{border:1px solid var(--line); background:#fff; border-radius:8px; padding:7px 13px; cursor:pointer; font-size:13px; transition:all .15s;}
+.chip:hover{border-color:var(--brand);}
+.foot{color:var(--sub); font-size:12px; text-align:center; margin-top:18px; line-height:1.6;}
+@media (max-width:900px){
+  .grid{grid-template-columns:1fr;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .form{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>浏览器登录态RPA调度台</h1>
+    <span class="badge">参考 OpenCode v2.4.0（11/24 发布，5星）</span>
+  </header>
+  <p class="lead">OpenCode v2.4.0 给编码 Agent 内置桌面浏览器，支持导入 Chrome / Edge / Firefox / Safari 四浏览器登录态——<b>Agent 与你读写同一批已登录页面</b>，需登录的后台系统不再挡路；自动化支持定时（cron）与 MCP 事件触发。本工具复刻其中的「登录态共享池」一环：导入会话 → 任务借用会话执行 → 临期/失效预警 → cron/MCP 双触发。示例数据固化，基准日 <b>2026-11-24</b>。</p>
+
+  <div class="stats">
+    <div class="stat"><b id="sSess">0</b><span>登录态会话</span></div>
+    <div class="stat"><b id="sValid">0</b><span>有效会话</span></div>
+    <div class="stat"><b id="sTask">0</b><span>已保存任务</span></div>
+    <div class="stat"><b id="sOk">0</b><span>成功执行</span></div>
+    <div class="stat"><b id="sBlock">0</b><span>登录态拦截</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>① 登录态导入池 <small>四浏览器会话统一借用</small></h2>
+      <div class="bd">
+        <div class="chips">
+          <button class="chip" id="chipImp1">示例：Chrome · 美餐商家后台</button>
+          <button class="chip" id="chipImp2">示例：Safari · 金蝶云财务后台</button>
+        </div>
+        <div class="form" style="margin-bottom:10px;">
+          <div><label>来源浏览器</label>
+            <select id="fBrowser">
+              <option>Chrome</option><option>Edge</option><option>Firefox</option><option>Safari</option>
+            </select></div>
+          <div><label>目标系统</label>
+            <select id="fSys">
+              <option>美餐商家后台</option><option>金蝶云财务后台</option><option>供应商门户</option><option>企业微信管理后台</option>
+            </select></div>
+          <div><label>账号名</label><input id="fAcc" placeholder="如 ops01"></div>
+          <div><label>Cookie 有效期（天）</label><input id="fDays" type="number" min="1" max="365" value="30"></div>
+          <button class="btn" id="btnImp" style="grid-column:1/-1;">导入登录态</button>
+        </div>
+        <div class="tableWrap"><table>
+          <thead><tr><th>ID</th><th>浏览器</th><th>目标系统</th><th>账号</th><th>有效期至</th><th>状态</th><th>借用</th><th>最近使用</th></tr></thead>
+          <tbody id="sessRows"></tbody>
+        </table></div>
+        <div class="empty" id="sessEmpty">尚未导入任何登录态</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>② 任务配置 <small>手动 / 定时 cron / MCP 事件</small></h2>
+      <div class="bd">
+        <div class="chips">
+          <button class="chip" id="chipT1">销售日报采集</button>
+          <button class="chip" id="chipT2">应付账款月度导出</button>
+          <button class="chip" id="chipT3">库存异常同步</button>
+        </div>
+        <div class="form" style="margin-bottom:10px;">
+          <div><label>任务名</label><input id="fName" placeholder="如 销售日报采集"></div>
+          <div><label>目标系统（需已有登录态）</label>
+            <select id="fTaskSys">
+              <option>美餐商家后台</option><option>金蝶云财务后台</option><option>供应商门户</option><option>企业微信管理后台</option>
+            </select></div>
+          <div><label>触发方式</label>
+            <select id="fTrig">
+              <option value="手动">手动执行</option>
+              <option value="定时">定时触发（cron）</option>
+              <option value="MCP">MCP 事件触发</option>
+            </select></div>
+          <div id="cronBox"><label>cron 表达式</label><input id="fCron" placeholder="0 9 * * 1-5"></div>
+          <div id="mcpBox" style="display:none;"><label>MCP 事件名</label><input id="fEvent" placeholder="如 erp.voucher.created"></div>
+          <div class="cronOut" id="cronOut" style="display:none;"></div>
+          <button class="btn" id="btnSave" style="grid-column:1/-1;">保存任务</button>
+        </div>
+        <div class="tableWrap"><table>
+          <thead><tr><th>ID</th><th>任务</th><th>目标系统</th><th>触发</th><th>计划</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody id="taskRows"></tbody>
+        </table></div>
+        <div class="empty" id="taskEmpty">尚未保存任务</div>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn ghost" id="btnMcp">模拟 MCP 事件到达</button>
+          <button class="btn ghost" id="btnCsv">导出运行日志 CSV</button>
+          <button class="btn ghost" id="btnReset">重置演示</button>
+        </div>
+        <div class="banner" id="banner"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>③ 执行日志 <small>会话借用 → 页面操作 → 归还留痕</small></h2>
+    <div class="bd">
+      <div class="logbox" id="log"><span class="t">就绪。先导入登录态，再保存任务并执行。示例数据固化，仅供演示。</span></div>
+    </div>
+  </div>
+
+  <p class="foot">示例数据固化 · 单文件自包含 HTML · file:// 直接运行 · 参考 OpenCode v2.4.0「内置桌面浏览器 + 四浏览器登录态导入 + cron/MCP 触发」<br>AI小工具Demo · 2026-11-24 · 由每日资讯流水线生成</p>
+</div>
+
+<script>
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var BASE = new Date(2026,10,24);           // 基准日 2026-11-24
+var DAY = 86400000;
+var SESS = [], TASKS = [], RUNS = [];
+var ST = {ok:0, block:0};
+var busy = false;
+var SEQ = {};
+function nid(p){ SEQ[p] = (SEQ[p] || 0) + 1; return p + SEQ[p]; }
+function pad(n){ return (n<10?"0":"")+n; }
+function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function nowT(){ var d=new Date(); return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds()); }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ---------- 会话状态：有效（>3天）/ 临期（≤3天）/ 已失效 ---------- */
+function sessStatus(s){
+  var days = Math.floor((new Date(s.exp) - BASE) / DAY);
+  if(days < 0) return {tag:"bad", txt:"已失效", days:days};
+  if(days <= 3) return {tag:"warn", txt:"临期", days:days};
+  return {tag:"ok", txt:"有效", days:days};
+}
+
+function renderSess(){
+  var tb = $("sessRows"); tb.innerHTML = "";
+  $("sessEmpty").style.display = SESS.length ? "none" : "block";
+  SESS.forEach(function(s){
+    var st = sessStatus(s);
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+s.id+"</td><td>"+esc(s.browser)+"</td><td>"+esc(s.sys)+"</td><td>"+esc(s.acc)+"</td><td>"+s.exp+"</td>"
+      + "<td><span class='tag "+st.tag+"'>"+st.txt+(st.tag==="warn"?" ·剩"+st.days+"天":"")+"</span></td>"
+      + "<td>"+s.uses+" 次</td><td>"+s.last+"</td>";
+    tb.appendChild(tr);
+  });
+  var valid = SESS.filter(function(s){ return sessStatus(s).tag !== "bad"; }).length;
+  $("sSess").textContent = SESS.length;
+  $("sValid").textContent = valid;
+}
+
+/* ---------- cron 翻译（轻量确定性规则） ---------- */
+var WD = {"0":"日","1":"一","2":"二","3":"三","4":"四","5":"五","6":"六"};
+function cronText(c){
+  var t = (c||"").trim().split(/\s+/);
+  if(t.length !== 5) return null;
+  var m = t[0], h = t[1], dom = t[2], dow = t[4];
+  if(!/^\d{1,2}$/.test(m) || !/^\d{1,2}$/.test(h)) return "自定义计划（分 时 日 月 周）";
+  var hm = pad(+h)+":"+pad(+m);
+  if(dom !== "*"){
+    if(!/^\d{1,2}$/.test(dom)) return "自定义计划（分 时 日 月 周）";
+    return "每月 "+(+dom)+" 日 "+hm+" 执行";
+  }
+  if(dow !== "*"){
+    if(/^\d(-\d)$/.test(dow)){
+      var a = dow.split("-").map(function(x){ return WD[x] || x; });
+      return "每周"+a[0]+"至周"+a[1]+" "+hm+" 执行";
+    }
+    var names = dow.split(",").map(function(x){ return "周"+(WD[x]||x); });
+    if(names.some(function(n){ return n.indexOf("undefined")>-1 || n==="周"; })) return "自定义计划（分 时 日 月 周）";
+    return "每"+names.join("、")+" "+hm+" 执行";
+  }
+  return "每天 "+hm+" 执行";
+}
+function refreshCron(){
+  var box = $("cronOut");
+  if($("fTrig").value !== "定时"){ box.style.display = "none"; $("cronBox").style.display=""; $("mcpBox").style.display="none"; return; }
+  $("cronBox").style.display=""; $("mcpBox").style.display="none";
+  var c = cronText($("fCron").value);
+  if(c){ box.style.display = "block"; box.textContent = "⏱ 计划解读：" + c; }
+}
+$("fTrig").addEventListener("change", function(){
+  var v = $("fTrig").value;
+  $("cronBox").style.display = (v==="定时") ? "" : "none";
+  $("mcpBox").style.display = (v==="MCP") ? "" : "none";
+  refreshCron();
+});
+$("fCron").addEventListener("input", refreshCron);
+
+/* ---------- 日志 / 横幅 ---------- */
+function log(msg, cls){
+  var box = $("log");
+  if(box.firstChild && box.firstChild.tagName === "SPAN" && box.children.length === 1) box.innerHTML = "";
+  var p = document.createElement("div");
+  p.innerHTML = "<span class='t'>["+nowT()+"]</span> <span class='"+(cls||"")+"'>"+msg+"</span>";
+  box.appendChild(p);
+  box.scrollTop = box.scrollHeight;
+}
+function banner(type, msg){
+  var b = $("banner");
+  b.className = "banner show " + type;
+  b.textContent = msg;
+}
+
+/* ---------- 任务表 ---------- */
+function renderTasks(){
+  var tb = $("taskRows"); tb.innerHTML = "";
+  $("taskEmpty").style.display = TASKS.length ? "none" : "block";
+  TASKS.forEach(function(t){
+    var plan = t.trig==="定时" ? esc(t.cron) : (t.trig==="MCP" ? esc(t.event||"") : "—");
+    var tag = t.status==="已完成" ? "tag ok" : (t.status ? "tag bad" : "tag mute");
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+t.id+"</td><td>"+esc(t.name)+"</td><td>"+esc(t.sys)+"</td><td>"+esc(t.trig)+"</td><td>"+plan+"</td>"
+      + "<td><span class='"+tag+"'>"+(t.status||"待运行")+"</span></td>"
+      + "<td><button class='btn sm' data-run='"+t.id+"' "+(busy?"disabled":"")+">立即执行</button></td>";
+    tb.appendChild(tr);
+  });
+  $("sTask").textContent = TASKS.length;
+  Array.prototype.forEach.call(tb.querySelectorAll("button[data-run]"), function(b){
+    b.addEventListener("click", function(){ runTask(b.getAttribute("data-run")); });
+  });
+}
+
+/* ---------- 执行核心：借用会话 → 页面操作 → 归还 ---------- */
+function pickSession(sys){
+  var list = SESS.filter(function(s){ return s.sys === sys; });
+  if(!list.length) return {why:"none"};
+  list.sort(function(a,b){ return new Date(b.exp) - new Date(a.exp); });
+  return {sess:list[0]};
+}
+async function runTask(id){
+  if(busy){ banner("warn","执行中，请稍候"); return; }
+  var t = TASKS.filter(function(x){ return x.id === id; })[0];
+  if(!t) return;
+  busy = true; renderTasks();
+  var trigTxt = t.trig==="MCP" ? ("事件 "+t.event) : (t.trig==="定时" ? ("cron "+t.cron) : "手动");
+  log("▶ 启动任务「"+esc(t.name)+"」（触发："+trigTxt+"）");
+  await sleep(380);
+  var pick = pickSession(t.sys);
+  if(pick.why === "none"){
+    ST.block++;
+    t.status = "失败（无登录态）";
+    banner("bad","⛔ 未找到「"+t.sys+"」的登录态——请先在 ① 导入该系统的浏览器会话再执行。");
+    log("⛔ 拦截：会话池中没有「"+esc(t.sys)+"」的登录态，任务中止", "r");
+    renderTasks(); renderStats(); busy = false; renderTasks();
+    return;
+  }
+  var s = pick.sess, st = sessStatus(s);
+  if(st.tag === "bad"){
+    ST.block++;
+    t.status = "失败（登录态失效）";
+    banner("bad","⛔ 登录态已失效（"+esc(s.browser)+" · "+esc(s.acc)+"，有效期至 "+s.exp+"）——请重新导入后再执行。");
+    log("⛔ 拦截：借用会话 "+esc(s.browser)+"·"+esc(s.acc)+" 已失效（至 "+s.exp+"），任务中止", "r");
+    RUNS.push([nowT(), t.name, t.sys, trigTxt, "失败", "登录态失效（至 "+s.exp+"）"]);
+    renderTasks(); renderStats(); busy = false; renderTasks();
+    return;
+  }
+  if(st.tag === "warn"){
+    banner("warn","⚠️ 会话临期（剩余 "+st.days+" 天）：本次执行放行，建议尽快重新导入。");
+    log("⚠️ 借用会话 "+esc(s.browser)+"·"+esc(s.acc)+" 临期（剩 "+st.days+" 天），继续执行", "y");
+    await sleep(320);
+  }
+  log("① 借用会话："+esc(s.browser)+" · "+esc(s.acc)+" → 打开「"+esc(t.sys)+"」");
+  await sleep(430);
+  log("② 读取待处理页面数据（模拟：列表/表单/报表入口）");
+  await sleep(430);
+  log("③ 执行页面操作并回读结果（模拟）");
+  await sleep(430);
+  log("④ 归还会话，更新使用记录", "g");
+  s.uses++; s.last = nowT();
+  t.status = "已完成";
+  ST.ok++;
+  RUNS.push([nowT(), t.name, t.sys, trigTxt, "成功", "借用 "+s.browser+"·"+s.acc+(st.tag==="warn"?"（临期）":"")]);
+  if(st.tag !== "warn") banner("ok","✅ 任务「"+t.name+"」执行完成：借用 "+s.browser+" · "+s.acc+" 会话，全程留痕。");
+  renderSess(); renderTasks(); renderStats();
+  busy = false; renderTasks();
+}
+function renderStats(){
+  $("sOk").textContent = ST.ok;
+  $("sBlock").textContent = ST.block;
+}
+
+/* ---------- 导入登录态 ---------- */
+function doImport(browser, sys, acc, days){
+  if(!acc){ banner("bad","请填写账号名"); return false; }
+  days = +days;
+  if(!days || days < 1 || days > 365){ banner("bad","Cookie 有效期需在 1–365 天之间"); return false; }
+  var dup = SESS.some(function(s){ return s.browser===browser && s.sys===sys && s.acc===acc; });
+  if(dup){ banner("bad","同一浏览器+系统+账号的登录态已存在，无需重复导入"); return false; }
+  var exp = fmt(new Date(BASE.getTime() + days*DAY));
+  SESS.push({id:nid("S"), browser:browser, sys:sys, acc:acc, exp:exp, uses:0, last:"—"});
+  banner("ok","✅ 已导入登录态："+browser+" · "+sys+" · "+acc+"（有效期至 "+exp+"）");
+  log("🔑 导入登录态："+esc(browser)+" · "+esc(sys)+" · "+esc(acc)+"，有效期至 "+exp, "g");
+  renderSess();
+  return true;
+}
+$("btnImp").addEventListener("click", function(){
+  doImport($("fBrowser").value, $("fSys").value, $("fAcc").value.trim(), $("fDays").value);
+});
+$("chipImp1").addEventListener("click", function(){
+  $("fBrowser").value="Chrome"; $("fSys").value="美餐商家后台"; $("fAcc").value="ops01"; $("fDays").value=30;
+  doImport("Chrome","美餐商家后台","ops01",30);
+});
+$("chipImp2").addEventListener("click", function(){
+  $("fBrowser").value="Safari"; $("fSys").value="金蝶云财务后台"; $("fAcc").value="fin02"; $("fDays").value=3;
+  doImport("Safari","金蝶云财务后台","fin02",3);
+});
+
+/* ---------- 保存任务 ---------- */
+function saveTask(name, sys, trig, cron, event){
+  if(!name){ banner("bad","请填写任务名"); return false; }
+  if(TASKS.some(function(t){ return t.name === name; })){ banner("bad","任务名已存在，请换个名字"); return false; }
+  if(trig==="定时"){
+    var c = cronText(cron);
+    if(!cron || !c){ banner("bad","定时触发需填写合法 cron 表达式（分 时 日 月 周）"); return false; }
+  }
+  if(trig==="MCP" && !event){ banner("bad","MCP 事件触发需填写事件名"); return false; }
+  TASKS.push({id:nid("T"), name:name, sys:sys, trig:trig, cron:cron||"", event:event||"", status:""});
+  banner("ok","✅ 任务已保存：「"+name+"」→ "+sys+"（"+trig+(trig==="定时"?"："+cron:"")+"）");
+  log("💾 保存任务「"+esc(name)+"」→ "+esc(sys)+"（"+esc(trig)+"）");
+  renderTasks();
+  return true;
+}
+$("btnSave").addEventListener("click", function(){
+  saveTask($("fName").value.trim(), $("fTaskSys").value, $("fTrig").value, $("fCron").value.trim(), $("fEvent").value.trim());
+});
+$("chipT1").addEventListener("click", function(){
+  $("fName").value="销售日报采集"; $("fTaskSys").value="美餐商家后台"; $("fTrig").value="定时"; $("fCron").value="0 9 * * 1-5"; $("fEvent").value="";
+  $("fTrig").dispatchEvent(new Event("change")); refreshCron();
+  saveTask("销售日报采集","美餐商家后台","定时","0 9 * * 1-5","");
+});
+$("chipT2").addEventListener("click", function(){
+  $("fName").value="应付账款月度导出"; $("fTaskSys").value="金蝶云财务后台"; $("fTrig").value="定时"; $("fCron").value="30 8 1 * *"; $("fEvent").value="";
+  $("fTrig").dispatchEvent(new Event("change")); refreshCron();
+  saveTask("应付账款月度导出","金蝶云财务后台","定时","30 8 1 * *","");
+});
+$("chipT3").addEventListener("click", function(){
+  $("fName").value="库存异常同步"; $("fTaskSys").value="供应商门户"; $("fTrig").value="MCP"; $("fEvent").value="erp.stock.alert";
+  $("fTrig").dispatchEvent(new Event("change"));
+  saveTask("库存异常同步","供应商门户","MCP","","erp.stock.alert");
+});
+
+/* ---------- MCP 事件模拟：命中事件触发类任务 ---------- */
+$("btnMcp").addEventListener("click", async function(){
+  var list = TASKS.filter(function(t){ return t.trig === "MCP"; });
+  if(!list.length){ banner("warn","暂无 MCP 事件触发类任务——先在 ② 保存一个（触发方式选 MCP 事件）。"); return; }
+  banner("ok","📡 收到 MCP 事件（模拟）：按事件订阅命中 "+list.length+" 个任务，开始执行。");
+  log("📡 MCP 事件到达，命中 "+list.length+" 个事件触发任务", "g");
+  for(var i=0;i<list.length;i++){ await runTask(list[i].id); }
+});
+
+/* ---------- CSV 导出（带 BOM） ---------- */
+$("btnCsv").addEventListener("click", function(){
+  if(!RUNS.length){ banner("warn","还没有运行记录，先执行一次任务"); return; }
+  var rows = [["时间","任务","目标系统","触发","结果","说明"]].concat(RUNS);
+  var csv = "\uFEFF" + rows.map(function(r){
+    return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(",");
+  }).join("\r\n");
+  var blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "登录态RPA运行日志.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  banner("ok","运行日志 CSV 已导出（含 BOM，Excel 直接打开不乱码）。");
+  log("⬇️ 导出运行日志 CSV（"+RUNS.length+" 条）");
+});
+
+/* ---------- 重置 ---------- */
+$("btnReset").addEventListener("click", function(){
+  SESS = []; TASKS = []; RUNS = []; ST = {ok:0, block:0}; busy = false; SEQ = {};
+  $("log").innerHTML = "<span class='t'>已重置。先导入登录态，再保存任务并执行。</span>";
+  $("banner").className = "banner";
+  renderSess(); renderTasks(); renderStats();
+  log("🔄 演示已重置（会话池/任务/日志/统计清零）", "y");
+});
+
+/* ---------- 初始化：预置 3 条会话（1 有效 / 1 临期 / 1 已失效） ---------- */
+(function(){
+  SESS.push({id:nid("S"), browser:"Chrome",  sys:"美餐商家后台",     acc:"ops01", exp:"2026-12-20", uses:0, last:"—"});
+  SESS.push({id:nid("S"), browser:"Edge",    sys:"企业微信管理后台", acc:"admin07", exp:"2026-11-27", uses:0, last:"—"});
+  SESS.push({id:nid("S"), browser:"Firefox", sys:"供应商门户",       acc:"pur03",  exp:"2026-11-20", uses:0, last:"—"});
+  renderSess(); renderTasks(); renderStats();
+})();
+</script>
+</body>
+</html>
