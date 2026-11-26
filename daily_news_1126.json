@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-26",
+  "table_id": "tbltCHyotV8hdemf",
+  "table_total": 472,
+  "count": 7,
+  "items": [
+    {
+      "record_id": "reczz28eE8ujJ1tR",
+      "资讯标题": "Pydantic AI发布终端编码Agent Pax+Harness beta：一切皆插件，--agent可换任意自有Agent，成本不到Codex一半",
+      "推荐指数": 5,
+      "来源平台": "其他",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "[https://pydantic.dev/articles/pax-harness-beta](https://pydantic.dev/articles/pax-harness-beta)",
+      "要点": "11/25 Pydantic发布官方终端编码智能体Pax（pydantic-ai-pax）与Pydantic AI Harness beta：Harness提供100+可组合能力（持久执行、12+云沙箱+本地micro-VM工作区、模型fallback、code mode、子代理、Agent Skills），Coder()编码harness本身也是一个capability；Pax把这一切做成插件，",
+      "VibeCoding机会": "做『Harness四层套娃架构』单文件HTML图解Demo：Pydantic AI框架→Harness SDK(100+capabilities)→Coder()→Pax TUI，用开关演示/plugins启停不同能力后终端形态的变化，内置SWE81四harness分数与成本对比表——把『一切皆插件』讲成一张可交互架构图。",
+      "收录时间": "2026-11-26T15:40:37.000+08:00"
+    },
+    {
+      "record_id": "reczz28eE8ujHqsc",
+      "资讯标题": "Sand.ai发布MAGI-2：480B音视频统一模型登顶AA图生视频榜，1080P每秒0.5元仅Seedance十分之一，权重将开源",
+      "推荐指数": 5,
+      "来源平台": "其他",
+      "主题分类": "泛AI效率工具",
+      "链接": "[https://www.bjnews.com.cn/detail/1795589511129819.html](https://www.bjnews.com.cn/detail/1795589511129819.html)",
+      "要点": "11/25 Sand.ai发布新一代音视频统一模型MAGI-2：480B总参数（同期最大）、每token激活约28B，AA Video Arena v2.1四任务平均Elo从Preview的998.5升至1150.3，图生视频1165分超越Seedance 2.5(1161)登顶；原生4-30秒1080P 25fps视频+音频联合生成（对白口型、拟音、配乐一步到位），单次可混合参考10图+5视频+",
+      "VibeCoding机会": "做『AI视频模型成本计算器』单文件HTML：输入时长/分辨率/重试次数，横向对比MAGI-2(0.5元/秒)、Seedance 2.5(约4元/秒)与闭源均价的成片全链路成本，内置『35次重试率→单秒1220元 vs 1.5-2.5元』的行业案例——给小红书内容预算做选型依据。",
+      "收录时间": "2026-11-26T15:40:37.000+08:00"
+    },
+    {
+      "record_id": "reczz28eE8ujLEZO",
+      "资讯标题": "AWS Strands发布Decider v2五款开源决策模型：一次前向推理给候选项打分，E2B到31B全Apache-2.0",
+      "推荐指数": 4,
+      "来源平台": "其他",
+      "主题分类": "泛AI效率工具",
+      "链接": "[https://strandsagents.com/blog/introducing-strands-decider-v2/](https://strandsagents.com/blog/introducing-strands-decider-v2/)",
+      "要点": "AWS Strands团队发布Decider v2：基于Gemma 4的五种尺寸（E2B至31B）开源决策模型，Apache-2.0协议；不生成自由文本，而是对给定状态和候选项直接输出概率/分数，v2用选项token打分取代指针头，双向前缀注意力复用长上下文，适合路由、工具选择、结果判定等Agent内决策环节；官方报告31B在六项文本基准平均82.1、校准误差0.027",
+      "VibeCoding机会": "做『决策模型路由演示器』单文件HTML：模拟一个任务收件箱，用预设打分权重表演示『小模型分流→大模型执行』两级流水线，可调阈值看误分流率变化——把『小模型当分诊台省成本』讲成可交互Demo。",
+      "收录时间": "2026-11-26T15:40:37.000+08:00"
+    },
+    {
+      "record_id": "reczz28eE8ujJmFM",
+      "资讯标题": "GitHub发布遗留应用现代化『证据优先』流程并封装为Copilot Agent技能：先收证据再改造，四步法可复用",
+      "推荐指数": 4,
+      "来源平台": "其他",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "[https://todayai.com.cn/all](https://todayai.com.cn/all)",
+      "要点": "GitHub博客发布面向遗留应用现代化的『证据优先』方法论：先确认旧系统哪些行为仍然有效→收集可作为回归验证依据的证据→选择下一步实验→确定验证点，最后才判断哪些部分需要改造；作者用四个公开应用验证（小型Node.js游戏到大型Java ERP），并把整套流程编码成GitHub Copilot的Agent技能，让代理按固定方法协助评估与改造；核心主张：现代化不从『换框架』开始，而从可验证的小步改造",
+      "VibeCoding机会": "做『遗留系统改造评估清单』单文件HTML：按『证据收集→实验选择→验证点确定』三栏生成可勾选评估卡，输出风险评分与改造建议排序——把方法论变成自用评估小工具。",
+      "收录时间": "2026-11-26T15:40:37.000+08:00"
+    },
+    {
+      "record_id": "reczz28eE8ujKPVS",
+      "资讯标题": "谷歌官方gemini-api-cli冲上GitHub日榜：Go零依赖单二进制，给编码Agent一套shell调Gemini全家桶的自描述CLI",
+      "推荐指数": 4,
+      "来源平台": "GitHub",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "[https://github.com/google-gemini/gemini-api-cli](https://github.com/google-gemini/gemini-api-cli)",
+      "要点": "谷歌Gemini团队官方gemini-api-cli（Go编写、Apache-2.0、零外部依赖单二进制）冲上11/26 GitHub日榜（24h+824，3K+ stars）：无状态封装Gemini Interactions API为shell命令，覆盖文本/图像/TTS/音乐/视频生成、文件分析、转写与Deep Research等托管Agent；自描述设计（--usage输出KDL命令树、--",
+      "VibeCoding机会": "做『Agent工具卡速查页』单文件HTML：把自有流水线里各CLI工具（gemini-api-cli、agent-browser、ffmpeg-skill等）登记成带--usage/--schema示例的速查卡，按退出码约定演示无人值守调用的成功/失败分支——沉淀成自己的Agent工具手册。",
+      "收录时间": "2026-11-26T15:40:37.000+08:00"
+    },
+    {
+      "record_id": "reczz28eE8ujJYH6",
+      "资讯标题": "PrismML发布Ternary Bonsai 2.5 27B：三值量化压到5.9GB的本地Agent编程模型，Apache-2.0可跑llama.cpp/MLX",
+      "推荐指数": 3,
+      "来源平台": "其他",
+      "主题分类": "泛AI效率工具",
+      "链接": "[https://prismml.com/news/prismml-launches-ternary-bonsai-2-5-27b](https://prismml.com/news/prismml-launches-ternary-bonsai-2-5-27b)",
+      "要点": "PrismML发布Ternary Bonsai 2.5 27B：以Qwen 3.8 27B为基座，权重限制为-1/0/1三值，体积约5.9GB（厂商称约为FP16版的1/9），Apache-2.0开源，可通过llama.cpp或MLX在NVIDIA/Intel GPU与Apple设备运行；厂商报告三项Agent编程基准平均54.2（前代37.9）；主打本地Agent编程场景",
+      "VibeCoding机会": "暂缓做Demo；若实测可用，做『本地vs云端模型成本对比器』单文件HTML：按token量对比本地电费/内存占用与API计费，量化『免费本地路线』的临界点。",
+      "收录时间": "2026-11-26T15:40:37.000+08:00"
+    },
+    {
+      "record_id": "reczz28eE8ujJA3u",
+      "资讯标题": "国内首个工程级AI原生研发平台织灵Coda Loom 2.5发布：ADE数字研发工程师带队，FPGA工程11天顶人工3个月",
+      "推荐指数": 3,
+      "来源平台": "其他",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "[https://www.stdaily.com/web/gdxw/2026-11/26/content_619504.html](https://www.stdaily.com/web/gdxw/2026-11/26/content_619504.html)",
+      "要点": "可达智灵发布织灵（Coda Loom）2.5：国内首个工程级AI原生研发平台，以ADE（AI R&D Engineer数字研发工程师）为核心连接研发项目、工程工具、专业知识、模型资源与执行治理；2.5重点升级『研发数据与经验沉淀为组织资产』反哺下一代研发；案例：金融行情解析FPGA工程从需求分析到板级验收仅11个工作日（人工通常约3个月）；科技日报报道",
+      "VibeCoding机会": "暂缓Demo；可借鉴其思路给自己的Demo台账加一页『经验沉淀视图』单文件HTML：按工具类型聚合历史demo的坑与解法，形成个人研发知识库。",
+      "收录时间": "2026-11-26T15:40:37.000+08:00"
+    }
+  ]
+}

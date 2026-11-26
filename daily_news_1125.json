@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-25",
+  "table_id": "tbltCHyotV8hdemf",
+  "table_total": 465,
+  "count": 7,
+  "items": [
+    {
+      "record_id": "reczz28dpFYUjUUq",
+      "资讯标题": "阿里千问Go全面开放免费代打电话：授权后AI替你订餐厅、找快递、问失物，通话主动表明AI身份并带外呼风险拦截",
+      "推荐指数": 5,
+      "来源平台": "其他",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "[http://jjckb.xinhuanet.com/20261125/6cfe4db9150245f3bc3a99ebf3f6c09d/c.html](http://jjckb.xinhuanet.com/20261125/6cfe4db9150245f3bc3a99ebf3f6c09d/c.html)",
+      "要点": "11/25全面开放免费代打电话：授权后AI代订餐厅/查失物/确认快递并回传结果，支持定时外呼；通话主动表明AI身份+外呼风险拦截，背靠淘宝/支付宝/飞猪/高德可对话内支付。授权+亮明身份+风控三件套是电话RPA合规落地的合范本，可迁移客服回访/预约提醒场景。"
+    },
+    {
+      "record_id": "reczz28dpH2Rc3JH",
+      "资讯标题": "mdiri-ai/SoduWork冲上GitHub周榜：自托管团队Agent协作引擎，AI写验收标准+另一模型交叉评审+人工签收才算完成，7种harness中途混用",
+      "推荐指数": 5,
+      "来源平台": "GitHub",
+      "主题分类": "AI Agent/智能体工具",
+      "链接": "[https://github.com/mdiri-ai/SoduWork](https://github.com/mdiri-ai/SoduWork)",
+      "要点": "MIT，本周+5,917星至7.6K。AI起草验收标准→一个harness干活、另一模型harness评审→人工签收关闭；Pi/OpenCode/Qwen Code/Kimi/DeepSeek/Codex七种harness中途切换不丢历史；成功对话存为版本化插件授权团队复用；自托管Hub管角色/用量/成本/审计。与Master+Subagent范式同构。"
+    },
+    {
+      "record_id": "reczz28dpH2RbJrJ",
+      "资讯标题": "Coral开源MCP工具网关：Agent写TypeScript程序在V8沙箱跑，每次工具调用过策略检查+人工审批门，成功程序沉淀为可复用自定义工具",
+      "推荐指数": 4,
+      "来源平台": "GitHub",
+      "主题分类": "开源项目",
+      "链接": "[https://github.com/withcoral/coral](https://github.com/withcoral/coral)",
+      "要点": "Rust+Apache 2.0。Agent写TS程序经exec在无网络无凭据的V8 isolate执行，每次调用过策略检查（可要求人工批准）再注入凭据，只回传过滤结果省上下文；成功程序沉淀为私有/共享自定义工具；MCP+OpenAPI接入5000+数据库与SaaS，盲测100企业任务优于其他MCP网关，可自托管零外泄。"
+    },
+    {
+      "record_id": "reczz28dpH2RZX0m",
+      "资讯标题": "tradermonty/claude-trading-skills周榜+22%：Claude Code投资交易技能包，市场分析/技术图表/经济日历/选股/策略开发一条龙",
+      "推荐指数": 4,
+      "来源平台": "GitHub",
+      "主题分类": "开源项目",
+      "链接": "[https://github.com/tradermonty/claude-trading-skills](https://github.com/tradermonty/claude-trading-skills)",
+      "要点": "本周+1,504星至8.3K（+22%）。Claude Code投资交易技能包：市场分析/技术图表/经济日历/选股筛器/交易策略开发，把投研工作流拆成终端可复用skill；财务背景可快速上手验证，与已入库daily_stock_analysis形成系统侧+技能侧互补。"
+    },
+    {
+      "record_id": "reczz28dpH2RcdDz",
+      "资讯标题": "谷歌发布google-labs-code/stitch-skills：Agent Skills开放标准技能库，前端代码↔UI设计↔React双向转换，兼容Claude Code/Cursor/Antigravity",
+      "推荐指数": 4,
+      "来源平台": "GitHub",
+      "主题分类": "开源项目",
+      "链接": "[https://github.com/google-labs-code/stitch-skills](https://github.com/google-labs-code/stitch-skills)",
+      "要点": "谷歌Labs官方，本周+2,626星至12.7K（+26%）。为Stitch MCP设计的Agent Skills库，遵循Agent Skills开放标准：前端代码→设计稿→React双向转换，兼容Antigravity/Gemini CLI/Claude Code/Cursor；截图→React方向对快速出Demo原型最实用。"
+    },
+    {
+      "record_id": "reczz28dpH2RaZnX",
+      "资讯标题": "Anthropic公测Claude Artifacts一键安装为桌面应用：对话生成的应用可装成独立窗口，免费账户可用，支持菜单栏/通知/透明窗口",
+      "推荐指数": 4,
+      "来源平台": "其他",
+      "主题分类": "泛AI效率工具",
+      "链接": "[https://segmentfault.com/a/1190000048424292](https://segmentfault.com/a/1190000048424292)",
+      "要点": "Mac/Windows版Claude「Install as app」公测：Artifacts一键装成独立图标+窗口的桌面应用，免费账户可用；无需写码即可加菜单栏项/系统通知/透明窗口，访问计算机前需授权；Team版11/30起推送。Artifacts从浏览器标签走向常驻桌面，Demo交付形态多一条轻路径。"
+    },
+    {
+      "record_id": "reczz28dpH2RcAtd",
+      "资讯标题": "谷歌Research开源paper-orchestra：多Agent框架把想法和实验日志编排成可投稿的LaTeX论文，周增3,342星",
+      "推荐指数": 4,
+      "来源平台": "GitHub",
+      "主题分类": "开源项目",
+      "链接": "[https://github.com/google-research/paper-orchestra](https://github.com/google-research/paper-orchestra)",
+      "要点": "谷歌Research官方，本周+3,342星至6.3K。多Agent框架：输入研究想法与实验日志，分工Agent协作产出可投稿LaTeX论文草稿；编排层（拆分→产出→汇总校对）可平移到公众号长文/方案书等中文长文档流水线。"
+    }
+  ]
+}

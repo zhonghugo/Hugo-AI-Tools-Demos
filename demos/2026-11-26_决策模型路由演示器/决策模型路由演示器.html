@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>决策模型路由演示器</title>
+<style>
+:root{--primary:#2563eb;--ok:#16a34a;--warn:#d97706;--danger:#dc2626;--muted:#64748b;--bg:#f1f5f9;--card:#ffffff;--line:#e2e8f0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:#0f172a;font-size:14px}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 40px}
+header{text-align:center;margin-bottom:18px}
+.badge{display:inline-block;background:#dbeafe;color:#1d4ed8;border-radius:99px;padding:3px 12px;font-size:12px;margin-bottom:8px}
+h1{font-size:24px}
+.sub{color:var(--muted);margin-top:6px;font-size:13px}
+.stat{display:flex;justify-content:center;gap:26px;margin-top:14px;flex-wrap:wrap}
+.stat b{font-size:22px;color:var(--primary);display:block}
+.stat span{font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.card h2{font-size:16px;margin-bottom:10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:#f8fafc;border-radius:99px;padding:6px 14px;cursor:pointer;font-size:13px}
+.chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.f label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.f input,.f select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+.f input:focus{outline:2px solid #bfdbfe;border-color:var(--primary)}
+.ruleHint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7}
+.btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+button{border:none;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600}
+.bMain{background:var(--primary);color:#fff}
+.bGhost{background:#e2e8f0;color:#0f172a}
+.bCsv{background:#065f46;color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+.err{color:var(--danger);font-size:13px;margin-top:8px;display:none}
+.banner{margin-top:12px;padding:12px 14px;border-radius:10px;font-weight:600;display:none;line-height:1.6}
+.bOk{background:#dcfce7;color:#14532d;display:block}
+.bWarn{background:#fef3c7;color:#78350f;display:block}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+.tableWrap{overflow-x:auto}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;white-space:nowrap}
+th{background:#f8fafc;color:var(--muted);font-weight:600}
+td.wrapCell{white-space:normal;min-width:140px}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:600}
+.tDirect{background:#dcfce7;color:#166534}
+.tAudit{background:#fef3c7;color:#92400e}
+.tBig{background:#dbeafe;color:#1e40af}
+.jOk{background:#dcfce7;color:#166534}
+.jMis{background:#fee2e2;color:#991b1b}
+.jWaste{background:#ffedd5;color:#9a3412}
+.jHit{background:#fef3c7;color:#92400e}
+.logs{margin-top:10px;max-height:180px;overflow:auto;background:#0f172a;color:#cbd5e1;border-radius:10px;padding:10px 12px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.7}
+.stRow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:10px}
+.stCard{border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;background:#f8fafc}
+.stCard b{font-size:18px;display:block}
+.stCard span{font-size:11px;color:var(--muted)}
+footer{color:var(--muted);font-size:12px;margin-top:16px;text-align:center;line-height:1.8}
+@media(max-width:560px){.grid4,.stRow{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}h1{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">AI Agent · 成本优化 · 分流路由</span>
+    <h1>决策模型路由演示器</h1>
+    <p class="sub">参考 AWS Strands Decider v2（五款开源决策模型）：不生成自由文本，一次前向推理直接给候选项打分——把「小模型当分诊台」做成可算账的分流台。</p>
+    <div class="stat">
+      <div><b id="stTotal">—</b><span>本次总成本</span></div>
+      <div><b id="stSave">—</b><span>对比全大模型节省</span></div>
+      <div><b id="stMis">—</b><span>误分流（直通带）</span></div>
+      <div><b id="stHit">—</b><span>抽检拦截</span></div>
+      <div><b id="stWaste">—</b><span>大模型浪费</span></div>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>① 任务收件箱（12 条固化示例）</h2>
+    <div class="chips" id="chips">
+      <button class="chip on" data-sc="fin">财务共享中心</button>
+      <button class="chip" data-sc="cs">客服工坊</button>
+      <button class="chip" data-sc="ops">运维告警分诊</button>
+    </div>
+    <p class="ruleHint" id="inboxHint">每条任务带「小模型打分」（Decider 式一次前向推理输出）与「真实难度标签」（小模型能搞定 / 必须大模型）。标签固化，用于检验分流对错。</p>
+  </div>
+
+  <div class="card">
+    <h2>② 分流规则与成本参数（业务表单）</h2>
+    <div class="grid4">
+      <div class="f"><label>直通线（≥ 分 → 小模型直接执行）</label><input id="tDirect" type="number" min="0" max="100" value="80"></div>
+      <div class="f"><label>升级线（< 分 → 升级大模型）</label><input id="tEscalate" type="number" min="0" max="100" value="55"></div>
+      <div class="f"><label>小模型单次成本（元）</label><input id="cSmall" type="number" step="0.01" min="0" value="0.02"></div>
+      <div class="f"><label>大模型单次成本（元）</label><input id="cBig" type="number" step="0.01" min="0" value="0.60"></div>
+      <div class="f"><label>人工抽检成本（元/条）</label><input id="cAudit" type="number" step="0.01" min="0" value="0.15"></div>
+      <div class="f"><label>误分流返工成本（元/条）</label><input id="cRework" type="number" step="0.01" min="0" value="2.00"></div>
+    </div>
+    <p class="ruleHint">三带路由：分数 ≥ 直通线 → 小模型直接执行（无人工）；升级线 ≤ 分数 < 直通线 → 小模型执行 + 人工抽检（安全垫）；分数 < 升级线 → 升级大模型。中间带命中「必须大模型」任务会被人工抽检兜住，不造成返工。</p>
+    <div class="btns">
+      <button class="bMain" id="btnRun">开始分流</button>
+      <button class="bGhost" id="btnReset">重置</button>
+      <button class="bCsv" id="btnCsv" disabled>导出分流报告 CSV</button>
+    </div>
+    <div class="err" id="err"></div>
+    <div class="banner" id="verdict"></div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <h2>③ 分流结果明细</h2>
+    <div class="tableWrap">
+      <table>
+        <thead><tr><th>#</th><th>任务</th><th>小模型分</th><th>路由去向</th><th>真实难度</th><th>判定</th><th>本条成本</th></tr></thead>
+        <tbody id="resBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>④ 分流日志</h2>
+    <div class="logs" id="log">等待分流…</div>
+  </div>
+
+  <footer>决策模型路由演示器 · 单文件 HTML · 数据为固化示例，仅演示分流算术与成本核算逻辑<br>参考：AWS Strands Decider v2（Apache-2.0 开源决策模型）</footer>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const money = n => "¥" + n.toFixed(2);
+const pct = n => (n * 100).toFixed(1) + "%";
+
+const SCENES = {
+  fin: { name: "财务共享中心", tasks: [
+    { n: "发票抬头一致性核对", s: 92, hard: false },
+    { n: "报销单金额加总复核", s: 88, hard: false },
+    { n: "客户咨询意图分类", s: 84, hard: false },
+    { n: "合同关键条款抽取", s: 81, hard: true },
+    { n: "采购清单字段补全", s: 76, hard: false },
+    { n: "供应商资质材料初筛", s: 71, hard: false },
+    { n: "月度费用归因分析", s: 66, hard: true },
+    { n: "差旅报销合规初判", s: 60, hard: false },
+    { n: "多表数据口径核对", s: 58, hard: true },
+    { n: "财务异常交易初筛", s: 48, hard: false },
+    { n: "跨币种汇率折算复核", s: 41, hard: false },
+    { n: "非标合同风险审查", s: 33, hard: true }
+  ]},
+  cs: { name: "客服工坊", tasks: [
+    { n: "物流单号查询", s: 95, hard: false },
+    { n: "退款进度查询", s: 90, hard: false },
+    { n: "会员权益咨询分类", s: 83, hard: false },
+    { n: "投诉情绪安抚回复", s: 78, hard: false },
+    { n: "发票抬头修改申请", s: 72, hard: false },
+    { n: "大客户合同咨询", s: 64, hard: true },
+    { n: "退款异常个案判断", s: 58, hard: false },
+    { n: "跨店优惠券纠纷", s: 50, hard: false },
+    { n: "法律条款咨询", s: 44, hard: true },
+    { n: "群体性投诉预警分析", s: 40, hard: true },
+    { n: "物流异常赔付判定", s: 36, hard: false },
+    { n: "媒体公关危机回应", s: 28, hard: true }
+  ]},
+  ops: { name: "运维告警分诊", tasks: [
+    { n: "磁盘使用率超阈确认", s: 91, hard: false },
+    { n: "服务重启类告警分类", s: 86, hard: false },
+    { n: "日志关键词初筛归组", s: 82, hard: false },
+    { n: "数据库慢查询归因", s: 75, hard: false },
+    { n: "网络抖动初判", s: 70, hard: false },
+    { n: "多服务级联故障定位", s: 63, hard: true },
+    { n: "容量预测异常解释", s: 57, hard: false },
+    { n: "安全入侵告警研判", s: 56, hard: true },
+    { n: "核心支付链路告警分析", s: 46, hard: false },
+    { n: "混沌演练报告解读", s: 38, hard: true },
+    { n: "证书过期提醒确认", s: 32, hard: false },
+    { n: "全站雪崩根因分析", s: 25, hard: true }
+  ]}
+};
+
+let scene = "fin";
+let lastRows = null;
+
+function num(el) {
+  const v = parseFloat(el.value);
+  return isNaN(v) ? null : v;
+}
+
+function readCfg() {
+  return {
+    direct: num($("tDirect")),
+    escalate: num($("tEscalate")),
+    cSmall: num($("cSmall")),
+    cBig: num($("cBig")),
+    cAudit: num($("cAudit")),
+    cRework: num($("cRework"))
+  };
+}
+
+function validate(c) {
+  if (c.direct === null || c.escalate === null || c.cSmall === null || c.cBig === null || c.cAudit === null || c.cRework === null)
+    return "参数不能为空";
+  if (c.direct < 0 || c.direct > 100 || c.escalate < 0 || c.escalate > 100)
+    return "直通线/升级线需在 0–100 之间";
+  if (c.escalate >= c.direct)
+    return "升级线必须低于直通线（中间带才存在）";
+  if (c.cSmall < 0 || c.cBig < 0 || c.cAudit < 0 || c.cRework < 0)
+    return "成本参数不能为负数";
+  return null;
+}
+
+function routeOne(task, c) {
+  if (task.s >= c.direct) return "direct";
+  if (task.s >= c.escalate) return "audit";
+  return "big";
+}
+
+function runAll(note) {
+  const c = readCfg();
+  const err = validate(c);
+  if (err) { $("err").textContent = "⛔ " + err; $("err").style.display = "block"; return; }
+  $("err").style.display = "none";
+
+  const tasks = SCENES[scene].tasks;
+  let cost = 0, mis = 0, hit = 0, waste = 0, nDirect = 0;
+  const rows = tasks.map((t, i) => {
+    const r = routeOne(t, c);
+    let costOne, judge;
+    if (r === "direct") {
+      nDirect++;
+      costOne = c.cSmall + (t.hard ? c.cRework : 0);
+      if (t.hard) { judge = "mis"; mis++; }
+      else judge = "ok";
+    } else if (r === "audit") {
+      costOne = c.cSmall + c.cAudit;
+      judge = t.hard ? "hit" : "ok";
+      if (t.hard) hit++;
+    } else {
+      costOne = c.cBig;
+      judge = t.hard ? "ok" : "waste";
+      if (!t.hard) waste++;
+    }
+    cost += costOne;
+    return { i: i + 1, name: t.n, s: t.s, route: r, hard: t.hard, judge, cost: costOne };
+  });
+  lastRows = { rows, cfg: c, scene };
+
+  const full = tasks.length * c.cBig;
+  const save = full - cost;
+  $("stTotal").textContent = money(cost);
+  $("stSave").textContent = money(save) + "（" + pct(full > 0 ? save / full : 0) + "）";
+  $("stMis").textContent = mis;
+  $("stHit").textContent = hit;
+  $("stWaste").textContent = waste;
+
+  const ROUTE_TXT = { direct: "小模型直处理", audit: "小模型+人工抽检", big: "升级大模型" };
+  const JUDGE = {
+    ok: ["✅ 正确", "jOk"],
+    mis: ["⛔ 误分流", "jMis"],
+    waste: ["💸 浪费", "jWaste"],
+    hit: ["🔎 抽检拦截", "jHit"]
+  };
+  $("resBody").innerHTML = rows.map(r => {
+    const [jt, jc] = JUDGE[r.judge];
+    return "<tr><td>" + r.i + "</td><td class='wrapCell'>" + r.name + "</td><td>" + r.s +
+      "</td><td><span class='tag " + (r.route === "direct" ? "tDirect" : r.route === "audit" ? "tAudit" : "tBig") + "'>" + ROUTE_TXT[r.route] +
+      "</span></td><td>" + (r.hard ? "必须大模型" : "小模型可搞定") + "</td><td><span class='tag " + jc + "'>" + jt +
+      "</span></td><td>" + money(r.cost) + "</td></tr>";
+  }).join("");
+  $("resultCard").style.display = "block";
+
+  const LABEL = { fin: "财务共享中心", cs: "客服工坊", ops: "运维告警分诊" };
+  let verdict;
+  if (mis === 0 && waste === 0) verdict = ["bOk", "✅ 零误分流零浪费：该阈值组合下 12 条任务全部路由正确，可放心启用。"];
+  else if (mis === 0) verdict = ["bOk", "✅ 零误分流：直通带安全，但有 " + waste + " 条简单任务被浪费升级到大模型（多花 " + money(waste * (c.cBig - c.cSmall)) + "），可试探上调升级线下沿。"];
+  else verdict = ["bWarn", "⚠️ 直通带出现 " + mis + " 条误分流（返工成本 " + money(mis * c.cRework) + "）：建议下调直通线或扩大人工抽检带再上线。"];
+  const v = $("verdict");
+  v.className = "banner " + verdict[0];
+  v.textContent = verdict[1];
+
+  const nAud = rows.filter(r => r.route === "audit").length;
+  const nBig = rows.filter(r => r.route === "big").length;
+  log("[" + LABEL[scene] + "] " + note + " 直通线=" + c.direct + " 升级线=" + c.escalate +
+    " → 直处理 " + nDirect + " 条 / 抽检 " + nAud + " 条 / 升级 " + nBig + " 条；误分流 " + mis +
+    "、抽检拦截 " + hit + "、浪费 " + waste + "；总成本 " + money(cost) + " vs 全大模型 " + money(full) + "，省 " + money(save));
+  $("btnCsv").disabled = false;
+}
+
+function log(msg) {
+  const el = $("log");
+  const t = new Date().toTimeString().slice(0, 8);
+  el.innerHTML = "<div>" + t + "  " + msg + "</div>" + el.innerHTML;
+}
+
+function reset() {
+  $("tDirect").value = 80; $("tEscalate").value = 55;
+  $("cSmall").value = "0.02"; $("cBig").value = "0.60";
+  $("cAudit").value = "0.15"; $("cRework").value = "2.00";
+  $("err").style.display = "none";
+  $("verdict").className = "banner"; $("verdict").textContent = "";
+  $("resultCard").style.display = "none";
+  $("resBody").innerHTML = "";
+  lastRows = null;
+  $("stTotal").textContent = "—"; $("stSave").textContent = "—";
+  $("stMis").textContent = "—"; $("stHit").textContent = "—"; $("stWaste").textContent = "—";
+  $("btnCsv").disabled = true;
+  $("log").innerHTML = "已重置为默认规则，等待分流…";
+}
+
+function downloadCsv() {
+  if (!lastRows) return;
+  const c = lastRows.cfg;
+  const LABEL = { fin: "财务共享中心", cs: "客服工坊", ops: "运维告警分诊" };
+  const RT = { direct: "小模型直处理", audit: "小模型+人工抽检", big: "升级大模型" };
+  const JT = { ok: "正确", mis: "误分流", waste: "浪费", hit: "抽检拦截" };
+  let csv = "\uFEFF任务场景,任务,小模型分,路由去向,真实难度,判定,本条成本(元)\n";
+  lastRows.rows.forEach(r => {
+    csv += [LABEL[lastRows.scene], r.name, r.s, RT[r.route], r.hard ? "必须大模型" : "小模型可搞定", JT[r.judge], r.cost.toFixed(2)].join(",") + "\n";
+  });
+  const full = lastRows.rows.length * c.cBig;
+  const total = lastRows.rows.reduce((a, r) => a + r.cost, 0);
+  csv += "汇总,,,,,,总成本" + total.toFixed(2) + "/全大模型" + full.toFixed(2) + "/节省" + (full - total).toFixed(2) + "\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "决策模型分流报告_" + LABEL[lastRows.scene] + ".csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  log("已导出分流报告 CSV（" + (lastRows.rows.length + 1) + " 行，带 BOM）");
+}
+
+document.querySelectorAll("#chips .chip").forEach(ch => {
+  ch.addEventListener("click", () => {
+    document.querySelectorAll("#chips .chip").forEach(x => x.classList.remove("on"));
+    ch.classList.add("on");
+    scene = ch.dataset.sc;
+    $("inboxHint").textContent = "当前场景：" + SCENES[scene].name + "（12 条固化任务，小模型分与真实难度标签已内置）。";
+    log("切换场景 → " + SCENES[scene].name);
+    if (lastRows) runAll("场景切换后重新分流");
+  });
+});
+$("btnRun").addEventListener("click", () => runAll("手动分流"));
+$("btnReset").addEventListener("click", reset);
+$("btnCsv").addEventListener("click", downloadCsv);
+</script>
+</body>
+</html>
