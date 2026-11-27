@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>env资源清单解析器</title>
+<style>
+:root{--primary:#2563eb;--ok:#16a34a;--warn:#d97706;--danger:#dc2626;--muted:#64748b;--bg:#f1f5f9;--card:#ffffff;--line:#e2e8f0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:#0f172a;font-size:14px}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 40px}
+header{text-align:center;margin-bottom:18px}
+.badge{display:inline-block;background:#dbeafe;color:#1d4ed8;border-radius:99px;padding:3px 12px;font-size:12px;margin-bottom:8px}
+h1{font-size:24px}
+.sub{color:var(--muted);margin-top:6px;font-size:13px;line-height:1.7}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.card h2{font-size:16px;margin-bottom:10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:#f8fafc;border-radius:99px;padding:6px 14px;cursor:pointer;font-size:13px}
+.chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+textarea{width:100%;min-height:230px;border:1px solid var(--line);border-radius:10px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.7;background:#0f172a;color:#e2e8f0;resize:vertical}
+textarea:focus{outline:2px solid #bfdbfe}
+.hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7}
+.btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+button{border:none;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer;font-weight:600}
+.bMain{background:var(--primary);color:#fff}
+.bGhost{background:#e2e8f0;color:#0f172a}
+.bDl{background:#065f46;color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+.err{color:var(--danger);font-size:13px;margin-top:8px;display:none;line-height:1.6}
+.err.show{display:block}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:10px}
+.stCard{border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;background:#f8fafc}
+.stCard b{font-size:20px;display:block}
+.stCard span{font-size:11px;color:var(--muted)}
+.catGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+.catCard{border:1px solid var(--line);border-radius:10px;background:#f8fafc;padding:12px}
+.catHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.catName{font-weight:700;font-size:14px}
+.cnt{font-size:12px;color:var(--muted)}
+.varRow{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-family:ui-monospace,Menlo,monospace;font-size:12px;flex-wrap:wrap}
+.varRow:last-child{border-bottom:none}
+.kname{font-weight:700;color:#0f172a}
+.val{color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:600}
+.tAi{background:#dbeafe;color:#1e40af}
+.tDb{background:#dcfce7;color:#166534}
+.tCache{background:#ffedd5;color:#9a3412}
+.tStore{background:#ede9fe;color:#5b21b6}
+.tMq{background:#fce7f3;color:#9d174d}
+.tAuth{background:#fef3c7;color:#92400e}
+.tCfg{background:#f1f5f9;color:#475569}
+.risk{background:#fee2e2;color:#991b1b}
+.emptyVal{background:#fff7ed;color:#9a3412}
+.steps{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.stepRow{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;padding:4px 0;cursor:pointer;line-height:1.6}
+.stepRow input{margin-top:2px}
+.stepRow.done .stext{text-decoration:line-through;color:var(--muted)}
+.progressWrap{margin:14px 0 4px}
+.pbar{height:10px;background:#e2e8f0;border-radius:99px;overflow:hidden}
+.pfill{height:100%;background:var(--ok);border-radius:99px;transition:width .25s}
+.ptext{font-size:12px;color:var(--muted);margin-top:4px}
+.codeBox{background:#0f172a;color:#a7f3d0;border-radius:10px;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.7;white-space:pre;overflow-x:auto;margin-top:10px;max-height:300px;overflow-y:auto}
+.doneBanner{margin-top:12px;padding:12px 14px;border-radius:10px;font-weight:600;display:none;line-height:1.6}
+.bOk{background:#dcfce7;color:#14532d;display:block}
+.logs{margin-top:10px;max-height:160px;overflow:auto;background:#0f172a;color:#cbd5e1;border-radius:10px;padding:10px 12px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.7}
+footer{color:var(--muted);font-size:12px;margin-top:16px;text-align:center;line-height:1.8}
+@media(max-width:560px){.catGrid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}h1{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="badge">流程自动化 / RPA + AI 落地 · 数据处理</span>
+  <h1>env资源清单解析器</h1>
+  <p class="sub">参考 ExtraOrbital（Product Hunt 2026-11-26，167 赞）「读 env.example 自动给 Agent 开好数据库/存储桶/AI 密钥」——Agent 写代码一把好手，但没权限开资源，全靠人当「凭据跑腿傀儡」。本工具把这件事模板化：粘贴 env.example → 自动分类资源 → 生成开通步骤清单 → 产出带占位符的安全 .env 模板。<b>纯本地解析，内容不上传。</b></p>
+</header>
+
+<div class="card">
+  <h2>① 粘贴 env.example 内容</h2>
+  <div class="chips">
+    <button class="chip" data-s="0">AI 应用示例</button>
+    <button class="chip" data-s="1">Web 应用示例</button>
+    <button class="chip" data-s="2">数据平台示例</button>
+  </div>
+  <textarea id="src" placeholder="粘贴 env.example 内容（支持 # 注释、空行、export 前缀、引号值）"></textarea>
+  <div class="btns">
+    <button class="bMain" id="btnParse">解析清单</button>
+    <button class="bGhost" id="btnClear">清空</button>
+  </div>
+  <div class="hint">解析规则：按变量名关键词自动分类为 7 类资源；值为空 → 「待开通」；值疑似真实密钥（sk- 前缀 / 长随机串）→ 风险标记并提醒泄露。</div>
+  <div class="err" id="err"></div>
+</div>
+
+<div class="card" id="outCard" style="display:none">
+  <h2>② 解析结果</h2>
+  <div class="stats" id="stats"></div>
+  <div class="progressWrap">
+    <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+    <div class="ptext" id="ptext">开通进度 0/0</div>
+  </div>
+  <div class="catGrid" id="catGrid"></div>
+  <div class="doneBanner" id="doneBanner"></div>
+</div>
+
+<div class="card" id="envCard" style="display:none">
+  <h2>③ 安全 .env 占位模板（可直接分发/入库）</h2>
+  <div class="btns">
+    <button class="bDl" id="btnDl">下载 .env 模板</button>
+    <button class="bGhost" id="btnCopy">复制全部</button>
+  </div>
+  <div class="codeBox" id="envBox"></div>
+  <div class="hint">规则：所有值统一替换为 YOUR_&lt;KEY&gt;_HERE 占位符；疑似泄露的真实密钥被强制替换，避免带密钥入库。</div>
+</div>
+
+<div class="card" id="logCard" style="display:none">
+  <h2>解析日志</h2>
+  <div class="logs" id="logs"></div>
+</div>
+
+<footer>参考来源：ExtraOrbital（Product Hunt 2026-11-26 发布）· 本工具为单文件 HTML，纯本地解析，file:// 直接运行 · Hugo 的 AI 日志 · 2026-11-27</footer>
+</div>
+
+<script>
+"use strict";
+/* ===== 示例数据（固化） ===== */
+const SAMPLES = [
+`# ===== AI 应用（智能客服 + 知识库）=====
+OPENAI_API_KEY=sk-prod-9f27c1e8a54b6d3e8f21c4b7a9d0e5f2c8b1a4d7
+ANTHROPIC_API_KEY=YOUR_ANTHROPIC_KEY_HERE
+DEEPSEEK_API_KEY=
+AI_MODEL=gpt-4o-mini
+EMBEDDING_MODEL=text-embedding-3-small
+DATABASE_URL=postgres://app:***@db.example.com:5432/aicrm
+REDIS_URL=redis://cache.example.com:6379/0
+S3_BUCKET=ai-uploads
+VECTOR_STORE=pgvector
+MAX_TOKENS=4096
+DEBUG=false`,
+`# ===== Web 应用（电商店铺后台）=====
+PORT=3000
+NODE_ENV=production
+DATABASE_URL=mysql://shop:***@rm-bp1xxxx.mysql.rds.aliyuncs.com:3306/shopdb
+DB_POOL_SIZE=10
+REDIS_HOST=r-bp1xxxx.redis.rds.aliyuncs.com
+REDIS_PASSWORD=YOUR_REDIS_PASSWORD
+OSS_ACCESS_KEY_ID=LTAI5tSampleMaskedKey0000
+OSS_ACCESS_KEY_SECRET=YOUR_OSS_SECRET
+OSS_BUCKET=shop-static
+JWT_SECRET=9d3f8a1c2b4e6f8a0c1d3e5f7a9b1c3d
+WECHAT_PAY_MCH_ID=1600000000
+SESSION_TTL=7200`,
+`# ===== 数据平台（数仓 + 实时管道）=====
+CLICKHOUSE_HOST=ck-prod.example.com
+CLICKHOUSE_PASSWORD=YOUR_CK_PASSWORD
+KAFKA_BROKERS=kafka1:9092,kafka2:9092
+KAFKA_TOPIC=ods_orders
+MINIO_ENDPOINT=http://minio.internal:9000
+MINIO_ACCESS_KEY=YOUR_MINIO_AK
+DEEPSEEK_API_KEY=sk-7a3c9e1b5d8f2046a9c0b7e3d1f5a8c2b6d4e8f0
+DASHSCOPE_API_KEY=sk-ds-4e8b2f6a0c9d3e1b7a5f8c2d4e6b0a8c1
+SLACK_WEBHOOK=https://hooks.slack.com/services/T0000/B0000/XXXXXXXX
+AIRFLOW_HOME=/opt/airflow
+LOG_LEVEL=INFO`
+];
+
+/* ===== 分类规则（按顺序优先匹配） ===== */
+const CATS = [
+  {id:"ai",   name:"AI 模型密钥", cls:"tAi",    re:/OPENAI|ANTHROPIC|CLAUDE|GEMINI|DEEPSEEK|QWEN|DASHSCOPE|MOONSHOT|ZHIPU|GLM_|_LLM|LLM_|AI_MODEL|EMBEDDING|VECTOR|SPARK_|ERNIE|HUNYUAN|_AI_KEY/i,
+   steps:["① 到模型平台开通账号并实名","② 创建 API Key 并设置用量配额","③ 配置用量告警（防止超额账单）","④ 填入 .env 后本地验证一次真实调用"]},
+  {id:"db",   name:"数据库",      cls:"tDb",    re:/(DATABASE|DB_|_DB$|POSTGRES|PGDATA|MYSQL|MARIADB|MONGO|SQLITE|CLICKHOUSE|_DSN)/i,
+   steps:["① 选型并创建数据库实例","② 建库 + 最小权限业务账号","③ 配置白名单 / 专有网络放通","④ 连接串填入并做连通测试"]},
+  {id:"cache",name:"缓存",        cls:"tCache", re:/REDIS|MEMCACHED|CACHE/i,
+   steps:["① 创建缓存实例","② 设置最大内存与逐出策略","③ 白名单放通应用出口 IP","④ 连通测试 + 读写验证"]},
+  {id:"store",name:"对象存储",    cls:"tStore", re:/(S3_|MINIO|OSS_|COS_|OBS_|BUCKET|STORAGE|BLOB|_ENDPOINT$)/i,
+   steps:["① 创建 Bucket（私有读写）","② 创建子账号 AK/SK 仅授权该 Bucket","③ 配置防盗链 / 生命周期规则","④ 上传下载各验证一次"]},
+  {id:"mq",   name:"消息队列",    cls:"tMq",    re:/KAFKA|RABBIT|_MQ$|MQ_|QUEUE|PULSAR|NSQ|ROCKETMQ|WEBHOOK/i,
+   steps:["① 创建集群 / Topic","② 规划分区数与消费组","③ 开启鉴权 + 白名单","④ 生产消费端到端自测"]},
+  {id:"auth", name:"认证凭据",    cls:"tAuth",  re:/(SECRET|TOKEN(?!S)|PASSWORD|PASSWD|CREDENTIAL|JWT|OAUTH|STRIPE|PAYPAL|ALIPAY|WECHAT_PAY|ACCESS_KEY)/i,
+   steps:["① 确认凭据签发方（自签 / 第三方）","② 最小权限生成新凭据","③ 设置轮换周期并登记到期日","④ 填入 .env 并验证生效"]},
+  {id:"cfg",  name:"普通配置",    cls:"tCfg",   re:/./,
+   steps:["① 按环境（dev/staging/prod）区分取值","② 评审默认值安全性（DEBUG 必须为 false）","③ 写入环境管理文档备案"]}
+];
+
+/* ===== 解析 ===== */
+let parsed = [];      // {key, val, cat, empty, risk}
+let doneMap = {};     // catId+idx -> bool
+let logLines = [];
+
+function isPlaceholder(v){
+  return /YOUR_|XXX|CHANGE|PLACEHOLDER|EXAMPLE|<[^>]*>|\*\*\*/i.test(v);
+}
+function isRisk(key, v){
+  if(!v) return false;
+  if(isPlaceholder(v)) return false;
+  if(/^sk-/i.test(v)) return true;
+  const body = v.replace(/^[^:]+:\/\//,"").replace(/.*@/,"");
+  return /[A-Za-z0-9/+_=-]{24,}/.test(body);
+}
+function parseEnv(text){
+  const out = [];
+  const lines = text.split(/\r?\n/);
+  let ln = 0;
+  for(const raw of lines){
+    ln++;
+    const line = raw.trim();
+    if(!line || line.startsWith("#")) continue;
+    const m = line.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_.]*)\s*=\s*(.*)$/);
+    if(!m){ logLines.push("第" + ln + "行跳过（非 KEY=VALUE 格式）：" + raw.slice(0,40)); continue; }
+    let key = m[1], val = m[2];
+    const q = val.match(/^(["'])(.*)\1\s*(?:#.*)?$/);
+    if(q){ val = q[2]; }
+    else { const c = val.indexOf(" #"); if(c > -1) val = val.slice(0, c); }
+    val = val.trim();
+    const cat = CATS.find(c => c.re.test(key));
+    out.push({key, val, cat: cat.id, empty: val === "", risk: isRisk(key, val)});
+  }
+  return out;
+}
+
+/* ===== 渲染 ===== */
+const $ = id => document.getElementById(id);
+
+function render(){
+  const stats = {};
+  CATS.forEach(c => stats[c.id] = 0);
+  parsed.forEach(p => stats[p.cat]++);
+  const catCount = CATS.filter(c => stats[c.id] > 0).length;
+  const resCount = parsed.filter(p => p.cat !== "cfg").length;
+  const riskCount = parsed.filter(p => p.risk).length;
+  const emptyCount = parsed.filter(p => p.empty).length;
+  $("stats").innerHTML =
+    '<div class="stCard"><b>' + parsed.length + '</b><span>变量总数</span></div>' +
+    '<div class="stCard"><b>' + catCount + '</b><span>资源类目</span></div>' +
+    '<div class="stCard"><b>' + resCount + '</b><span>需开通资源项</span></div>' +
+    '<div class="stCard"><b style="color:' + (riskCount ? 'var(--danger)' : 'var(--ok)') + '">' + riskCount + '</b><span>疑似泄露风险</span></div>' +
+    '<div class="stCard"><b>' + emptyCount + '</b><span>待开通（值为空）</span></div>';
+
+  let html = "";
+  CATS.forEach(c => {
+    const items = parsed.map((p, i) => ({p, i})).filter(x => x.p.cat === c.id);
+    if(!items.length) return;
+    html += '<div class="catCard"><div class="catHead"><span class="catName">' + c.name + '</span><span class="cnt">' + items.length + ' 项</span></div>';
+    items.forEach(x => {
+      let extra = "";
+      if(x.p.risk) extra = ' <span class="tag risk">疑似泄露</span>';
+      else if(x.p.empty) extra = ' <span class="tag emptyVal">待开通</span>';
+      const showVal = x.p.val ? (x.p.val.length > 34 ? x.p.val.slice(0,34) + "…" : x.p.val) : "（空）";
+      html += '<div class="varRow"><span class="kname">' + x.p.key + '</span><span class="tag ' + c.cls + '">' + c.name + '</span><span class="val" title="' + x.p.val.replace(/"/g,"&quot;") + '">= ' + showVal + '</span>' + extra + '</div>';
+    });
+    html += '<div class="steps">';
+    c.steps.forEach((s, si) => {
+      const k = c.id + "_" + si;
+      const done = !!doneMap[k];
+      html += '<label class="stepRow' + (done ? ' done' : '') + '"><input type="checkbox" data-k="' + k + '"' + (done ? ' checked' : '') + '><span class="stext">' + s + '</span></label>';
+    });
+    html += '</div></div>';
+  });
+  $("catGrid").innerHTML = html;
+  $("catGrid").querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      doneMap[cb.dataset.k] = cb.checked;
+      cb.closest(".stepRow").classList.toggle("done", cb.checked);
+      updateProgress();
+      addLog("开通步骤「" + cb.closest(".stepRow").querySelector(".stext").textContent.slice(0,26) + "…" + (cb.checked ? "」已勾选 ✓" : "」已取消"));
+    });
+  });
+  updateProgress();
+  renderEnv();
+}
+
+function stepKeys(){
+  const seen = new Set();
+  CATS.forEach(c => {
+    if(!parsed.some(p => p.cat === c.id)) return;
+    c.steps.forEach((_, si) => seen.add(c.id + "_" + si));
+  });
+  return [...seen];
+}
+function updateProgress(){
+  const ks = stepKeys();
+  const done = ks.filter(k => doneMap[k]).length;
+  $("pfill").style.width = (ks.length ? (done / ks.length * 100) : 0) + "%";
+  $("ptext").textContent = "开通进度 " + done + "/" + ks.length;
+  const b = $("doneBanner");
+  if(ks.length && done === ks.length){
+    b.className = "doneBanner bOk";
+    b.textContent = "✅ 全部开通步骤已完成，资源清单闭环！.env 模板可直接分发给队友。";
+  } else {
+    b.className = "doneBanner";
+    b.textContent = "";
+  }
+}
+function renderEnv(){
+  const lines = parsed.map(p => p.key + "=YOUR_" + p.key + "_HERE");
+  lines.push("");
+  lines.push("# 由 env资源清单解析器生成 · " + new Date().toISOString().slice(0,10) + " · 所有值已替换为占位符");
+  $("envBox").textContent = lines.join("\n");
+}
+function addLog(msg){
+  logLines.push("[" + new Date().toLocaleTimeString("zh-CN",{hour12:false}) + "] " + msg);
+  $("logs").textContent = logLines.slice(-60).join("\n");
+  $("logs").scrollTop = $("logs").scrollHeight;
+}
+function showErr(msg){
+  const e = $("err");
+  if(msg){ e.textContent = msg; e.classList.add("show"); }
+  else e.classList.remove("show");
+}
+
+/* ===== 事件 ===== */
+$("btnParse").addEventListener("click", () => {
+  showErr("");
+  const text = $("src").value;
+  if(!text.trim()){ showErr("⛔ 输入为空：请先粘贴 env.example 内容，或点击上方示例一键载入。"); return; }
+  logLines = [];
+  parsed = parseEnv(text);
+  doneMap = {};
+  if(!parsed.length){ showErr("⛔ 未解析到任何有效变量：内容全是注释或空行，请检查格式（需 KEY=VALUE）。"); $("outCard").style.display = "none"; $("envCard").style.display = "none"; $("logCard").style.display = "none"; return; }
+  const riskKeys = parsed.filter(p => p.risk).map(p => p.key);
+  $("outCard").style.display = "block";
+  $("envCard").style.display = "block";
+  $("logCard").style.display = "block";
+  render();
+  addLog("解析完成：" + parsed.length + " 个变量、" + CATS.filter(c => parsed.some(p => p.cat === c.id)).length + " 个资源类目");
+  if(riskKeys.length) addLog("⚠️ 疑似泄露：" + riskKeys.join("、") + "（.env 模板中已强制替换为占位符）");
+});
+$("btnClear").addEventListener("click", () => {
+  $("src").value = ""; showErr("");
+  $("outCard").style.display = "none"; $("envCard").style.display = "none"; $("logCard").style.display = "none";
+  parsed = []; doneMap = {}; logLines = [];
+});
+document.querySelectorAll(".chip").forEach(ch => {
+  ch.addEventListener("click", () => {
+    document.querySelectorAll(".chip").forEach(c => c.classList.remove("on"));
+    ch.classList.add("on");
+    $("src").value = SAMPLES[+ch.dataset.s];
+    $("btnParse").click();
+  });
+});
+$("btnDl").addEventListener("click", () => {
+  const blob = new Blob([$("envBox").textContent], {type: "text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "env.template";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  addLog("已下载 env.template（占位模板，含 " + parsed.length + " 个变量）");
+});
+$("btnCopy").addEventListener("click", () => {
+  const ta = document.createElement("textarea");
+  ta.value = $("envBox").textContent;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  ta.remove();
+  addLog("已复制 .env 模板到剪贴板");
+});
+</script>
+</body>
+</html>

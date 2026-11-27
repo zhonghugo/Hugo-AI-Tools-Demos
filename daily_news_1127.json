@@ -1,0 +1,85 @@
+{
+ "date": "2026-11-27",
+ "table_id": "tbltCHyotV8hdemf",
+ "table_total": 479,
+ "count": 7,
+ "items": [
+  {
+   "record_id": "reczz28eYBBQT6E8",
+   "资讯标题": "Hub开源登顶PH当日第一：协调器调度100个Claude Code/Codex会话，浏览器/Telegram下目标只回决策",
+   "推荐指数": 5,
+   "来源平台": "Product Hunt",
+   "主题分类": "AI Agent/智能体工具",
+   "链接": "https://usehub.dev",
+   "摘要": "开源Claude Code/Codex会话调度器（Apache-2.0自托管）：把目标写给协调器（浏览器或Telegram），协调器派给各agent会话执行，只把需要决策的事项回传给人；跑在自有Claude/ChatGPT订阅上，一行命令安装；11/26登顶PH Product of the Day（277赞149评），作者自报546个MR合并、并支撑阿根廷公立医院挂号系统（86名医生真实使用）；实验性设计：会话默认bypassPermissions无需逐次确认，须按SECURITY.md划定安全边界",
+   "VibeCoding机会": "做「目标→派发→决策」调度面板Demo：输入N个目标自动拆成会话卡片，只把标记「需决策」的卡片顶到人工队列，其余自动流转，附事件日志流视图与并行会话状态灯——把「人只管决策」变成可交互演示",
+   "日期": "2026-11-27"
+  },
+  {
+   "record_id": "reczz28eYBLtiCdT",
+   "资讯标题": "Obsidian官宣AI Agent官方连接器：7个开源Skills让Claude/ChatGPT/Cursor等直接操作本地笔记库",
+   "推荐指数": 5,
+   "来源平台": "GitHub",
+   "主题分类": "AI Agent/智能体工具",
+   "链接": "https://github.com/obsidianmd/obsidian-skills",
+   "摘要": "11/25官宣（X曝光超百万）：obsidianmd/obsidian-skills开源包（MIT）含7个Agent Skills——obsidian-markdown（保护wikilinks/callouts/canvas不被改乱）、obsidian-bases（数据库表）、json-canvas、obsidian-cli（需桌面端1.12.7+开启CLI）、obsidian-headless（终端无头同步与发布）、defuddle（网页转Markdown）、knap（JSON/CSV填模板）；桌面型Agent可搜索/读写整个vault，聊天型Agent只能产出格式正确的笔记；笔记留在本地，连接器本身不上传任何数据",
+   "VibeCoding机会": "做「Agent记忆层对比」单文件HTML演示：同一问题分别用『裸文件夹扫描』vs『Obsidian CLI搜索』两条路径模拟token消耗差异，并展示格式保护前后（wikilinks/canvas被破坏vs完好）对比——把官方实测数字变成可玩的小工具",
+   "日期": "2026-11-27"
+  },
+  {
+   "record_id": "reczz28eYBLth582",
+   "资讯标题": "蚂蚁百灵开源Ling-3.2-air：124B总参仅激活5.5B，SWE-bench Pro暴涨32分至58.28",
+   "推荐指数": 5,
+   "来源平台": "其他",
+   "主题分类": "开源项目",
+   "链接": "https://huggingface.co/inclusionAI/Ling-3.2-air",
+   "摘要": "11/24发布并开源（MIT，HuggingFace/魔搭同步）：124B总参/每token激活5.5B，原生多模态（文本/图像/视频输入），42层混合线性注意力（35层Kimi Delta Attention+7层门控MLA），原生262K上下文可YaRN扩至约1M；SWE-bench Pro 26.40→58.28，AutomationBench-AA 15.7%→61%，AA-Briefcase Elo +353，Vision2Web 57.69→80.73；注意：厂商自报法律评测幻觉检查后全任务通过率仅0.8%，有开发者反馈5K-15K上下文存在重复循环问题",
+   "VibeCoding机会": "做「稀疏激活计算器」HTML Demo：输入总参数/激活参数/并发请求数，动态对比稠密vs MoE的单次前向计算量与显存估算，内置Ling-3.2-air与上一代Ling-3.0-flash-VL的SWE/AutomationBench分数对比条形图",
+   "日期": "2026-11-27"
+  },
+  {
+   "record_id": "reczz28eYBLthDE3",
+   "资讯标题": "ExtraOrbital登上PH：读env.example自动给Agent开好数据库/存储桶/AI密钥，CLI即用",
+   "推荐指数": 4,
+   "来源平台": "Product Hunt",
+   "主题分类": "AI Agent/智能体工具",
+   "链接": "http://phunt.kakacut.cn/",
+   "摘要": "PH 11/26发布（167赞）：应用需要数据库/存储/缓存/AI密钥时，Agent只能当「凭据跑腿傀儡」——没有访问权限，开资源全靠人；ExtraOrbital读env.example文件自动创建全部所需资源，以CLI形态供Agent直接调用甚至无需账户，统一仪表盘管理账单/备份/安全边界（官方直链未确认，暂用PH热榜聚合页兜底）",
+   "VibeCoding机会": "做「env.example资源清单解析器」Demo：粘贴env.example文本，自动分类哪些是数据库/存储/模型密钥，生成开通步骤清单与占位配置文件预览——单文件HTML+纯前端解析即可完成",
+   "日期": "2026-11-27"
+  },
+  {
+   "record_id": "reczz28eYBLtiFRa",
+   "资讯标题": "Perplexity推出Time Machine：可检索「答案发布之前」的网络，支持过去365天任意时点回溯",
+   "推荐指数": 4,
+   "来源平台": "其他",
+   "主题分类": "泛AI效率工具",
+   "链接": "https://aipingnews.com/en/news",
+   "摘要": "11/27上线：搜索与页面阅读支持过去365天内的任意时间截点，可以在「某事件发生之前」的网络状态上做检索与佐证，适合回溯考证、竞品时间线还原与信息源核实（官方直链未确认，暂用AI Ping聚合页兜底）",
+   "VibeCoding机会": "做「时间截点考证工作台」Demo：输入一个事件+怀疑的发布日期，输出「该日期前网络存在什么/不存在什么」的对比考证卡片模板，用示例数据演示资讯核真流程",
+   "日期": "2026-11-27"
+  },
+  {
+   "record_id": "reczz28eYBLtjrhV",
+   "资讯标题": "上海AI Lab开源Sage-Interaction：全双工可打断多模态交互，响应延迟1.29秒",
+   "推荐指数": 4,
+   "来源平台": "其他",
+   "主题分类": "开源项目",
+   "链接": "https://www.aibase.com/zh/news/32551",
+   "摘要": "面向语音对话中的实时插话与话题切换，支持流式视频输入；发布报道称响应延迟1.29秒、双工交互质量得分80.73；把「能否自然接话」作为交互模型的评测目标是其核心价值；架构、硬件条件与评测协议细节报道未充分披露，数字应视为发布方自报（AIbase报道）",
+   "VibeCoding机会": "做「全双工vs半双工」交互对比演示：用时间轴动画展示『等对方说完再答』与『实时插话』两种对话模式的延迟差异，内置1.29秒指标卡——纯前端即可完成",
+   "日期": "2026-11-27"
+  },
+  {
+   "record_id": "reczz28eYBLthUyQ",
+   "资讯标题": "英伟达开源Nemotron-Labs-Image-30B-A3B：MoE自回归图像生成，Mamba-2+注意力混合架构",
+   "推荐指数": 4,
+   "来源平台": "其他",
+   "主题分类": "开源项目",
+   "链接": "https://www.cnblogs.com/itech/p/23797843",
+   "摘要": "总参30B/每步激活约3B，架构结合Mamba-2状态空间层与注意力机制，GRPO训练，权重与论文已公开；LongTextBench与GenEval领先部分对手，GenEval2与Qwen-Image-Bench落后GPT Image2（数字来自发布报道汇总，基准版本与运行配置待核）；适合图表、幻灯片等「像素即代码」场景",
+   "VibeCoding机会": "做「图表生成实测看板」Demo：同一组业务数据分别用「文本描述生成图像」与「直接SVG绘制」两种方式对比，输出文字准确率与可编辑性打分面板——把「像素即代码该不该用」变成可交互评测",
+   "日期": "2026-11-27"
+  }
+ ]
+}
