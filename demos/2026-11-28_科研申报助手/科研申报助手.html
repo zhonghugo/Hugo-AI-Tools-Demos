@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科研申报助手 · AI项目材料清单 + Token用量估算 + 里程碑倒排</title>
+<style>
+  :root{--primary:#2563eb;--primary-soft:#eff6ff;--ok:#16a34a;--ok-soft:#f0fdf4;--warn:#d97706;--warn-soft:#fffbeb;--bad:#dc2626;--bad-soft:#fef2f2;--ink:#1e293b;--muted:#64748b;--line:#e2e8f0;--bg:#f5f7fa}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:18px 14px 40px}
+  .wrap{max-width:1040px;margin:0 auto}
+  header{text-align:center;margin-bottom:18px}
+  .badge{display:inline-block;background:var(--primary-soft);color:var(--primary);font-size:12px;padding:3px 12px;border-radius:99px;margin-bottom:8px}
+  h1{font-size:24px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:13px;max-width:720px;margin:0 auto}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:15px;margin-bottom:12px;padding-left:9px;border-left:3px solid var(--primary)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .chip{border:1px solid var(--primary);background:#fff;color:var(--primary);border-radius:99px;padding:5px 14px;font-size:13px;cursor:pointer}
+  .chip:hover{background:var(--primary-soft)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 16px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  input,select{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px;color:var(--ink);background:#fff}
+  input:focus,select:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+  .hint{font-size:11px;color:var(--muted);margin-top:3px}
+  input[type=range]{padding:0;border:none;accent-color:var(--primary)}
+  .matlist{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:6px}
+  .matlist label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;margin:0}
+  .matlist input{width:auto}
+  .matlist label.done{border-color:var(--ok);background:var(--ok-soft)}
+  .radios{display:flex;gap:14px;align-items:center;font-size:13px}
+  .radios label{display:flex;align-items:center;gap:5px;margin:0;font-size:13px;color:var(--ink)}
+  .radios input{width:auto}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  button.b{border:none;border-radius:9px;padding:9px 20px;font-size:14px;cursor:pointer;font-weight:600}
+  .b-main{background:var(--primary);color:#fff}
+  .b-main:hover{background:#1d4ed8}
+  .b-ghost{background:#fff;color:var(--muted);border:1px solid var(--line)}
+  .b-csv{background:var(--ok);color:#fff}
+  .b-copy{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+  #banner{display:none;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:600;margin-bottom:14px}
+  #banner.ok{display:block;background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
+  #banner.warn{display:block;background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+  #banner.bad{display:block;background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+  .sc{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 8px;text-align:center}
+  .sc b{display:block;font-size:19px;color:var(--primary)}
+  .sc span{font-size:11px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left}
+  th{background:var(--bg);font-size:12px;color:var(--muted)}
+  .progwrap{background:var(--line);border-radius:99px;height:10px;overflow:hidden;margin:8px 0 4px}
+  .prog{height:100%;background:var(--ok);border-radius:99px;transition:width .3s}
+  .miles{list-style:none}
+  .miles li{display:flex;gap:10px;padding:8px 6px;border-bottom:1px dashed var(--line);font-size:13px;align-items:baseline}
+  .miles .d{min-width:88px;color:var(--primary);font-weight:600}
+  .miles .st{margin-left:auto;font-size:12px;white-space:nowrap}
+  .st.done{color:var(--ok)}.st.doing{color:var(--warn)}.st.todo{color:var(--muted)}
+  #log{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:12px;font-size:12px;font-family:ui-monospace,Menlo,monospace;max-height:180px;overflow:auto;white-space:pre-wrap}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:22px 0}
+  .hidden{display:none}
+  @media(max-width:560px){h1{font-size:20px}.grid2,.grid3,.matlist{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.miles .d{min-width:76px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">申报/立项 · 用量估算 · 数据处理</span>
+    <h1>科研申报助手</h1>
+    <p class="sub">参考 Kimi for Science 科研支持计划「入选最高 15 万元 API 额度（约 70 亿 Token），申报材料含研究背景 / 数据来源 / 评估指标 / Token 预估，12/8 首期截止」（2026-11-27 官宣，4星）。把「写申报」拆成三件确定的事：材料清单勾齐、Token 用量算清、里程碑按截止日倒排——申报材料模板同样可迁移到求职作品集项目立项。</p>
+  </header>
+
+  <div class="card">
+    <h2>① 示例项目（一键载入）</h2>
+    <div class="chips">
+      <button class="chip" id="chip1">🧬 蛋白结构预测（自然科学）</button>
+      <button class="chip" id="chip2">🧪 材料配方筛选（工程学）</button>
+      <button class="chip" id="chip3">📈 金融舆情分析（交叉学科·敏感数据）</button>
+    </div>
+    <div class="grid3">
+      <div><label>项目名称（必填）</label><input id="pname" placeholder="如：XX 任务批量清洗方案验证"></div>
+      <div><label>研究方向</label><select id="pfield"><option>自然科学</option><option>工程学</option><option>交叉学科</option></select></div>
+      <div><label>开始日期</label><input id="pstart" type="date"></div>
+    </div>
+    <div class="grid3" style="margin-top:10px">
+      <div><label>截止日期</label><input id="pdeadline" type="date"></div>
+      <div><label>数据是否含敏感信息</label><div class="radios"><label><input type="radio" name="sens" value="yes"> 是</label><label><input type="radio" name="sens" value="no" checked> 否</label></div></div>
+      <div><label>是否承诺开源复现</label><div class="radios"><label><input type="radio" name="oss" value="yes" checked> 是</label><label><input type="radio" name="oss" value="no"> 否</label></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>② Token 用量画像（业务表单）</h2>
+    <div class="grid3">
+      <div><label>预估实验轮数</label><input id="rounds" type="number" min="1" value="120"></div>
+      <div><label>单轮输入 Token（万）</label><input id="inTok" type="number" min="0" value="80"></div>
+      <div><label>单轮输出 Token（万）</label><input id="outTok" type="number" min="0" value="25"></div>
+    </div>
+    <div class="grid3" style="margin-top:10px">
+      <div><label>方案迭代系数（每轮平均重跑 <b id="iterVal">1.6</b> 次）</label><input id="iter" type="range" min="1" max="3" step="0.1" value="1.6"><div class="hint">调参试错越多，系数越高</div></div>
+      <div><label>复核与报告 Token（万）</label><input id="reportTok" type="number" min="0" value="600"></div>
+      <div><label>安全缓冲率 <b id="bufVal">20%</b></label><input id="buf" type="range" min="0" max="50" step="5" value="20"><div class="hint">官方按研究需求评审确定，留缓冲更稳</div></div>
+    </div>
+    <div class="hint" style="margin-top:8px">额度口径：官方标注约 70 亿 Token（≈15 万元），折算单价约 ¥21.4 / 百万 Token。实验 Token = 轮数 × 迭代系数 ×（输入 + 输出），再叠加复核报告与缓冲。</div>
+  </div>
+
+  <div class="card">
+    <h2>③ 申报材料清单（勾选完成度，官方材料维度）</h2>
+    <div class="matlist" id="matList">
+      <label><input type="checkbox" data-mat="研究背景与目标" checked> 研究背景与目标</label>
+      <label><input type="checkbox" data-mat="数据来源与合规说明" checked> 数据来源与合规说明</label>
+      <label><input type="checkbox" data-mat="评估指标与基线" checked> 评估指标与基线</label>
+      <label><input type="checkbox" data-mat="Token用量预估" checked> Token 用量预估</label>
+      <label><input type="checkbox" data-mat="里程碑与时间计划" checked> 里程碑与时间计划</label>
+      <label><input type="checkbox" data-mat="开放复现承诺"> 开放复现承诺</label>
+    </div>
+    <div class="progwrap"><div class="prog" id="matProg" style="width:83%"></div></div>
+    <div class="hint" id="matHint">材料完成度 5/6</div>
+    <div class="btns">
+      <button class="b b-main" id="btnRun">开始估算</button>
+      <button class="b b-ghost" id="btnReset">重置</button>
+    </div>
+  </div>
+
+  <div id="banner"></div>
+  <div id="results" class="hidden">
+    <div class="stats">
+      <div class="sc"><b id="stTotal">-</b><span>预估总 Token（亿）</span></div>
+      <div class="sc"><b id="stUsage">-</b><span>额度使用率（70亿上限）</span></div>
+      <div class="sc"><b id="stCost">-</b><span>折算费用（额度 15 万元）</span></div>
+      <div class="sc"><b id="stMat">-</b><span>材料完成度</span></div>
+      <div class="sc"><b id="stDays">-</b><span>距截止天数</span></div>
+    </div>
+    <div class="card">
+      <h2>④ 用量构成与费用明细</h2>
+      <table id="detailTable"><thead><tr><th>构成项</th><th>Token（万）</th><th>占比</th><th>说明</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>⑤ 里程碑倒排（按截止日倒推）</h2>
+      <ul class="miles" id="miles"></ul>
+    </div>
+    <div class="btns">
+      <button class="b b-csv" id="btnCsv">⬇ 下载申报摘要 CSV</button>
+      <button class="b b-copy" id="btnCopy">📋 复制申报摘要</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>⑥ 估算日志</h2>
+    <div id="log">等待操作…</div>
+  </div>
+
+  <p class="empty" style="font-size:11px;color:var(--muted)">示例数据固化 · 纯本地计算不上传 · 单文件 HTML 可直接转发 · file:// 打开即用</p>
+</div>
+
+<script>
+"use strict";
+var $=function(id){return document.getElementById(id)};
+var today=function(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000)}
+function addDays(s,n){var d=new Date(s);d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function fmtYi(n){return (n/1e8).toFixed(2)}
+function log(msg){var el=$("log");var t=new Date().toTimeString().slice(0,8);el.textContent="["+t+"] "+msg+"\n"+(el.textContent==="等待操作…"?"":el.textContent)}
+
+var QUOTA=7e9, PRICE=150000/(QUOTA/1e6); // ≈21.43 ¥/百万Token
+var DEFAULTS=null;
+
+function matState(){var list=[].slice.call(document.querySelectorAll("#matList input"));return list.map(function(c){return{key:c.dataset.mat,ok:c.checked,el:c}})}
+function matDone(){return matState().filter(function(m){return m.ok}).length}
+
+function refreshMat(){
+  var done=matDone(),total=6;
+  $("matProg").style.width=Math.round(done/total*100)+"%";
+  $("matHint").textContent="材料完成度 "+done+"/"+total+(done===total?" ✅ 全部齐了，可提交":"，还差 "+(total-done)+" 项");
+  matState().forEach(function(m){m.el.parentNode.classList.toggle("done",m.ok)});
+  if(lastRun) judge(true);
+}
+
+function calc(){
+  var rounds=Math.max(0,+$("rounds").value||0);
+  var per=(Math.max(0,+$("inTok").value||0)+Math.max(0,+$("outTok").value||0))*1e4;
+  var iter=+$("iter").value||1;
+  var rep=Math.max(0,+$("reportTok").value||0)*1e4;
+  var buf=(+$("buf").value||0)/100;
+  var exp=rounds*iter*per;
+  var sub=exp+rep;
+  var total=sub*(1+buf);
+  return{rounds:rounds,iter:iter,exp:exp,rep:rep,bufRatio:buf,sub:sub,total:total,usage:total/QUOTA,cost:total/1e6*PRICE};
+}
+
+var lastRun=null;
+function judge(isRefresh){
+  var name=$("pname").value.trim();
+  var r=calc();
+  var done=matDone();
+  var sens=document.querySelector('input[name=sens]:checked').value==="yes";
+  var hasCompliance=matState().some(function(m){return m.key==="数据来源与合规说明"&&m.ok});
+  var b=$("banner");b.className="";
+  var verdict,cls;
+  if(!name){verdict="⛔ 请先填写项目名称（必填），已拦截估算";cls="bad"}
+  else if(r.usage>1){verdict="⛔ 预估用量 "+(r.usage*100).toFixed(1)+"% 超出 70 亿额度上限——砍实验轮数 / 降低迭代系数，或分多次提交（可多次提交以最后一次为准）";cls="bad"}
+  else if(sens&&!hasCompliance){verdict="⛔ 数据含敏感信息但「数据来源与合规说明」未勾选——补齐合规说明前拦截申报";cls="bad"}
+  else if(r.usage>0.7){verdict="⚠️ 额度使用率 "+(r.usage*100).toFixed(1)+"%，逼近上限——建议压缩迭代系数或缓冲率后再申报";cls="warn"}
+  else if(done<6){verdict="⚠️ 材料未齐（"+done+"/6）——补齐清单即可提交申报";cls="warn"}
+  else{verdict="✅ 材料齐、用量可控，可按里程碑推进提交（结果邮件通知，可多次提交以最后一次为准）";cls="ok"}
+  b.className=cls;b.textContent=verdict;
+  lastRun={r:r,name:name,done:done,verdict:verdict,cls:cls};
+  $("stMat").textContent=done+"/6";
+  if(!isRefresh){
+    $("stTotal").textContent=fmtYi(r.total);
+    $("stUsage").textContent=(r.usage*100).toFixed(1)+"%";
+    $("stCost").textContent="¥"+Math.round(r.cost).toLocaleString();
+    $("stMat").textContent=done+"/6";
+    $("stDays").textContent=daysBetween(today(),$("pdeadline").value||today());
+    renderDetail(r);renderMiles();
+    $("results").classList.remove("hidden");
+  }
+}
+
+function renderDetail(r){
+  var rows=[
+    ["实验 Token",r.exp,roundsTxt(r.rounds)+" 轮 × 迭代 "+r.iter+" 次"],
+    ["复核与报告",r.rep,"评估指标 / 数据说明 / 申报书撰写"],
+    ["安全缓冲",r.sub*r.bufRatio,"按 "+Math.round(r.bufRatio*100)+"% 缓冲率叠加"],
+    ["合计（含缓冲）",r.total,"额度使用率 "+(r.usage*100).toFixed(1)+"% · 折算 ¥"+Math.round(r.cost).toLocaleString()+" / 15 万"]
+  ];
+  var tb=$("detailTable").querySelector("tbody");tb.innerHTML="";
+  rows.forEach(function(row){
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td>"+row[0]+"</td><td>"+(row[1]/1e4).toFixed(0)+" 万</td><td>"+(r.total? (row[1]/r.total*100).toFixed(1)+"%":"-")+"</td><td>"+row[2]+"</td>";
+    tb.appendChild(tr);
+  });
+}
+function roundsTxt(n){return n.toLocaleString()}
+
+var MILES=[["评估指标与基线定稿",-8],["Token 用量复核（本工具输出估算报告）",-6],["申报材料清单全部勾齐",-4],["内部评审与修订",-2],["提交申请（以最后一次为准）",0]];
+function renderMiles(){
+  var dl=$("pdeadline").value||today();
+  var td=today();
+  var ul=$("miles");ul.innerHTML="";
+  MILES.forEach(function(m){
+    var d=addDays(dl,m[1]);
+    var st,sc;
+    if(daysBetween(td,d)>0){st="未开始";sc="todo"}
+    else if(daysBetween(td,d)===0){st="进行中";sc="doing"}
+    else{st="已到期";sc="done"}
+    var li=document.createElement("li");
+    li.innerHTML='<span class="d">'+d+'</span><span>'+m[0]+'</span><span class="st '+sc+'">'+st+'（截止'+(m[1]===0?"当日":m[1]+"天前")+"）</span>";
+    ul.appendChild(li);
+  });
+}
+
+function loadChip(n){
+  var c={
+    1:{name:"蛋白结构预测管线验证",field:"自然科学",rounds:2000,inTok:120,outTok:35,iter:1.8,rep:800,buf:25,sens:"no",oss:"yes",mats:[1,1,1,1,1,1],start:"2026-11-28",dl:"2026-12-08"},
+    2:{name:"钙钛矿配方高通量筛选",field:"工程学",rounds:80,inTok:60,outTok:18,iter:1.4,rep:400,buf:15,sens:"no",oss:"yes",mats:[1,1,1,1,1,1],start:"2026-11-28",dl:"2026-12-08"},
+    3:{name:"金融舆情跨市场传导分析",field:"交叉学科",rounds:300,inTok:150,outTok:40,iter:2.2,rep:1200,buf:30,sens:"yes",oss:"no",mats:[1,0,1,1,1,0],start:"2026-11-28",dl:"2026-12-08"}
+  }[n];
+  $("pname").value=c.name;$("pfield").value=c.field;
+  $("rounds").value=c.rounds;$("inTok").value=c.inTok;$("outTok").value=c.outTok;
+  $("iter").value=c.iter;$("iterVal").textContent=c.iter;
+  $("reportTok").value=c.rep;$("buf").value=c.buf;$("bufVal").textContent=c.buf+"%";
+  document.querySelector('input[name=sens][value="'+c.sens+'"]').checked=true;
+  document.querySelector('input[name=oss][value="'+c.oss+'"]').checked=true;
+  var list=matState();
+  for(var i=0;i<6;i++){list[i].el.checked=!!c.mats[i]}
+  $("pstart").value=c.start;$("pdeadline").value=c.dl;
+  refreshMat();
+  log("载入示例 "+n+"：「"+c.name+"」（"+c.field+"），轮数 "+c.rounds+"、迭代 "+c.iter+"、缓冲 "+c.buf+"%");
+}
+
+function summaryText(){
+  var r=lastRun.r;
+  return ["【科研申报助手 · 估算摘要】",
+    "项目："+lastRun.name+"（"+$("pfield").value+"）",
+    "预估总 Token："+fmtYi(r.total)+" 亿 · 额度使用率 "+(r.usage*100).toFixed(1)+"%（70 亿上限）",
+    "折算费用：¥"+Math.round(r.cost).toLocaleString()+" / 15 万元额度",
+    "材料完成度："+lastRun.done+"/6",
+    "判定："+lastRun.verdict,
+    "里程碑：提交申请 "+$("pdeadline").value+"（距今 "+daysBetween(today(),$("pdeadline").value)+" 天）"].join("\n");
+}
+function download(){
+  var r=lastRun.r;
+  var lines=[
+    ["科研申报助手 估算摘要"],["项目名称",lastRun.name],["研究方向",$("pfield").value],
+    ["开始日期",$("pstart").value],["截止日期",$("pdeadline").value],
+    ["实验轮数",r.rounds],["方案迭代系数",r.iter],["单轮输入Token(万)",$("inTok").value],["单轮输出Token(万)",$("outTok").value],
+    ["复核报告Token(万)",$("reportTok").value],["缓冲率",Math.round(r.bufRatio*100)+"%"],
+    ["预估总Token(亿)",fmtYi(r.total)],["额度使用率",(r.usage*100).toFixed(1)+"%"],["折算费用","¥"+Math.round(r.cost).toLocaleString()],
+    ["材料完成度",lastRun.done+"/6"],["判定",lastRun.verdict],
+    ["--- 里程碑 ---"]
+  ].concat($("miles").querySelectorAll("li")?[].map.call($("miles").querySelectorAll("li"),function(li,i){return [i+1,MILES[i][0],MILES[i][1]===0?"截止当日":"截止前"+(-MILES[i][1])+"天"]}):[]);
+  lines.push(["--- 材料清单 ---"]);
+  matState().forEach(function(m){lines.push([m.key,m.ok?"已勾选":"未勾选"])});
+  var csv="\uFEFF"+lines.map(function(l){return l.join(",")}).join("\r\n");
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download="科研申报摘要.csv";a.click();
+  log("已下载申报摘要 CSV（"+lines.length+" 行，含 BOM）");
+}
+
+$("chip1").onclick=function(){loadChip(1)};
+$("chip2").onclick=function(){loadChip(2)};
+$("chip3").onclick=function(){loadChip(3)};
+$("iter").oninput=function(){$("iterVal").textContent=$("iter").value};
+$("buf").oninput=function(){$("bufVal").textContent=$("buf").value+"%"};
+$("matList").addEventListener("change",refreshMat);
+$("btnRun").onclick=function(){
+  if(!$("pname").value.trim()){
+    var b=$("banner");b.className="bad";b.textContent="⛔ 请先填写项目名称（必填），已拦截估算";
+    lastRun=null;log("拦截：项目名称为空，不进行估算");return;
+  }
+  judge(false);
+  log("估算完成：「"+lastRun.name+"」总 Token "+fmtYi(lastRun.r.total)+" 亿，使用率 "+(lastRun.r.usage*100).toFixed(1)+"%，材料 "+lastRun.done+"/6");
+};
+$("btnReset").onclick=function(){
+  $("pname").value="";$("rounds").value=120;$("inTok").value=80;$("outTok").value=25;
+  $("iter").value=1.6;$("iterVal").textContent="1.6";$("reportTok").value=600;$("buf").value=20;$("bufVal").textContent="20%";
+  $("pstart").value=today();$("pdeadline").value=addDays(today(),10);
+  document.querySelector('input[name=sens][value=no]').checked=true;
+  document.querySelector('input[name=oss][value=yes]').checked=true;
+  matState().forEach(function(m,i){m.el.checked=i<5});
+  lastRun=null;$("banner").className="";$("results").classList.add("hidden");
+  refreshMat();log("已重置为默认参数");
+};
+$("btnCsv").onclick=function(){if(!lastRun){log("请先开始估算再导出");return}download()};
+$("btnCopy").onclick=function(){
+  if(!lastRun){log("请先开始估算再复制");return}
+  var ok=false;
+  try{var ta=document.createElement("textarea");ta.value=summaryText();document.body.appendChild(ta);ta.select();ok=document.execCommand("copy");document.body.removeChild(ta)}catch(e){}
+  log(ok?"摘要已复制到剪贴板（"+summaryText().split("\n").length+" 行）":"复制失败，请手动选择日志区文本");
+};
+
+DEFAULTS={};
+$("pstart").value=today();$("pdeadline").value=addDays(today(),10);
+refreshMat();
+log("就绪：选示例 chip → 调整用量画像 → 开始估算；额度口径 70 亿 Token ≈ 15 万元");
+</script>
+</body>
+</html>
